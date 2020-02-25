@@ -5,6 +5,7 @@ import com.bitplay.api.dto.ResultJson;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.ArbType;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.MonitoringDataService;
@@ -81,7 +82,7 @@ public class DebugEndpoints {
         String isDone = "is done";
         String errorMsg = "";
         try {
-            if (arbitrageService.getLeftMarketService().getArbType() == ArbType.LEFT) {
+            if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
                 ((BitmexService) arbitrageService.getLeftMarketService()).requestReconnect(true, true);
             }
         } catch (Exception e) {
@@ -99,7 +100,7 @@ public class DebugEndpoints {
         String isDone = "is done";
         String errorMsg = "";
         try {
-            if (arbitrageService.getLeftMarketService().getArbType() == ArbType.LEFT) {
+            if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
                 ((BitmexService) arbitrageService.getLeftMarketService()).reSubscribeOrderBooks(true);
             }
         } catch (Exception e) {
@@ -135,23 +136,28 @@ public class DebugEndpoints {
         if (lastMDCCheck != null) {
             monAllHtml += "<br>last_MDC_check=" + sdf.format(lastMDCCheck);
         }
-        final BitmexService bs = (BitmexService) (arbitrageService.getLeftMarketService());
-        final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
-        String xrateLimitBtm = "";
-        String xrateLimitBtmUpdated = "";
-        if (bitmexXRateLimit != null) {
-            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
-            xrateLimitBtmUpdated = formatter.format(bitmexXRateLimit.getLastUpdate());
-            final int l = bitmexXRateLimit.getxRateLimit();
-            xrateLimitBtm = (l == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
-        }
 
         final OkCoinService right = (OkCoinService) arbitrageService.getRightMarketService();
         monAllHtml += "<br>OOHangedChecker: " + right.ooHangedCheckerService.getStatus();
 
         monAllHtml += "<br>BitmexOrderBookErrors=" + getBitmexOrderBookErrors();
 
-        final String bitmexReconnectCount = "BitmexReconnectCount=" + bs.getReconnectCount();
+        String xrateLimitBtm = "";
+        String xrateLimitBtmUpdated = "";
+        String bitmexReconnectCount = "";
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            final BitmexService bs = (BitmexService) arbitrageService.getLeftMarketService();
+            bitmexReconnectCount = "BitmexReconnectCount=" + bs.getReconnectCount();
+            if (bs.getxRateLimit() != null) {
+                final BitmexXRateLimit bitmexXRateLimit = bs.getxRateLimit();
+
+                final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
+                xrateLimitBtmUpdated = formatter.format(bitmexXRateLimit.getLastUpdate());
+                final int l = bitmexXRateLimit.getxRateLimit();
+                xrateLimitBtm = (l == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
+
+            }
+        }
 
         if (arbitrageService.getLastCalcSumBal() != null) {
             Date lastCalcSumBal = Date.from(arbitrageService.getLastCalcSumBal());
@@ -195,7 +201,7 @@ public class DebugEndpoints {
 
     public String getBitmexOrderBookErrors() {
         String statusString = "0";
-        if (arbitrageService.getLeftMarketService().getArbType() == ArbType.LEFT) {
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
             Integer count = ((BitmexService) arbitrageService.getLeftMarketService()).getOrderBookErrors();
             if (count > 0) {
                 statusString = String.format("<span style=\"color: red\">%s<span>", count);

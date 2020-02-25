@@ -38,9 +38,12 @@ import java.time.format.DateTimeFormatter;
 public class BitplayUIServiceBitmex extends AbstractBitplayUIService<MarketServicePreliq> {
 
     private final ArbitrageService arbitrageService;
+    private final BitmexTimeService bitmexTimeService;
 
-    @Autowired
-    private BitmexTimeService bitmexTimeService;
+    @Override
+    public BitmexTimeService getBitmexTimeService() {
+        return bitmexTimeService;
+    }
 
     @Override
     public MarketServicePreliq getBusinessService() {
@@ -106,91 +109,6 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<MarketServi
                 .build();
 
         return left.placeWithPortions(placeOrderArgs, tradeRequestJson.getPortionsQty());
-    }
-
-    public FutureIndexJson getFutureIndex() {
-        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-        if (left.getMarketStaticData() != MarketStaticData.BITMEX) {
-            return FutureIndexJson.empty();
-        }
-        BitmexService bitmexService = (BitmexService) left;
-        OkCoinService okexService = (OkCoinService) arbitrageService.getRightMarketService();
-
-        final BitmexContractIndex contractIndex;
-        try {
-            contractIndex = (BitmexContractIndex) left.getContractIndex();
-        } catch (ClassCastException e) {
-            return FutureIndexJson.empty();
-        }
-
-        final BigDecimal indexPrice = contractIndex.getIndexPrice();
-        final BigDecimal markPrice = contractIndex.getMarkPrice();
-        final String indexString = String.format("%s/%s (1c=%sbtc)",
-                indexPrice.toPlainString(),
-                markPrice.toPlainString(),
-                getBusinessService().calcBtcInContract());
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        final String timestamp = sdf.format(contractIndex.getTimestamp());
-
-        final BitmexFunding bitmexFunding = bitmexService.getBitmexSwapService().getBitmexFunding();
-        String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
-        String fundingCost = bitmexService.getFundingCost() != null ? bitmexService.getFundingCost().toPlainString() : "";
-
-        String swapTime = "";
-        String timeToSwap = "";
-        if (bitmexFunding.getSwapTime() != null && bitmexFunding.getUpdatingTime() != null) {
-            swapTime = bitmexFunding.getSwapTime().format(DateTimeFormatter.ISO_TIME);
-
-            final Instant updateInstant = bitmexFunding.getUpdatingTime().toInstant();
-            final Instant swapInstant = bitmexFunding.getSwapTime().toInstant();
-            final long s = Duration.between(updateInstant, swapInstant).getSeconds();
-            timeToSwap = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
-        }
-
-        String signalType = "noSwap";
-        if (bitmexFunding.getSignalType() == null) {
-            signalType = "null";
-        } else if (bitmexFunding.getSignalType() != SignalType.SWAP_NONE) {
-            signalType = bitmexFunding.getSignalType().name();
-        }
-
-        if (bitmexService.getPos() == null || bitmexService.getPos().getPositionLong() == null) {
-            return FutureIndexJson.empty();
-        }
-        final String position = bitmexService.getPos().getPositionLong().toPlainString();
-
-        final String timeCompareString = bitmexTimeService.getTimeCompareString();
-        final Integer timeCompareUpdating = bitmexTimeService.fetchTimeCompareUpdating();
-
-        final LimitsJson limitsJson = arbitrageService.getLeftMarketService().getLimitsService().getLimitsJson();
-
-        final String bxbtBal = bitmexService.getContractType().isEth()
-                ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
-                : "";
-
-        // Index diff = b_index (n) - o_index (k) = x,
-        final BigDecimal okexIndex = okexService.getContractIndex().getIndexPrice();
-        final String twoMarketsIndexDiff = String.format("Index diff = b_index (%s) - o_index (%s) = %s",
-                indexPrice.toPlainString(),
-                okexIndex.toPlainString(),
-                indexPrice.subtract(okexIndex).toPlainString()
-        );
-
-        return new FutureIndexJson(
-                indexString,
-                indexPrice.toPlainString(),
-                timestamp,
-                fundingRate,
-                fundingCost,
-                position,
-                swapTime,
-                timeToSwap,
-                signalType,
-                timeCompareString,
-                String.valueOf(timeCompareUpdating),
-                limitsJson,
-                bxbtBal,
-                twoMarketsIndexDiff);
     }
 
     public ResultJson setCustomSwapTime(ChangeRequestJson customSwapTime) {

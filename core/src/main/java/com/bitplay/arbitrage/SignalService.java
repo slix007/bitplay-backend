@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketServicePreliq;
@@ -39,10 +40,12 @@ public class SignalService {
                                                       boolean isConBo, Integer portionsQty,
                                                       ArbScheme arbScheme, PlBefore beforeSignalMetrics, BtmFokAutoArgs btmFokAutoArgs) {
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
-        if (marketService.getMarketStaticData() == MarketStaticData.BITMEX) {
-            promise = placeBitmexOrderOnSignal((BitmexService) marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
+        if (marketService.getArbType() == ArbType.LEFT) {
+            // bitmex or okex
+            promise = placeBitmexOrderOnSignal(marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
                     beforeSignalMetrics, btmFokAutoArgs);
-        } else if (marketService.getMarketStaticData() == MarketStaticData.OKEX) {
+        } else {
+            // always okex
             promise = placeOkexOrderOnSignal((OkCoinService) marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
                     portionsQty, arbScheme);
         }
@@ -101,7 +104,7 @@ public class SignalService {
         return promise;
     }
 
-    private CompletableFuture<Void> placeBitmexOrderOnSignal(BitmexService bitmexService, OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+    private CompletableFuture<Void> placeBitmexOrderOnSignal(MarketServicePreliq left, OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
                                                              PlacingType placingType, String counterName, Long tradeId, boolean isConBo,
                                                              PlBefore beforeSignalMetrics,
                                                              BtmFokAutoArgs btmFokAutoArgs) {
@@ -112,10 +115,10 @@ public class SignalService {
             if (b_block.signum() <= 0) {
                 Thread.sleep(1000);
                 String warn = "WARNING: b_block=" + b_block + ". No order on signal";
-                bitmexService.getTradeLogger().warn(warn);
+                left.getTradeLogger().warn(warn);
                 log.warn(warn);
 
-                bitmexService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
+                left.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
                 return promise;
             }
 
@@ -136,9 +139,9 @@ public class SignalService {
 
             tradeService.setBitmexStatus(tradeId, TradeMStatus.IN_PROGRESS);
 //            beforeSignalMetrics.setAddPlacingTask(Instant.now());
-            promise = bitmexService.addOoExecutorTask(() -> {
+            promise = left.addOoExecutorTask(() -> {
 //                beforeSignalMetrics.setStartPlacingTask(Instant.now());
-                bitmexService.placeOrder(placeOrderArgs);
+                left.placeOrder(placeOrderArgs);
             });
 
         } catch (Exception e) {

@@ -1,7 +1,6 @@
 package com.bitplay.persistance.domain.fluent;
 
-import com.bitplay.persistance.domain.settings.BitmexContractType;
-import com.bitplay.persistance.domain.settings.OkexContractType;
+import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -52,8 +51,8 @@ public class FplayTrade {
 
     private TradingMode tradingMode;
 
-    private BitmexContractType bitmexContractType;
-    private OkexContractType okexContractType;
+    private ContractType leftContractType;
+    private ContractType rightContractType;
 
     private List<String> bitmexOrders;
     private List<String> okexOrders;

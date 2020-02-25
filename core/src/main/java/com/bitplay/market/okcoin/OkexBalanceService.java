@@ -7,24 +7,22 @@ import com.bitplay.model.Pos;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * Created by Sergey Shurmin on 11/13/17.
  */
-@Component
-public class OkcoinBalanceService implements BalanceService {
 
-    private static final Logger logger = LoggerFactory.getLogger(OkcoinBalanceService.class);
+@Slf4j
+@RequiredArgsConstructor
+public class OkexBalanceService implements BalanceService {
 
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
+    private final SettingsRepositoryService settingsRepositoryService;
 
     private FullBalance recalcEquity(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType) {
 
@@ -129,7 +127,7 @@ public class OkcoinBalanceService implements BalanceService {
     public FullBalance recalcAndGetAccountInfo(AccountBalance account, Pos pObj, OrderBook orderBook, ContractType contractType,
             Pos positionXBTUSD, OrderBook orderBookXBTUSD) {
         if (account == null || pObj == null || orderBook == null) {
-            logger.error(String.format("Can not calc full balance: account=%s, pObj=%s", account, pObj));
+            log.error(String.format("Can not calc full balance: account=%s, pObj=%s", account, pObj));
             return new FullBalance(null, null, null);
         }
         return recalcEquity(account, pObj, orderBook, contractType);

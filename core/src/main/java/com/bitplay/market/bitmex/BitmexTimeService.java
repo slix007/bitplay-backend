@@ -7,12 +7,11 @@ import com.bitplay.persistance.domain.TimeCompareParams;
 import com.bitplay.persistance.domain.TimeCompareRange;
 import com.bitplay.persistance.repository.TimeCompareParamsRepository;
 import com.bitplay.persistance.repository.TimeCompareRangeRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.bitmex.dto.BitmexInfoDto;
 import org.knowm.xchange.bitmex.service.BitmexMarketDataService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -29,19 +28,18 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Sergey Shurmin on 10/26/17.
  */
-@Service
+@Slf4j
+@Component
 public class BitmexTimeService {
 
-    private final static Logger logger = LoggerFactory.getLogger(BitmexSwapService.class);
-
-    private final TimeCompare timeCompare = new TimeCompare();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     @Autowired
     private TimeCompareRangeRepository timeCompareRangeRepository;
     @Autowired
     private ArbitrageService arbitrageService;
     @Autowired
     private TimeCompareParamsRepository timeCompareParamsRepository;
+    private final TimeCompare timeCompare = new TimeCompare();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private ScheduledFuture<?> theSchedule;
 
     public BitmexTimeService() {
@@ -82,12 +80,12 @@ public class BitmexTimeService {
         } catch (SocketTimeoutException e) {
             long end = Instant.now().getEpochSecond();
             final String time = String.valueOf(end - start);
-            logger.error("can not get BitmexInfo. Timeout=" + time + ". " + e.getMessage());
+            log.error("can not get BitmexInfo. Timeout=" + time + ". " + e.getMessage());
             return;
         } catch (IOException e) {
             long end = Instant.now().getEpochSecond();
             final String time = String.valueOf(end - start);
-            logger.error("can not get BitmexInfo. Timeout=" + time, e);
+            log.error("can not get BitmexInfo. Timeout=" + time, e);
             return;
         }
 

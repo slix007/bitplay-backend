@@ -8,26 +8,38 @@ import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.VisualTrade;
 import com.bitplay.api.dto.ob.FutureIndexJson;
+import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.api.dto.ob.OrderBookJson;
 import com.bitplay.api.dto.ob.OrderJson;
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.market.LimitsService;
 import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
+import com.bitplay.market.bitmex.BitmexFunding;
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
+import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Position;
 import org.knowm.xchange.dto.account.Wallet;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.marketdata.Trade;
@@ -35,7 +47,12 @@ import org.knowm.xchange.dto.trade.ContractLimitOrder;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -49,12 +66,6 @@ import static com.bitplay.utils.Utils.timestampToStr;
  */
 public abstract class AbstractBitplayUIService<T extends MarketService> {
 
-    Function<LimitOrder, VisualTrade> toVisual = limitOrder -> new VisualTrade(
-            limitOrder.getCurrencyPair().toString(),
-            limitOrder.getLimitPrice().toString(),
-            limitOrder.getTradableAmount().toString(),
-            limitOrder.getType().toString(),
-            timestampToStr(limitOrder.getTimestamp()));
     Function<LimitOrder, OrderJson> toOrderJson = o -> {
         String amountInBtc = "";
         if (o instanceof ContractLimitOrder) {
@@ -101,7 +112,133 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
     public abstract T getBusinessService();
 
-    public abstract FutureIndexJson getFutureIndex();
+    public BitmexTimeService getBitmexTimeService() {
+        throw new IllegalStateException("no BitmexTimeService");
+    }
+
+    public FutureIndexJson getFutureIndex() {
+        final T businessService = getBusinessService();
+        if (businessService == null) {
+            return FutureIndexJson.empty();
+        }
+        if (businessService.getMarketStaticData() == MarketStaticData.BITMEX) {
+            return getFutureIndexBitmex(businessService);
+        }
+        if (businessService.getMarketStaticData() == MarketStaticData.OKEX) {
+            getFutureIndexOkex(businessService);
+        }
+        return FutureIndexJson.empty();
+    }
+
+    public FutureIndexJson getFutureIndexOkex(T businessService) {
+        final OkCoinService service = (OkCoinService) businessService;
+        final LimitsService okexLimitsService = service.getLimitsService();
+
+        final ContractIndex contractIndex = getBusinessService().getContractIndex();
+        final String indexVal = contractIndex.getIndexPrice().toPlainString();
+        final BigDecimal markPrice = service.getMarkPrice();
+
+        final String indexString = String.format("%s/%s (1c=%sbtc)",
+                indexVal,
+                markPrice,
+                getBusinessService().calcBtcInContract());
+        final Date timestamp = contractIndex.getTimestamp();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        final LimitsJson limitsJson = okexLimitsService.getLimitsJson();
+
+        // bid[1] в token trading (okex spot).
+        String ethBtcBal = service.getEthBtcTicker() == null ? ""
+                : "Quote ETH/BTC: " + service.getEthBtcTicker().getBid().toPlainString();
+
+        final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
+        final SwapSettlement swapSettlement = service.getSwapSettlement();
+        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice, swapSettlement);
+
+    }
+
+    public FutureIndexJson getFutureIndexBitmex(T businessService) {
+        final ArbitrageService arbitrageService = businessService.getArbitrageService();
+        BitmexService bitmexService = (BitmexService) businessService;
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+
+        final BitmexContractIndex contractIndex;
+        try {
+            contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
+        } catch (ClassCastException e) {
+            return FutureIndexJson.empty();
+        }
+
+        final BigDecimal indexPrice = contractIndex.getIndexPrice();
+        final BigDecimal markPrice = contractIndex.getMarkPrice();
+        final String indexString = String.format("%s/%s (1c=%sbtc)",
+                indexPrice.toPlainString(),
+                markPrice.toPlainString(),
+                getBusinessService().calcBtcInContract());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        final String timestamp = sdf.format(contractIndex.getTimestamp());
+
+        final BitmexFunding bitmexFunding = bitmexService.getBitmexSwapService().getBitmexFunding();
+        String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
+        String fundingCost = bitmexService.getFundingCost() != null ? bitmexService.getFundingCost().toPlainString() : "";
+
+        String swapTime = "";
+        String timeToSwap = "";
+        if (bitmexFunding.getSwapTime() != null && bitmexFunding.getUpdatingTime() != null) {
+            swapTime = bitmexFunding.getSwapTime().format(DateTimeFormatter.ISO_TIME);
+
+            final Instant updateInstant = bitmexFunding.getUpdatingTime().toInstant();
+            final Instant swapInstant = bitmexFunding.getSwapTime().toInstant();
+            final long s = Duration.between(updateInstant, swapInstant).getSeconds();
+            timeToSwap = String.format("%d:%02d:%02d", s / 3600, (s % 3600) / 60, (s % 60));
+        }
+
+        String signalType = "noSwap";
+        if (bitmexFunding.getSignalType() == null) {
+            signalType = "null";
+        } else if (bitmexFunding.getSignalType() != SignalType.SWAP_NONE) {
+            signalType = bitmexFunding.getSignalType().name();
+        }
+
+        if (bitmexService.getPos() == null || bitmexService.getPos().getPositionLong() == null) {
+            return FutureIndexJson.empty();
+        }
+        final String position = bitmexService.getPos().getPositionLong().toPlainString();
+
+        final String timeCompareString = getBitmexTimeService().getTimeCompareString();
+        final Integer timeCompareUpdating = getBitmexTimeService().fetchTimeCompareUpdating();
+
+        final LimitsJson limitsJson = arbitrageService.getLeftMarketService().getLimitsService().getLimitsJson();
+
+        final String bxbtBal = bitmexService.getContractType().isEth()
+                ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
+                : "";
+
+        // Index diff = b_index (n) - o_index (k) = x,
+        final BigDecimal okexIndex = right.getContractIndex().getIndexPrice();
+        final String twoMarketsIndexDiff = String.format("Index diff = l_index (%s) - r_index (%s) = %s",
+                indexPrice.toPlainString(),
+                okexIndex.toPlainString(),
+                indexPrice.subtract(okexIndex).toPlainString()
+        );
+
+        return new FutureIndexJson(
+                indexString,
+                indexPrice.toPlainString(),
+                timestamp,
+                fundingRate,
+                fundingCost,
+                position,
+                swapTime,
+                timeToSwap,
+                signalType,
+                timeCompareString,
+                String.valueOf(timeCompareUpdating),
+                limitsJson,
+                bxbtBal,
+                twoMarketsIndexDiff);
+    }
+
 
     VisualTrade toVisualTrade(Trade trade) {
         return new VisualTrade(

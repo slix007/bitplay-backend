@@ -14,9 +14,9 @@ import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.LogService;
+import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.LiqInfo;
@@ -78,6 +78,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
@@ -95,10 +96,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Scope;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
@@ -133,33 +132,68 @@ import java.util.stream.Collectors;
 
 import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 
-//import info.bitrich.xchangestream.okex.OkExStreamingExchange;
-//import info.bitrich.xchangestream.okex.OkExStreamingMarketDataService;
-
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
+@Slf4j
 @Service("okcoin")
 @RequiredArgsConstructor
 @Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class OkCoinService extends MarketServicePreliq {
 
-    private static final Logger logger = LoggerFactory.getLogger(OkCoinService.class);
-    private static final Logger debugLog = LoggerFactory.getLogger(OkCoinService.class);
-
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
+
+    private final SlackNotifications slackNotifications;
+    private final LastPriceDeviationService lastPriceDeviationService;
+    private final com.bitplay.persistance.TradeService fplayTradeService;
+    private final PersistenceService persistenceService;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final OrderRepositoryService orderRepositoryService;
+    private final CumPersistenceService cumPersistenceService;
+    private final OkexSettlementService okexSettlementService;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final DealPricesRepositoryService dealPricesRepositoryService;
+    private final DefaultLogService defaultLogger;
+    private final MonitoringDataService monitoringDataService;
+    public final OOHangedCheckerService ooHangedCheckerService = new OOHangedCheckerService(this);
+
+    // late init
+    private OkexBalanceService okexBalanceService;
+    ArbitrageService arbitrageService;
+    private OkexTradeLogger tradeLogger = new OkexTradeLogger(this);
+
+    @Autowired
+    private MetricsDictionary metricsDictionary;
+
+    private OkExStreamingExchange exchange; // for streaming only
+    private ApiCredentials apiCredentials;
+    private FplayExchangeOkex fplayOkexExchange;
+    private Disposable orderBookSubscription;
+    private Disposable userPositionSub;
+    private Disposable userAccountSub;
+    private Disposable userOrderSub;
+    private Disposable pingStatSub;
+    private Disposable markPriceSubscription;
+    private Disposable tickerSubscription;
+    private Disposable priceRangeSub;
+    private Disposable tickerEthSubscription;
+    private Disposable indexPriceSub;
+    private Observable<OkCoinDepth> orderBookObservable;
+    private OkexContractType okexContractType;
+    private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
+    private volatile Map<String, OkexContractType> instrIdToContractType = new HashMap<>();
+    private volatile List<InstrumentDto> instrDtos = new ArrayList<>();
+    private volatile BigDecimal leverage;
+    private volatile boolean started = false;
+    private final OkexFtpdService okexFtpdService;
 
     private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.OKEX;
     public static final String NAME = MARKET_STATIC_DATA.getName();
-    ArbitrageService arbitrageService;
 
     private volatile AtomicReference<PlaceOrderArgs> placeOrderArgsRef = new AtomicReference<>();
 
     private static final int MAX_SEC_CHECK_AFTER_TAKER = 5;
-    private static final int MAX_ATTEMPTS_STATUS = 50;
     private static final int MAX_ATTEMPTS_FOR_MOVING = 2;
-    private static final int MAX_MOVING_TIMEOUT_SEC = 2;
-    private static final int MAX_MOVING_OVERLOAD_ATTEMPTS_TIMEOUT_SEC = 60;
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledMovingErrorsReset;
     private volatile AtomicInteger movingErrorsOverloaded = new AtomicInteger(0);
@@ -187,52 +221,10 @@ public class OkCoinService extends MarketServicePreliq {
         return priceRange;
     }
 
-    private final SlackNotifications slackNotifications;
-    private final LastPriceDeviationService lastPriceDeviationService;
-    private final com.bitplay.persistance.TradeService fplayTradeService;
-    private final OkcoinBalanceService okcoinBalanceService;
-    private final PersistenceService persistenceService;
-    private final SettingsRepositoryService settingsRepositoryService;
-    private final OrderRepositoryService orderRepositoryService;
-
-    // TODO remove circular dependencies
-    public final OOHangedCheckerService ooHangedCheckerService = new OOHangedCheckerService(this);
-    private OkexTradeLogger tradeLogger = new OkexTradeLogger(this);
-    private final DefaultLogService defaultLogger;
-    private final MonitoringDataService monitoringDataService;
-    @Autowired
-    private MetricsDictionary metricsDictionary;
-    private final CumPersistenceService cumPersistenceService;
-    private final OkexSettlementService okexSettlementService;
-    private final ApplicationEventPublisher applicationEventPublisher;
-    private final DealPricesRepositoryService dealPricesRepositoryService;
-
     @Override
     protected ApplicationEventPublisher getApplicationEventPublisher() {
         return applicationEventPublisher;
     }
-
-    private OkExStreamingExchange exchange; // for streaming only
-    private ApiCredentials apiCredentials;
-    private FplayExchangeOkex fplayOkexExchange;
-    private Disposable orderBookSubscription;
-    private Disposable userPositionSub;
-    private Disposable userAccountSub;
-    private Disposable userOrderSub;
-    private Disposable pingStatSub;
-    private Disposable markPriceSubscription;
-    private Disposable tickerSubscription;
-    private Disposable priceRangeSub;
-    private Disposable tickerEthSubscription;
-    private Disposable indexPriceSub;
-    private Observable<OkCoinDepth> orderBookObservable;
-    private OkexContractType okexContractType;
-    private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
-    private volatile Map<String, OkexContractType> instrIdToContractType = new HashMap<>();
-    private volatile List<InstrumentDto> instrDtos = new ArrayList<>();
-    private volatile BigDecimal leverage;
-    private volatile boolean started = false;
-    private final OkexFtpdService okexFtpdService;
 
     @Override
     public PosDiffService getPosDiffService() {
@@ -246,7 +238,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public BalanceService getBalanceService() {
-        return okcoinBalanceService;
+        return okexBalanceService;
     }
 
     @Autowired
@@ -286,8 +278,9 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
+        okexBalanceService = new OkexBalanceService(settingsRepositoryService);
         okexContractType = (OkexContractType) contractType;
-        logger.info("Starting okex with " + okexContractType);
+        log.info("Starting okex with " + okexContractType);
         tradeLogger.info("Starting okex with " + okexContractType);
         if (okexContractType.isEth()) {
             this.usdInContract = 10;
@@ -306,7 +299,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         apiCredentials = getApiCredentials(exArgs);
         initExchangeV3(apiCredentials);
-        exchange = initExchange(key, secret, exArgs);
+        exchange = initExchange(exArgs);
 
         initWebSocketAndAllSubscribers();
 
@@ -320,7 +313,7 @@ public class OkCoinService extends MarketServicePreliq {
     public void checkExchange() {
         if (fplayOkexExchange == null || fplayOkexExchange.getPrivateApi() == null || fplayOkexExchange.getPrivateApi().notCreated()) {
             final String msg = "OkexExchange is not fully created. Re-create it.";
-            logger.warn(msg);
+            log.warn(msg);
             warningLogger.warn(msg);
             initExchangeV3(apiCredentials);
         }
@@ -360,7 +353,7 @@ public class OkCoinService extends MarketServicePreliq {
             try {
                 preliqService.checkForPreliq(okexSettlementService.isSettlementMode());
             } catch (Exception e) {
-                logger.error("Error on checkForDecreasePosition", e);
+                log.error("Error on checkForDecreasePosition", e);
             }
         }, 30, 1, TimeUnit.SECONDS);
     }
@@ -376,11 +369,11 @@ public class OkCoinService extends MarketServicePreliq {
         try {
             // Workaround for deadlock. Init settings from DB.
             final Settings settings = settingsRepositoryService.getSettings();
-            logger.trace(settings.getPlacingBlocks().toString());
+            log.trace(settings.getPlacingBlocks().toString());
 
             fetchPosition();
         } catch (Exception e) {
-            logger.error("FetchPositionError", e);
+            log.error("FetchPositionError", e);
         }
 
         subscribeOnOrderBook();
@@ -388,13 +381,13 @@ public class OkCoinService extends MarketServicePreliq {
         final boolean loginSuccess = exchange.getStreamingPrivateDataService()
                 .login()
                 .blockingAwait(5, TimeUnit.SECONDS);
-        logger.info("Login success=" + loginSuccess);
+        log.info("Login success=" + loginSuccess);
 
         try {
             // workaround. some waiting after login.
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            logger.error("error while sleep after login");
+            log.error("error while sleep after login");
         }
 
         if (loginSuccess) {
@@ -416,7 +409,7 @@ public class OkCoinService extends MarketServicePreliq {
             try {
                 fetchUserInfoContracts();
             } catch (Exception e) {
-                logger.error("On fetchUserInfoContracts", e);
+                log.error("On fetchUserInfoContracts", e);
             }
         }
     }
@@ -442,14 +435,8 @@ public class OkCoinService extends MarketServicePreliq {
         return exchange.disconnect();
     }
 
-    private OkExStreamingExchange initExchange(String key, String secret, Object... exArgs) {
+    private OkExStreamingExchange initExchange(Object... exArgs) {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
-//        spec.setApiKey(key);
-//        spec.setSecretKey(secret);
-//
-//        spec.setExchangeSpecificParametersItem("Use_Intl", true);
-//        spec.setExchangeSpecificParametersItem("Use_Futures", true);
-//        spec.setExchangeSpecificParametersItem("Futures_Contract", okexContractType.getFuturesContract());
         leverage = BigDecimal.valueOf(20); // default
 
         // init xchange-stream
@@ -475,11 +462,11 @@ public class OkCoinService extends MarketServicePreliq {
                 .doOnComplete(() -> {
                     ifDisconnetedString += " okex disconnected at " + LocalTime.now();
                     if (!shutdown) {
-                        logger.warn("onClientDisconnect okCoinService");
+                        log.warn("onClientDisconnect okCoinService");
                         initWebSocketAndAllSubscribers();
-                        logger.info("Exchange Reconnect finished");
+                        log.info("Exchange Reconnect finished");
                     } else {
-                        logger.info("Exchange Disconnect finished");
+                        log.info("Exchange Disconnect finished");
                     }
                 })
                 .subscribe();
@@ -493,9 +480,9 @@ public class OkCoinService extends MarketServicePreliq {
 
         orderBookObservable = ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getOrderBooks(instrDtos, true)
-                .doOnDispose(() -> logger.info("okex orderBook subscription doOnDispose"))
-                .doOnTerminate(() -> logger.info("okex orderBook subscription doOnTerminate"))
-                .doOnError(throwable -> logger.error("okex orderBook onError", throwable))
+                .doOnDispose(() -> log.info("okex orderBook subscription doOnDispose"))
+                .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
+                .doOnError(throwable -> log.error("okex orderBook onError", throwable))
                 .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS));
 
         orderBookSubscription = orderBookObservable
@@ -518,13 +505,13 @@ public class OkCoinService extends MarketServicePreliq {
                         stateRecalcInStateUpdaterThread(); // includes FullBalance and not only bestAsk/Bid
                         this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
                         this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
-                        logger.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+                        log.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
                         Instant lastObTime = Instant.now();
                         getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));
                     }
 
-                }, throwable -> logger.error("ERROR in getting order book: ", throwable));
+                }, throwable -> log.error("ERROR in getting order book: ", throwable));
     }
 
     private boolean isObExtra(OkCoinDepth okCoinDepth) {
@@ -555,12 +542,12 @@ public class OkCoinService extends MarketServicePreliq {
 
     @PreDestroy
     public void preDestroy() {
-        logger.info("OkCoinService preDestroy");
+        log.info("OkCoinService preDestroy");
         shutdown = true;
 
         // Disconnect from exchange (non-blocking)
         //noinspection ResultOfMethodCallIgnored
-        closeAllSubscibers().subscribe(() -> logger.info("Disconnected from the Exchange"));
+        closeAllSubscibers().subscribe(() -> log.info("Disconnected from the Exchange"));
     }
 
     @Scheduled(fixedDelay = 2000) // Request frequency 20 times/2s
@@ -580,13 +567,13 @@ public class OkCoinService extends MarketServicePreliq {
 
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
-                logger.error("On fetchEstimatedDeliveryPrice timeout");
+                log.error("On fetchEstimatedDeliveryPrice timeout");
             } else {
-                logger.error("On fetchEstimatedDeliveryPrice", e);
+                log.error("On fetchEstimatedDeliveryPrice", e);
             }
         }
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
+        Utils.logIfLong(start, end, log, "fetchEstimatedDeliveryPrice");
     }
 
     @Scheduled(fixedDelay = 200) // Request frequency 20 times/2s
@@ -604,13 +591,13 @@ public class OkCoinService extends MarketServicePreliq {
             swapSettlement = fplayOkexExchange.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
-                logger.error("On fetchSwapSettlement timeout");
+                log.error("On fetchSwapSettlement timeout");
             } else {
-                logger.error("On fetchSwapSettlement", e);
+                log.error("On fetchSwapSettlement", e);
             }
         }
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
+        Utils.logIfLong(start, end, log, "fetchEstimatedDeliveryPrice");
     }
 
     public SwapSettlement getSwapSettlement() {
@@ -649,13 +636,13 @@ public class OkCoinService extends MarketServicePreliq {
             fetchPosition();
         } catch (Exception e) {
             if (e.getMessage().endsWith("timeout")) {
-                logger.error("On fetchPositionScheduled timeout");
+                log.error("On fetchPositionScheduled timeout");
             } else {
-                logger.error("On fetchPositionScheduled", e);
+                log.error("On fetchPositionScheduled", e);
             }
         }
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "fetchPositionScheduled");
+        Utils.logIfLong(start, end, log, "fetchPositionScheduled");
     }
 
     @Override
@@ -680,10 +667,10 @@ public class OkCoinService extends MarketServicePreliq {
         try {
             fetchUserInfoContracts();
         } catch (Exception e) {
-            logger.error("On fetchPositionScheduled", e);
+            log.error("On fetchPositionScheduled", e);
         }
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "fetchPositionScheduled");
+        Utils.logIfLong(start, end, log, "fetchPositionScheduled");
     }
 
     private void fetchUserInfoContracts() throws IOException {
@@ -714,7 +701,7 @@ public class OkCoinService extends MarketServicePreliq {
             String thePrice = forceLiquPrice.replaceAll(",", "");
             res = new BigDecimal(thePrice);
         } catch (Exception e) {
-            logger.error("Can not convert forceLiquPrice=" + forceLiquPrice);
+            log.error("Can not convert forceLiquPrice=" + forceLiquPrice);
         }
         return res;
     }
@@ -724,7 +711,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         return exchange.getStreamingPrivateDataService()
                 .getPositionObservable(instrumentDto)
-                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(newPos -> {
@@ -739,7 +726,7 @@ public class OkCoinService extends MarketServicePreliq {
                     getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
                     stateRecalcInStateUpdaterThread();
 
-                }, throwable -> logger.error("PositionObservable.Exception: ", throwable));
+                }, throwable -> log.error("PositionObservable.Exception: ", throwable));
     }
 
     protected Pos mergeSwapPosSafe(PositionStream newInfo) {
@@ -747,11 +734,11 @@ public class OkCoinService extends MarketServicePreliq {
         boolean success = false;
         while (!success) {
             Pos current = this.pos.get();
-            logger.debug("Pos.Websocket: " + current.toString());
+            log.debug("Pos.Websocket: " + current.toString());
             final Pos updated = mergeSwapPos(newInfo, current);
             success = this.pos.compareAndSet(current, updated);
             if (++iter > 1) {
-                logger.warn("merge account iter=" + iter);
+                log.warn("merge account iter=" + iter);
             }
         }
         return this.pos.get();
@@ -833,15 +820,15 @@ public class OkCoinService extends MarketServicePreliq {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
         return exchange.getStreamingPrivateDataService()
                 .getAccountInfoObservable(okexContractType.getCurrencyPair(), instrumentDto)
-                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .filter(Objects::nonNull)
                 .subscribe(newInfo -> {
-                    logger.debug(newInfo.toString());
+                    log.debug(newInfo.toString());
                     mergeAccountSafe(newInfo);
 
-                }, throwable -> logger.error("AccountInfoObservable.Exception: ", throwable));
+                }, throwable -> log.error("AccountInfoObservable.Exception: ", throwable));
     }
 
     private Disposable startUserOrderSub() {
@@ -850,11 +837,11 @@ public class OkCoinService extends MarketServicePreliq {
         return ((OkExStreamingPrivateDataService) exchange.getStreamingPrivateDataService())
                 .getTradesObservableRaw(instrumentDto)
                 .map(TmpAdapter::adaptTradeResult)
-                .doOnError(throwable -> logger.error("Error on PrivateData observing", throwable))
+                .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(limitOrders -> {
-                    logger.debug("got open orders: " + limitOrders.size());
+                    log.debug("got open orders: " + limitOrders.size());
 
                     final FplayOrder stub = new FplayOrder(this.getMarketId());
                     updateFplayOrdersToCurrStab(limitOrders, stub);
@@ -865,7 +852,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                     addCheckOoToFree();
 
-                }, throwable -> logger.error("TradesObservable.Exception: ", throwable)); // TODO placingType is null!!!
+                }, throwable -> log.error("TradesObservable.Exception: ", throwable)); // TODO placingType is null!!!
     }
 
     private Disposable startPingStatSub() {
@@ -873,9 +860,9 @@ public class OkCoinService extends MarketServicePreliq {
                 .map(PingStatEvent::getPingPongMs)
                 .subscribe(ms -> {
                             metricsDictionary.putOkexPing(ms);
-                            logger.debug("okex ping-pong(ms): " + ms);
+                            log.debug("okex ping-pong(ms): " + ms);
                         },
-                        e -> logger.error("ping stats error", e));
+                        e -> log.error("ping stats error", e));
     }
 
     private Disposable startMarkPriceListener() {
@@ -883,13 +870,13 @@ public class OkCoinService extends MarketServicePreliq {
         instrumentDtos.add(new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract()));
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getMarkPrices(instrumentDtos)
-                .doOnError(throwable -> logger.error("Error on MarkPrice observing", throwable))
+                .doOnError(throwable -> log.error("Error on MarkPrice observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(markPriceDto -> {
-                    logger.debug(markPriceDto.toString());
+                    log.debug(markPriceDto.toString());
                     markPrice = markPriceDto.getMarkPrice();
-                }, throwable -> logger.error("MarkPrice.Exception: ", throwable));
+                }, throwable -> log.error("MarkPrice.Exception: ", throwable));
     }
 
     // futures ticker
@@ -897,14 +884,14 @@ public class OkCoinService extends MarketServicePreliq {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
         return exchange.getStreamingMarketDataService()
                 .getTicker(okexContractType.getCurrencyPair(), instrumentDto)
-                .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
+                .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(ticker -> {
-                    logger.debug(ticker.toString());
+                    log.debug(ticker.toString());
                     this.ticker = ticker;
                     lastPriceDeviationService.updateAndCheckDeviationAsync();
-                }, throwable -> logger.error("OkexFutureTicker.Exception: ", throwable));
+                }, throwable -> log.error("OkexFutureTicker.Exception: ", throwable));
     }
 
     @Scheduled(initialDelay = 60000, fixedDelay = 60000)
@@ -914,13 +901,13 @@ public class OkCoinService extends MarketServicePreliq {
             final String warn = "ReSubscribe PriceRange: " + priceRange;
             warningLogger.warn(warn);
             getTradeLogger().warn(warn);
-            logger.warn(warn);
+            log.warn(warn);
             reSubscribePriceRangeListener();
         }
     }
 
     private void reSubscribePriceRangeListener() {
-        logger.info("priceRange: " + (priceRange != null ? priceRange.getTimestamp() : "null"));
+        log.info("priceRange: " + (priceRange != null ? priceRange.getTimestamp() : "null"));
         if (priceRangeSub != null && !priceRangeSub.isDisposed()) {
             priceRangeSub.dispose();
             // TODO listen to priceRangeSub unsubscribe response
@@ -932,7 +919,7 @@ public class OkCoinService extends MarketServicePreliq {
                     Thread.sleep(100);
                 }
             } catch (InterruptedException e) {
-                logger.error("priceRangeSub.dispose() interrupted");
+                log.error("priceRangeSub.dispose() interrupted");
             }
         }
         priceRangeSub = startPriceRangeListener();
@@ -942,26 +929,26 @@ public class OkCoinService extends MarketServicePreliq {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getPriceRange(instrumentDto)
-                .doOnError(throwable -> logger.error("Error on PriceRange observing", throwable))
+                .doOnError(throwable -> log.error("Error on PriceRange observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(priceRange -> {
-                    logger.debug(priceRange.toString());
+                    log.debug(priceRange.toString());
                     this.priceRange = priceRange;
                     okexFtpdService.updateFtpdPercent(priceRange, bestAsk, bestBid);
-                }, throwable -> logger.error("OkexPriceRange.Exception: ", throwable));
+                }, throwable -> log.error("OkexPriceRange.Exception: ", throwable));
     }
 
     // spot ticker
     private Disposable startEthTickerListener() {
         return exchange.getStreamingMarketDataService()
                 .getTicker(CurrencyPair.ETH_BTC, null, "ETH-BTC")
-                .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
+                .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(
                         ethTick -> this.ethBtcTicker = ethTick,
-                        throwable -> logger.error("OkexSpotTicker.Exception: ", throwable)
+                        throwable -> log.error("OkexSpotTicker.Exception: ", throwable)
                 );
     }
 
@@ -973,7 +960,7 @@ public class OkCoinService extends MarketServicePreliq {
         }
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())
                 .getIndexTickers(pairs)
-                .doOnError(throwable -> logger.error("Error on Ticker observing", throwable))
+                .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
                 .subscribe(indexTick -> {
@@ -985,7 +972,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 this.btcContractIndex.set(new ContractIndex(indexPrice.setScale(2, RoundingMode.HALF_UP), new Date()));
                             }
                         },
-                        throwable -> logger.error("OkexIndexPriceSub.Exception: ", throwable)
+                        throwable -> log.error("OkexIndexPriceSub.Exception: ", throwable)
                 );
     }
 
@@ -994,7 +981,7 @@ public class OkCoinService extends MarketServicePreliq {
         Instant start = Instant.now();
         cleanOldOO();
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "openOrdersCleaner");
+        Utils.logIfLong(start, end, log, "openOrdersCleaner");
     }
 
     /**
@@ -1016,7 +1003,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         final String message = Utils.getTenAskBid(getOrderBook(), counterNameWithPortion,
                 String.format("Before %s placing, orderType=%s,", orderType, Utils.convertOrderTypeName(orderType)));
-        logger.info(message);
+        log.info(message);
         tradeLogger.info(message);
 //        synchronized (openOrdersLock)
         {
@@ -1047,7 +1034,7 @@ public class OkCoinService extends MarketServicePreliq {
             final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
             monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
             if (waitingMarketMs > 5000) {
-                logger.warn("TAKER okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
+                log.warn("TAKER okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
             }
             monitoringDataService.saveMon(monPlacing);
             metricsDictionary.putOkexPlacing(waitingMarketMs);
@@ -1271,12 +1258,12 @@ public class OkCoinService extends MarketServicePreliq {
             } else {
                 final PlaceOrderArgs currArgs = placeOrderArgsRef.get();
                 if (currArgs != null) {
-                    logger.warn("WAITING_ARB: deferredPlacingOrder warn. PlaceOrderArgs is not null. " + currArgs);
+                    log.warn("WAITING_ARB: deferredPlacingOrder warn. PlaceOrderArgs is not null. " + currArgs);
                 }
             }
         } catch (Exception e) {
             final String warnMsg = "WAITING_ARB: deferredPlacingOrder error";
-            logger.error(warnMsg, e);
+            log.error(warnMsg, e);
             resetWaitingArb(warnMsg);
             arbitrageService.resetArbState("deferredPlacingOrder");
             slackNotifications.sendNotify(NotifyType.RESET_TO_FREE, "WAITING_ARB: deferredPlacingOrder error. Set READY. " + e.getMessage());
@@ -1288,7 +1275,7 @@ public class OkCoinService extends MarketServicePreliq {
     public boolean noDeferredOrderCheck(PlaceOrderArgs currArgs) {
         if (currArgs == null) {
             final String warnMsg = "WAITING_ARB: no deferred order. Set READY.";
-            logger.error(warnMsg);
+            log.error(warnMsg);
             warningLogger.error(warnMsg);
             resetWaitingArb(warnMsg);
             arbitrageService.resetArbState("deferredPlacingOrder");
@@ -1308,12 +1295,12 @@ public class OkCoinService extends MarketServicePreliq {
                     counterName,
                     tradeId
             );
-            logger.info(msg);
+            log.info(msg);
             arbitrageService.getLeftMarketService().getTradeLogger().info(msg);
             getTradeLogger().info(msg);
             warningLogger.info(msg);
-            final BitmexService bitmexService = (BitmexService) arbitrageService.getLeftMarketService();
-            bitmexService.updateAvgPrice(dealPrices, true);
+            final MarketService left = arbitrageService.getLeftMarketService();
+            left.updateAvgPrice(dealPrices, true);
 
             if (dealPrices.getBPriceFact().isNotFinished()) {
                 final String msg1 = String.format("#%s tradeId=%s "
@@ -1321,7 +1308,7 @@ public class OkCoinService extends MarketServicePreliq {
                         counterName,
                         tradeId
                 );
-                logger.error(msg1);
+                log.error(msg1);
                 arbitrageService.getLeftMarketService().getTradeLogger().info(msg1);
                 getTradeLogger().info(msg1);
                 warningLogger.error(msg1);
@@ -1339,7 +1326,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         setMarketState(MarketState.ARBITRAGE);
         tradeLogger.info(String.format("#%s MT2 start placing ", currArgs));
-        logger.info(String.format("#%s MT2 start placing ", currArgs));
+        log.info(String.format("#%s MT2 start placing ", currArgs));
 
         boolean firstPortion = currArgs.getPortionsQty() == null || currArgs.getPortionsQty() == 1;
         if (currArgs.getPlacingType() == PlacingType.TAKER && firstPortion) {// set oPricePlanOnStart for Taker
@@ -1421,7 +1408,7 @@ public class OkCoinService extends MarketServicePreliq {
                 String details = String.format("#%s/%s placeOrderOnSignal error. type=%s,a=%s,bestQuotes=%s,isMove=%s,signalT=%s. %s",
                         counterNameWithPortion, attemptCount,
                         orderType, amountLeft, bestQuotes, false, signalType, message);
-                logger.error(details, e);
+                log.error(details, e);
                 details = details.length() < 400 ? details : details.substring(0, 400); // we can get html page as error message
                 tradeLogger.error(details);
 
@@ -1438,7 +1425,7 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
-            logger.info("restore marketState to READY after PRELIQ");
+            log.info("restore marketState to READY after PRELIQ");
             setMarketState(MarketState.READY, counterName);
         } else {
             // RESET STATE
@@ -1474,7 +1461,7 @@ public class OkCoinService extends MarketServicePreliq {
         long wholeMs = endPlacing.toEpochMilli() - startPlacing.toEpochMilli();
         monPlacing.getWholePlacing().add(BigDecimal.valueOf(wholeMs));
         if (wholeMs > 5000) {
-            logger.warn(placingType + " okex wholePlacingMs=" + wholeMs);
+            log.warn(placingType + " okex wholePlacingMs=" + wholeMs);
         }
         monPlacing.incCount();
         monitoringDataService.saveMon(monPlacing);
@@ -1493,15 +1480,15 @@ public class OkCoinService extends MarketServicePreliq {
             final String toolName = getToolIdForApi();
             final Leverage lv = fplayOkexExchange.getPrivateApi().getLeverage(toolName);
             if (lv == null) {
-                logger.error("lv is null");
+                log.error("lv is null");
             } else {
                 leverage = lv.getLeverage();
             }
         } catch (Exception e) {
-            logger.error("fetchLeverRate error", e);
+            log.error("fetchLeverRate error", e);
         }
         Instant end = Instant.now();
-        Utils.logIfLong(start, end, logger, "fetchLeverRate");
+        Utils.logIfLong(start, end, log, "fetchLeverRate");
     }
 
     public BigDecimal getLeverage() {
@@ -1517,10 +1504,10 @@ public class OkCoinService extends MarketServicePreliq {
                     okexLeverage.setScale(0, RoundingMode.DOWN).toPlainString()
             );
             leverage = r.getLeverage();
-            logger.info("Update okex leverage. " + r);
+            log.info("Update okex leverage. " + r);
             resultDescription = r.getDescription();
         } catch (Exception e) {
-            logger.error("Error updating okex leverage", e);
+            log.error("Error updating okex leverage", e);
             resultDescription = e.getMessage();
         }
         return "result: " + resultDescription;
@@ -1561,7 +1548,7 @@ public class OkCoinService extends MarketServicePreliq {
                 message = exception.getCause().getMessage();
             }
             if (message == null) {
-                logger.error("null", exception);
+                log.error("null", exception);
             } else {
                 if (message.contains("connect timed out") // SocketTimeoutException api-v1?
                         || message.contains("Read timed out") // SocketTimeoutException api-v1?
@@ -1584,7 +1571,7 @@ public class OkCoinService extends MarketServicePreliq {
                     try {
                         fetchPosition();
                     } catch (Exception e1) {
-                        logger.info("FetchPositionError:", e1);
+                        log.info("FetchPositionError:", e1);
                     }
                     return NextStep.CONTINUE;
                 }
@@ -1599,19 +1586,19 @@ public class OkCoinService extends MarketServicePreliq {
             setMarketState(MarketState.WAITING_ARB);
             final String msgStart = String.format("#%s MT2 deferred placing %s", counterName, currPlaceOrderArgs);
             tradeLogger.info(msgStart);
-            logger.info(msgStart);
+            log.info(msgStart);
             final Settings s = settingsRepositoryService.getSettings();
             if (s.getArbScheme() == ArbScheme.CON_B_O_PORTIONS) {
                 final String msg = String.format("CON_B_O_PORTIONS: min to start nt_usd=%s, maxPortion=%s",
                         s.getConBoPortions().getMinNtUsdToStartOkex(),
                         s.getConBoPortions().getMaxPortionUsdOkex());
                 tradeLogger.info(msg);
-                logger.info(msg);
+                log.info(msg);
             }
         } else {
             setMarketState(MarketState.ARBITRAGE);
             final String errorMessage = String.format("#%s double placing-order for MT2. New:%s.", counterName, currPlaceOrderArgs);
-            logger.error(errorMessage);
+            log.error(errorMessage);
             tradeLogger.error(errorMessage);
             warningLogger.error(errorMessage);
         }
@@ -1641,7 +1628,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final String message = Utils.getTenAskBid(getOrderBook(), counterNameWithPortion,
                     String.format("Before %s placing, orderType=%s,", placingSubType, Utils.convertOrderTypeName(orderType)));
-            logger.info(message);
+            log.info(message);
             tradeLogger.info(message);
 
             if (placingSubType == null || placingSubType == PlacingType.TAKER) {
@@ -1666,7 +1653,7 @@ public class OkCoinService extends MarketServicePreliq {
                     final String msg = String.format("#%s/%s orderBook timestamp=%s is the same. Updating orderBook...",
                             counterNameWithPortion, attempt, obTimestamp);
                     tradeLogger.info(msg);
-                    logger.info(msg);
+                    log.info(msg);
 
                     final CurrencyPair currencyPair = instrumentDto.getCurrencyPair();
                     orderBook = fplayOkexExchange.getPublicApi().getInstrumentBook(instrumentDto.getInstrumentId(), currencyPair);
@@ -1677,7 +1664,7 @@ public class OkCoinService extends MarketServicePreliq {
                 obTimestamp = orderBook.getTimeStamp().toInstant().toString();
                 final String msgTimestamp = String.format("#%s/%s orderBook timestamp=%s.", counterNameWithPortion, attempt, obTimestamp);
                 tradeLogger.info(msgTimestamp);
-                logger.info(msgTimestamp);
+                log.info(msgTimestamp);
                 thePrice = createBestPrice(orderType, placingSubType, orderBook, getContractType());
 
                 if (thePrice.compareTo(BigDecimal.ZERO) == 0) {
@@ -1703,7 +1690,7 @@ public class OkCoinService extends MarketServicePreliq {
                             futuresOrderType
                     );
                     tradeLogger.info(msgPlacing);
-                    logger.info(msgPlacing);
+                    log.info(msgPlacing);
                     final OrderResultTiny orderResult = fplayOkexExchange.getPrivateApi().limitOrder(
                             instrumentDto.getInstrumentId(),
                             orderType,
@@ -1721,7 +1708,7 @@ public class OkCoinService extends MarketServicePreliq {
                     final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
                     monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
                     if (waitingMarketMs > 5000) {
-                        logger.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
+                        log.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
                     }
                     monitoringDataService.saveMon(monPlacing);
                     metricsDictionary.putOkexPlacing(waitingMarketMs);
@@ -1761,7 +1748,7 @@ public class OkCoinService extends MarketServicePreliq {
                                 orderResult.isResult());
 
                         tradeLogger.info(msg);
-                        logger.info(msg);
+                        log.info(msg);
                     }
                     boolean firstPortion = portionsQty == null || portionsQty == 1;
                     if (pricePlanOnStart && firstPortion) { // set oPricePlanOnStart for non-Taker
@@ -1802,7 +1789,7 @@ public class OkCoinService extends MarketServicePreliq {
             Order theOrder = order.iterator().next();
             final String msg = String.format("%s status=%s, filled=%s.", preStr, theOrder.getStatus(), theOrder.getCumulativeAmount());
             tradeLogger.info(msg);
-            logger.info(msg);
+            log.info(msg);
             return (LimitOrder) theOrder;
         }
         final String warn = preStr + " no orders in response";
@@ -1823,7 +1810,7 @@ public class OkCoinService extends MarketServicePreliq {
             final String msg = String.format("%s status=%s, filled=%s. postOnly=%s",
                     preStr, theOrderStatus, theOrder.getCumulativeAmount(), postOnly);
             tradeLogger.info(msg);
-            logger.info(msg);
+            log.info(msg);
             if (postOnly && (theOrderStatus == OrderStatus.NEW || theOrderStatus == OrderStatus.PENDING_NEW)) {
                 final String warn = String.format("%s postOnly with status %s.", preStr, theOrderStatus);
                 if (needRepeatCheckOrderStatus(checkAttempt, warn))
@@ -1848,16 +1835,16 @@ public class OkCoinService extends MarketServicePreliq {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                logger.error("Sleep interrupted", e);
+                log.error("Sleep interrupted", e);
             }
             final String warnTrue = warn + "do repeat; checkAttempt=" + checkAttempt;
             tradeLogger.info(warnTrue);
-            logger.info(warnTrue);
+            log.info(warnTrue);
             return true;
         }
         final String warnFalse = warn + "no checkAttempt left";
         tradeLogger.info(warnFalse);
-        logger.info(warnFalse);
+        log.info(warnFalse);
         return false;
     }
 
@@ -1875,7 +1862,7 @@ public class OkCoinService extends MarketServicePreliq {
                 status,
                 rawResult);
         tradeLogger.info(message);
-        logger.info(message);
+        log.info(message);
         ordersLogger.info(message);
     }
 
@@ -1914,7 +1901,7 @@ public class OkCoinService extends MarketServicePreliq {
                         order.getCumulativeAmount()));
             }
         } catch (Exception e) {
-            logger.error("on fetch order info by id=" + orderId, e);
+            log.error("on fetch order info by id=" + orderId, e);
         }
         return order;
     }
@@ -1989,7 +1976,7 @@ public class OkCoinService extends MarketServicePreliq {
                         limitOrder.getId(),
                         null);
                 tradeLogger.info(logString);
-                logger.info(logString);
+                log.info(logString);
 
                 // 3. Place order
             } else if (cancelledOrder.getStatus() == OrderStatus.CANCELED) {
@@ -2009,7 +1996,7 @@ public class OkCoinService extends MarketServicePreliq {
                     final String warnMsg = String.format("#%s Can not move orderId=%s, ONLY_CANCEL!!!",
                             counterWithPortion, limitOrder.getId());
                     warningLogger.info(warnMsg);
-                    logger.info(warnMsg);
+                    log.info(warnMsg);
                     response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, tradeResponse.getOrderId(),
                             null, null, cancelledFplayOrd);
                 }
@@ -2029,14 +2016,14 @@ public class OkCoinService extends MarketServicePreliq {
                 long beforeMs = startMoving.toEpochMilli() - lastObTime.toEpochMilli();
                 mon.getBefore().add(BigDecimal.valueOf(beforeMs));
                 if (beforeMs > 5000) {
-                    logger.warn("okex beforeMoveOrderMs=" + beforeMs);
+                    log.warn("okex beforeMoveOrderMs=" + beforeMs);
                 }
             }
 
             long wholeMovingMs = lastEnd.toEpochMilli() - startMoving.toEpochMilli();
             mon.getWholePlacing().add(new BigDecimal(wholeMovingMs));
             if (wholeMovingMs > 30000) {
-                logger.warn("okex wholeMovingMs=" + wholeMovingMs);
+                log.warn("okex wholeMovingMs=" + wholeMovingMs);
             }
             mon.incCount();
             monitoringDataService.saveMon(mon);
@@ -2055,7 +2042,7 @@ public class OkCoinService extends MarketServicePreliq {
         final String ftpdDetails = String.format("FTP=%s; %s; %s",
                 thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
         getTradeLogger().info(ftpdDetails);
-        logger.info(ftpdDetails);
+        log.info(ftpdDetails);
         return thePrice;
     }
 
@@ -2111,7 +2098,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }
                 if (tradeResponse.getErrorCode() != null) {
                     final String errMsg = String.format("#%s/%s Warning: Moving3:placingError %s", counterForLogs, attemptCount, tradeResponse.getErrorCode());
-                    logger.error(errMsg);
+                    log.error(errMsg);
                     tradeLogger.error(errMsg);
                     tradeResponse.setOrderId(null);
                     continue;
@@ -2121,7 +2108,7 @@ public class OkCoinService extends MarketServicePreliq {
                 break;
 
             } catch (Exception e) {
-                logger.error("#{}/{} Moving3:placingError", counterForLogs, attemptCount, e);
+                log.error("#{}/{} Moving3:placingError", counterForLogs, attemptCount, e);
                 tradeLogger.error(String.format("#%s/%s Warning: Moving3:placingError %s", counterForLogs, attemptCount, e.toString()));
                 tradeResponse.setOrderId(null);
                 tradeResponse.setErrorCode(e.getMessage());
@@ -2164,7 +2151,7 @@ public class OkCoinService extends MarketServicePreliq {
                     break;
                 }
             } catch (Exception e) {
-                logger.error("#{}/{} error on get order status", counterName, attemptCount, e);
+                log.error("#{}/{} error on get order status", counterName, attemptCount, e);
                 tradeLogger.error(String.format("#%s/%s error on get order status: %s", counterName, attemptCount, e.toString()));
             }
         }
@@ -2197,7 +2184,7 @@ public class OkCoinService extends MarketServicePreliq {
                             result.getError_message(),
                             translatedError);
                     tradeLogger.info(msg);
-                    logger.info(msg);
+                    log.info(msg);
 
                     if (result.isResult()
                             || result.getError_code().contains("32004") // result.getError_message()=="You have not uncompleted order at the moment"
@@ -2214,7 +2201,7 @@ public class OkCoinService extends MarketServicePreliq {
                         break;
                     }
                 } catch (Exception e) {
-                    logger.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
+                    log.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
                     tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
                 }
             }
@@ -2225,7 +2212,7 @@ public class OkCoinService extends MarketServicePreliq {
         if (beforePlacing && cnlSuccess) {
             final String msg = String.format("#%s (beforePlacing && cnlSuccess) changing to PLACING_ORDER...", stub.getCounterWithPortion());
             getTradeLogger().info(msg);
-            logger.info(msg);
+            log.info(msg);
             setMarketState(MarketState.PLACING_ORDER);
         } else {
             addCheckOoToFree();
@@ -2272,7 +2259,7 @@ public class OkCoinService extends MarketServicePreliq {
             }
 
         } catch (Exception e) {
-            logger.error("#{} error cancel maker order", counterForLogs, e);
+            log.error("#{} error cancel maker order", counterForLogs, e);
             tradeLogger.error(String.format("#%s error cancel maker order: %s", counterForLogs, e.toString()));
             final Order order = fetchOrderInfo(orderId, counterForLogs);
             if (order != null) {
@@ -2365,7 +2352,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }
 
             } catch (Exception e) {
-                logger.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
+                log.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
                 tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
             }
         }
@@ -2573,7 +2560,7 @@ public class OkCoinService extends MarketServicePreliq {
     protected boolean onReadyState() {
         if (settingsRepositoryService.getSettings().getArbScheme() == ArbScheme.CON_B_O_PORTIONS
                 && placeOrderArgsRef.get() != null) {
-            logger.warn("WAITING_ARB was reset by onReadyState");
+            log.warn("WAITING_ARB was reset by onReadyState");
             tradeLogger.warn("WAITING_ARB was reset by onReadyState");
             setMarketState(MarketState.WAITING_ARB);
             getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
@@ -2673,7 +2660,7 @@ public class OkCoinService extends MarketServicePreliq {
                         } catch (Exception e) {
                             // use default OO
                             warningLogger.warn("Error on moving: " + e.getMessage());
-                            logger.warn("Error on moving", e);
+                            log.warn("Error on moving", e);
 
                             resultOOList.add(openOrder); // keep the same
                         }
@@ -2699,7 +2686,7 @@ public class OkCoinService extends MarketServicePreliq {
                         f != null ? f.getCounterWithPortion() : null,
                         s, u.getId());
                 tradeLogger.info(msg);
-                logger.info(msg);
+                log.info(msg);
             }
         }
     }
@@ -2752,7 +2739,7 @@ public class OkCoinService extends MarketServicePreliq {
         if (avgPrice.isZeroOrder()) {
             String msg = String.format("#%s WARNING: no updateAvgPrice for okex orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
             tradeLogger.info(msg);
-            logger.warn(msg);
+            log.warn(msg);
             return;
         }
 
@@ -2764,9 +2751,9 @@ public class OkCoinService extends MarketServicePreliq {
 
         String[] orderIdsArray = orderIds.toArray(new String[0]);
         if (orderIdsArray.length == 0) {
-            logger.info("updateAvgPrice skipped(no orders)");
+            log.info("updateAvgPrice skipped(no orders)");
         } else {
-            logger.info("updateAvgPrice of " + Arrays.toString(orderIdsArray));
+            log.info("updateAvgPrice of " + Arrays.toString(orderIdsArray));
             for (int attempt = 0; attempt < 3; attempt++) { // about 11 sec
                 long sleepTime = 200;
                 try {
@@ -2884,7 +2871,7 @@ public class OkCoinService extends MarketServicePreliq {
             tradeResponse.setErrorCode(message);
 
             final String logString = String.format("#%s %s closeAllPos: %s", counterForLogs, getName(), message);
-            logger.error(logString, e);
+            log.error(logString, e);
             tradeLogger.error(logString);
             warningLogger.error(logString);
         }
@@ -2917,7 +2904,7 @@ public class OkCoinService extends MarketServicePreliq {
             final String ftpdDetails = String.format("FTP=%s; %s; %s",
                     thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
             getTradeLogger().info(ftpdDetails);
-            logger.info(ftpdDetails);
+            log.info(ftpdDetails);
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
             final OrderResultTiny orderResult = fplayOkexExchange.getPrivateApi().limitOrder(

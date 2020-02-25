@@ -62,9 +62,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
-import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.Dql;
-import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -229,21 +227,23 @@ public class ArbitrageService {
         this.leftMarketService = twoMarketStarter.getLeftMarketService();
         this.rightMarketService = twoMarketStarter.getRightMarketService();
         this.posDiffService = twoMarketStarter.getPosDiffService();
-        if (leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
-            final BitmexService bitmexService = (BitmexService) this.leftMarketService;
-            this.leftLimitService = new BitmexLimitsService(slackNotifications, bitmexService, settingsRepositoryService);
-        } else {
-            this.leftLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.leftMarketService, settingsRepositoryService);
+        if (this.leftMarketService != null && this.rightMarketService != null) {
+            if (leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
+                final BitmexService bitmexService = (BitmexService) this.leftMarketService;
+                this.leftLimitService = new BitmexLimitsService(slackNotifications, bitmexService, settingsRepositoryService);
+            } else {
+                this.leftLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.leftMarketService, settingsRepositoryService);
+            }
+            leftMarketService.setLimitsService(this.leftLimitService);
+
+            this.rightLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.rightMarketService, settingsRepositoryService);
+            rightMarketService.setLimitsService(rightLimitService);
+
+            initArbitrageStateListener();
+            initialized = true;
+
+            applicationEventPublisher.publishEvent(new ArbitrageReadyEvent());
         }
-        this.rightLimitService = new OkexLimitsService(slackNotifications, (OkCoinService) this.rightMarketService, settingsRepositoryService);
-        rightMarketService.setLimitsService(rightLimitService);
-        leftMarketService.setLimitsService(leftLimitService);
-
-//        startArbitrageMonitoring();
-        initArbitrageStateListener();
-        initialized = true;
-
-        applicationEventPublisher.publishEvent(new ArbitrageReadyEvent());
     }
 
     void sigEventCheck(SigEvent e) {
@@ -1409,8 +1409,8 @@ public class ArbitrageService {
         final String counterName = String.valueOf(counter1 + counter2);
 
         final FplayTrade fplayTrade = fplayTradeService.createTrade(counterName, deltaName,
-                ((BitmexContractType) leftMarketService.getContractType()),
-                ((OkexContractType) rightMarketService.getContractType()));
+                leftMarketService.getContractType(),
+                rightMarketService.getContractType());
         final Long tradeId = fplayTrade.getId();
         fplayTradeService.info(tradeId, counterName, "------------------------------------------");
 
@@ -2274,15 +2274,15 @@ public class ArbitrageService {
 
         return rightMarketService != null
                 && leftMarketService != null
-                && rightMarketService.getEthBtcTicker() != null
-                && leftMarketService.getEthBtcTicker() != null
+//                && rightMarketService.getEthBtcTicker() != null // only okex has EthBtcTicker
+//                && leftMarketService.getEthBtcTicker() != null
                 && rightMarketService.getContractType().isEth()
                 && leftMarketService.getContractType().isEth();
     }
 
     public BigDecimal getCm() {
-        if (rightMarketService != null && rightMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
-            return ((BitmexService) rightMarketService).getCm();
+        if (leftMarketService != null && leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
+            return ((BitmexService) leftMarketService).getCm();
         }
         return BitmexService.DEFAULT_CM;
     }

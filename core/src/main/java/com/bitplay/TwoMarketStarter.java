@@ -6,23 +6,33 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.OkexSettlementService;
+import com.bitplay.persistance.CumPersistenceService;
+import com.bitplay.persistance.DealPricesRepositoryService;
+import com.bitplay.persistance.LastPriceDeviationService;
+import com.bitplay.persistance.MonitoringDataService;
+import com.bitplay.persistance.OrderRepositoryService;
+import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.PostMapping;
 
+import javax.annotation.PostConstruct;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,51 +40,72 @@ import java.util.concurrent.Executors;
 /**
  * Created by Sergey Shurmin on 4/29/17.
  */
+@Slf4j
 @Component
 @DependsOn("mongobee")
+@RequiredArgsConstructor
 public class TwoMarketStarter {
 
-    private final static Logger logger = LoggerFactory.getLogger(TwoMarketStarter.class);
-
-    private Config config;
-    private ApplicationContext context;
+//    private Config config;
+//    private ApplicationContext context;
 
     private volatile MarketServicePreliq leftMarketService;
     private volatile MarketServicePreliq rightMarketService;
     private volatile PosDiffService posDiffService;
 
-    private SlackNotifications slackNotifications;
-    private ArbitrageService arbitrageService;
-    private RestartService restartService;
-    private SettingsRepositoryService settingsRepositoryService;
+//    private SlackNotifications slackNotifications;
+//    private ArbitrageService arbitrageService;
+//    private RestartService restartService;
+//    private SettingsRepositoryService settingsRepositoryService;
 
-    public TwoMarketStarter(ApplicationContext context,
-                            Config config) {
-        this.context = context;
-        this.config = config;
-    }
+    private final Config config;
+    private final ApplicationContext context;
 
-    @Autowired
-    public void setSlackNotifications(SlackNotifications slackNotifications) {
-        this.slackNotifications = slackNotifications;
-    }
+    private final ArbitrageService arbitrageService;
+    private final RestartService restartService;
 
-    @Autowired
-    public void setArbitrageService(ArbitrageService arbitrageService) {
-        this.arbitrageService = arbitrageService;
-    }
+    private final SlackNotifications slackNotifications;
+    private final LastPriceDeviationService lastPriceDeviationService;
+    private final com.bitplay.persistance.TradeService fplayTradeService;
+    private final PersistenceService persistenceService;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final OrderRepositoryService orderRepositoryService;
+    private final CumPersistenceService cumPersistenceService;
+    private final OkexSettlementService okexSettlementService;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final DealPricesRepositoryService dealPricesRepositoryService;
+    private final DefaultLogService defaultLogger;
+    private final MonitoringDataService monitoringDataService;
 
-    @Autowired
-    public void setRestartService(RestartService restartService) {
-        this.restartService = restartService;
-    }
 
-    @Autowired
-    public void setSettingsRepositoryService(SettingsRepositoryService settingsRepositoryService) {
-        this.settingsRepositoryService = settingsRepositoryService;
-    }
+//    public TwoMarketStarter(ApplicationContext context,
+//                            Config config) {
+//        this.context = context;
+//        this.config = config;
+//    }
 
-    @EventListener(ApplicationReadyEvent.class)
+    //    @Autowired
+//    public void setSlackNotifications(SlackNotifications slackNotifications) {
+//        this.slackNotifications = slackNotifications;
+//    }
+//
+//    @Autowired
+//    public void setArbitrageService(ArbitrageService arbitrageService) {
+//        this.arbitrageService = arbitrageService;
+//    }
+//
+//    @Autowired
+//    public void setRestartService(RestartService restartService) {
+//        this.restartService = restartService;
+//    }
+//
+//    @Autowired
+//    public void setSettingsRepositoryService(SettingsRepositoryService settingsRepositoryService) {
+//        this.settingsRepositoryService = settingsRepositoryService;
+//    }
+//
+//    @EventListener(ApplicationReadyEvent.class)
+    @PostConstruct
     public void init() {
 
         final ExecutorService startExecutor = Executors.newFixedThreadPool(2,
@@ -100,10 +131,13 @@ public class TwoMarketStarter {
                 try {
                     final String correctPosition = "pos-diff";
                     posDiffService = (PosDiffService) context.getBean(correctPosition);
-                    logger.info("PosDiffService: " + posDiffService);
+                    log.info("PosDiffService: " + posDiffService);
+                    if (leftMarketService != null && rightMarketService != null) {
+                        posDiffService.init();
+                    }
                     arbitrageService.init(this);
                 } catch (Exception e) {
-                    logger.error("Initialization error", e);
+                    log.error("Initialization error", e);
                 }
             }
 
@@ -116,6 +150,9 @@ public class TwoMarketStarter {
         try {
             marketService = (MarketServicePreliq) context.getBean(marketName);
             if (marketName.equals(BitmexService.NAME)) {
+//                marketService = new BitmexService();
+
+
                 marketService.init(config.getBitmexMarketKey(), config.getBitmexMarketSecret(), contractType, arbType);
             } else if (marketName.equals(OkCoinService.NAME)) {
                 marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
@@ -125,7 +162,7 @@ public class TwoMarketStarter {
             }
 
         } catch (Exception e) {
-            logger.error("MARKET Initialization error. Set STOPPED.", e);
+            log.error("MARKET Initialization error. Set STOPPED.", e);
             // Workaround to make work the other market
             if (marketService != null) {
                 marketService.setEmptyPos();

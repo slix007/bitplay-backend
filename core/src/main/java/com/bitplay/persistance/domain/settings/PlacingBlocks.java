@@ -22,6 +22,8 @@ public class PlacingBlocks {
     private BigDecimal cm = BigDecimal.valueOf(100);
     @Transient
     private boolean isEth = false;
+    @Transient
+    private boolean leftOkex = false;
 
     public static PlacingBlocks createDefault() {
         final PlacingBlocks placingBlocks = new PlacingBlocks();
@@ -38,10 +40,16 @@ public class PlacingBlocks {
     //10 USD block = CM BitmexCONT & 1 OkexCONT.
 
     public BigDecimal getFixedBlockBitmex() {
+        if (leftOkex) {
+            return toOkexCont(fixedBlockUsd);
+        }
         return toBitmexCont(fixedBlockUsd);
     }
 
     public BigDecimal getDynMaxBlockBitmex() {
+        if (leftOkex) {
+            return toOkexCont(dynMaxBlockUsd);
+        }
         return toBitmexCont(dynMaxBlockUsd);
     }
 
@@ -59,7 +67,11 @@ public class PlacingBlocks {
         return toBitmexCont(usd, isEth, cm);
     }
 
-    public static BigDecimal toBitmexContPure(BigDecimal usd, boolean isEth, BigDecimal cm) {
+    public static BigDecimal toBitmexContPure(BigDecimal usd, boolean isEth, BigDecimal cm, boolean leftOkex) {
+        if (leftOkex) {
+            return toOkexCont(usd, isEth);
+        }
+
         if (isEth) {
             return usd.multiply(cm).divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         }

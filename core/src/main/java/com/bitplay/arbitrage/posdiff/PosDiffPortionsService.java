@@ -248,12 +248,9 @@ public class PosDiffPortionsService {
         final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
         final boolean isEth = left.getContractType().isEth();
 
-        BigDecimal btmFilledCont = BigDecimal.ZERO;
-        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
-            btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, ((BitmexService) left).getCm());
-        } else if (left.getMarketStaticData() == MarketStaticData.OKEX) {
-            btmFilledCont = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
-        }
+        final boolean leftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
+        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, arbitrageService.getCm(), leftOkex);
+
         // when btmFilled < fullAmount
         if (btmFilledCont.compareTo(dealPrices.getBPriceFact().getFullAmount()) < 0) {
             final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);

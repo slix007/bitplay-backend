@@ -321,7 +321,7 @@ public class CommonUIService {
         final MarketState btmState = left.getMarketState();
         final MarketState okState = right.getMarketState();
 
-        boolean reconnectInProgress = ((BitmexService) left).isReconnectInProgress();
+        boolean reconnectInProgress = left.isReconnectInProgress();
         String btmReconnectState = reconnectInProgress ? "IN_PROGRESS" : "NONE";
 
         DelayTimerJson corrDelay = getCorrDelay();

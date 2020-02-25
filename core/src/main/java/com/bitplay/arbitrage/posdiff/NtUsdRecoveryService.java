@@ -106,15 +106,14 @@ public class NtUsdRecoveryService {
 
         // TODO
         BigDecimal cm = BitmexService.DEFAULT_CM;
-        if (arbitrageService.getRightMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
-            cm = ((BitmexService) arbitrageService.getRightMarketService()).getCm();
-        } else if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+        boolean leftOkex = arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.OKEX;
+        if (!leftOkex) {
             cm = ((BitmexService) arbitrageService.getLeftMarketService()).getCm();
         }
         final boolean isEth = arbitrageService.isEth();
         final CorrParams corrParams = persistenceService.fetchCorrParams();
         final int maxBlockUsd = afterKillpos ? Integer.MAX_VALUE : corrParams.getRecoveryNtUsd().getMaxBlockUsd();
-        BigDecimal maxBtm = PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxBlockUsd), isEth, cm);
+        BigDecimal maxBtm = PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxBlockUsd), isEth, cm, leftOkex);
         BigDecimal maxOk = PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxBlockUsd), isEth);
 
         BigDecimal bP = arbitrageService.getLeftMarketService().getPos().getPositionLong();

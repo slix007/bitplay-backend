@@ -92,32 +92,6 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<MarketServi
         return new TradeResponseJson(orderId, details);
     }
 
-    public FutureIndexJson getFutureIndex() {
-        final OkCoinService service = (OkCoinService) arbitrageService.getRightMarketService();
-        final LimitsService okexLimitsService = service.getLimitsService();
-
-        final ContractIndex contractIndex = getBusinessService().getContractIndex();
-        final String indexVal = contractIndex.getIndexPrice().toPlainString();
-        final BigDecimal markPrice = service.getMarkPrice();
-
-        final String indexString = String.format("%s/%s (1c=%sbtc)",
-                indexVal,
-                markPrice,
-                getBusinessService().calcBtcInContract());
-        final Date timestamp = contractIndex.getTimestamp();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        final LimitsJson limitsJson = okexLimitsService.getLimitsJson();
-
-        // bid[1] в token trading (okex spot).
-        String ethBtcBal = service.getEthBtcTicker() == null ? ""
-                : "Quote ETH/BTC: " + service.getEthBtcTicker().getBid().toPlainString();
-
-        final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
-        final SwapSettlement swapSettlement = service.getSwapSettlement();
-        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice, swapSettlement);
-    }
-
     public ResultJson changeLeverage(LeverageRequest leverageRequest) {
         final OkCoinService service = (OkCoinService) arbitrageService.getRightMarketService();
         final String resDescr = service.changeOkexLeverage(leverageRequest.getLeverage());

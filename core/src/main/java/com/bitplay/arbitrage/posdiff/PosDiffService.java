@@ -8,11 +8,11 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.SignalTypeEx;
-import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexUtils;
 import com.bitplay.market.model.FullBalance;
@@ -43,8 +43,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -107,7 +105,6 @@ public class PosDiffService {
     @Autowired
     private NtUsdExecutor ntUsdExecutor;
 
-    @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         ntUsdExecutor.addScheduledTask(this::calcPosDiffJob, 60, 1, TimeUnit.SECONDS);
         ntUsdExecutor.addScheduledTask(this::checkMDCJob, 60, 1, TimeUnit.SECONDS);
@@ -314,9 +311,12 @@ public class PosDiffService {
     }
 
     private void checkBitmexPosXBTUSD(String infoMsg) {
-        final BitmexService bitmexService = (BitmexService) arbitrageService.getLeftMarketService();
-        bitmexService.posXBTUSDUpdater();
-        final Pos pos2 = bitmexService.getPositionXBTUSD();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
+            final BitmexService bitmexService = (BitmexService) left;
+            bitmexService.posXBTUSDUpdater();
+        }
+        final Pos pos2 = left.getPositionXBTUSD();
         String msg = infoMsg + "bitmexXBTUSD=" + BitmexUtils.positionToString(pos2);
         warningLogger.info(msg);
         log.info(msg);
@@ -847,12 +847,14 @@ public class PosDiffService {
             return;
         }
 
-        BigDecimal bP = arbitrageService.getLeftMarketService().getPos().getPositionLong();
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        boolean leftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
+        BigDecimal bP = left.getPos().getPositionLong();
         final Pos secondPos = arbitrageService.getRightMarketService().getPos();
         BigDecimal oPL = secondPos.getPositionLong();
         BigDecimal oPS = secondPos.getPositionShort();
 
-        if (!arbitrageService.getLeftMarketService().isStarted() || marketsStopped()) {
+        if (!left.isStarted() || marketsStopped()) {
             return;
         }
         stopTimerToImmediateCorrection(); // avoid double-correction
@@ -876,43 +878,43 @@ public class PosDiffService {
 
         if (baseSignalType == SignalType.ADJ_BTC) {
 
-            BigDecimal bPXbtUsd = arbitrageService.getLeftMarketService().getPositionXBTUSD().getPositionLong();
+            BigDecimal bPXbtUsd = left.getPositionXBTUSD().getPositionLong();
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(leftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, true);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
             @SuppressWarnings("Duplicates")
-            BigDecimal bPXbtUsd = arbitrageService.getLeftMarketService().getPositionXBTUSD().getPositionLong();
+            BigDecimal bPXbtUsd = left.getPositionXBTUSD().getPositionLong();
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(leftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else { // corr
-            maxBtm = corrParams.getCorr().getMaxVolCorrBitmex();
+            maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(leftOkex);
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
-            if (arbitrageService.getLeftMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED) {
+            if (left.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
                 // no check okexAmountIsZero(corrObj, dc, isEth)
                 adaptCorrByPosOnBtmSo(corrObj, oPL, oPS, dc, isEth);
             } else {
                 adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
             }
-            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
@@ -941,7 +943,7 @@ public class PosDiffService {
                     corrName,
                     correctAmount,
                     maxBtm, maxOkex, dc,
-                    arbitrageService.getLeftMarketService().getPos().toString(),
+                    left.getPos().toString(),
                     arbitrageService.getRightMarketService().getPos().toString(),
                     hedgeAmount.toPlainString(),
                     signalType
@@ -1008,8 +1010,8 @@ public class PosDiffService {
 
                     final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
                             ? arbitrageService.getRightMarketService()
-                            : arbitrageService.getLeftMarketService();
-                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex());
+                            : left;
+                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
                     switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
                     defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);

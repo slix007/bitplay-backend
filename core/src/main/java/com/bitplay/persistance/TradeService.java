@@ -8,6 +8,7 @@ import com.bitplay.persistance.domain.fluent.LogRow;
 import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.FplayTradeRepository;
@@ -100,12 +101,12 @@ public class TradeService {
         }
     }
 
-    public FplayTrade createTrade(String counterName, DeltaName deltaName, BitmexContractType b, OkexContractType o) {
+    public FplayTrade createTrade(String counterName, DeltaName deltaName, ContractType b, ContractType o) {
         return createTrade(counterName, new Date(), deltaName, b, o);
     }
 
     private FplayTrade createTrade(String counterName, Date startTimestamp, DeltaName deltaName,
-            BitmexContractType bitmexContractType, OkexContractType okexContractType) {
+            ContractType bitmexContractType, ContractType okexContractType) {
         final FplayTrade fplayTrade = new FplayTrade();
         fplayTrade.setCounterName(counterName);
         fplayTrade.setVersion(0L);
@@ -114,8 +115,8 @@ public class TradeService {
         fplayTrade.setTradeStatus(TradeStatus.IN_PROGRESS);
         fplayTrade.setBitmexStatus(TradeMStatus.WAITING);
         fplayTrade.setOkexStatus(TradeMStatus.WAITING);
-        fplayTrade.setBitmexContractType(bitmexContractType);
-        fplayTrade.setOkexContractType(okexContractType);
+        fplayTrade.setLeftContractType(bitmexContractType);
+        fplayTrade.setRightContractType(okexContractType);
 
         long nextId = sequenceDao.getNextSequenceId(SEQ_NAME);
         fplayTrade.setId(nextId);

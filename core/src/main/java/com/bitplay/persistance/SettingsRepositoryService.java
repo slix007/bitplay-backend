@@ -2,12 +2,12 @@ package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.SettingsRepository;
 import com.mongodb.WriteResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -62,8 +62,10 @@ public class SettingsRepositoryService {
 
     private void setTransientCm() {
         settings.getPlacingBlocks().setCm(arbitrageService.getCm());
-        boolean eth = arbitrageService.isEth();
-        settings.getPlacingBlocks().setEth(eth);
+        settings.getPlacingBlocks().setEth(arbitrageService.isEth());
+        if (arbitrageService.getLeftMarketService() != null) {
+            settings.getPlacingBlocks().setLeftOkex(arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.OKEX);
+        }
     }
 
     private Settings fetchSettings() {

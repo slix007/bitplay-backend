@@ -13,6 +13,10 @@ public class FutureIndexJson {
     private String index;
     private String indexVal;
     private String timestamp;
+    private LimitsJson limits;
+    private ContractExtraJson contractExtraJson = new ContractExtraJson();
+
+    // bitmex only
     private String fundingRate;
     private String fundingCost;
     private String position;
@@ -21,16 +25,16 @@ public class FutureIndexJson {
     private String swapType;
     private String timeCompareString;
     private String timeCompareUpdating;
-    private LimitsJson limits;
-    private ContractExtraJson contractExtraJson = new ContractExtraJson();
-    private String okexEstimatedDeliveryPrice;
     private String twoMarketsIndexDiff;
+    // okex only
+    private String okexEstimatedDeliveryPrice;
     private SwapSettlement okexSwapSettlement;
 
     public static FutureIndexJson empty() {
         return new FutureIndexJson("", "", "", new LimitsJson(), null, null, null);
     }
 
+    // okex
     public FutureIndexJson(String index, String indexVal, String timestamp, LimitsJson limits, String ethBtcBal,
                            String okexEstimatedDeliveryPrice, SwapSettlement okexSwapSettlement) {
         this.index = index;
@@ -38,17 +42,24 @@ public class FutureIndexJson {
         this.timestamp = timestamp;
         this.limits = limits;
         this.contractExtraJson.setEthBtcBal(ethBtcBal);
+
+        // okex specific
         this.okexEstimatedDeliveryPrice = okexEstimatedDeliveryPrice;
         this.okexSwapSettlement = okexSwapSettlement;
     }
 
+    // bitmex
     public FutureIndexJson(String index, String indexVal, String timestamp, String fundingRate,
                            String fundingCost,
                            String position, String swapTime, String timeToSwap, String swapType,
-            String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal, String twoMarketsIndexDiff) {
+                           String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal, String twoMarketsIndexDiff) {
         this.index = index;
         this.indexVal = indexVal;
         this.timestamp = timestamp;
+        this.limits = limits;
+        this.contractExtraJson.setBxbtBal(bxbtBal);
+
+        // bitmex specific
         this.fundingRate = fundingRate;
         this.fundingCost = fundingCost;
         this.position = position;
@@ -57,8 +68,6 @@ public class FutureIndexJson {
         this.swapType = swapType;
         this.timeCompareString = timeCompareString;
         this.timeCompareUpdating = timeCompareUpdating;
-        this.limits = limits;
-        this.contractExtraJson.setBxbtBal(bxbtBal);
         this.twoMarketsIndexDiff = twoMarketsIndexDiff;
     }
 }

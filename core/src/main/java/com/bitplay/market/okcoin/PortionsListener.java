@@ -2,7 +2,6 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
-import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.market.MarketServicePortions;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -12,7 +11,6 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 

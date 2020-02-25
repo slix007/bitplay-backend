@@ -5,7 +5,6 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.OkexSettlement;
 import com.bitplay.utils.SchedulerUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 

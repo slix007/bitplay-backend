@@ -44,7 +44,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorities("ROLE_TRADER")
                 .and()
                 .withUser("admin").password(config.getUiPasswordForAdmin() != null ? config.getUiPasswordForAdmin() : "password")
-                .authorities("ROLE_TRADER", "ROLE_ADMIN")
+                .authorities("ROLE_TRADER", "ROLE_ADMIN", "ACTUATOR")
                 .and()
                 .withUser("actuator").password(config.getUiPasswordForActuator() != null ? config.getUiPasswordForActuator() : "password")
                 .authorities("ROLE_TRADER", "ACTUATOR");
