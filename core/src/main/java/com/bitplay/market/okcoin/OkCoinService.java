@@ -136,7 +136,7 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
  * Created by Sergey Shurmin on 3/21/17.
  */
 @Slf4j
-@Service("okcoin")
+@Service("okex") // lookup context.getBean("okex");
 @RequiredArgsConstructor
 @Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class OkCoinService extends MarketServicePreliq {

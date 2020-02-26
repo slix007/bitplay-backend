@@ -1,6 +1,8 @@
 package com.bitplay.persistance;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.ExchangePair;
 import com.bitplay.persistance.domain.GuiParams;
@@ -90,7 +92,8 @@ public class PersistenceService {
     }
 
     public LiqParams fetchLiqParams(String marketName) {
-        return liqParamsRepository.findFirstByMarketName(marketName);
+        final LiqParams firstByMarketName = liqParamsRepository.findFirstByMarketName(marketName);
+        return firstByMarketName != null ? firstByMarketName : new LiqParams();
     }
 
     public void storeDeltaParams(DeltaParams deltaParams) {
@@ -110,10 +113,10 @@ public class PersistenceService {
 
     private void setMarketDocumentName(MarketDocument swapParams, String marketName) {
         long id = 1L;
-        if (marketName.equals("bitmex")) {
+        if (marketName.equals(BitmexService.NAME)) {
             id = 2L;
         }
-        if (marketName.equals("okcoin")) {
+        if (marketName.equals(OkCoinService.NAME)) {
             id = 3L;
         }
         swapParams.setId(id);

@@ -1,5 +1,7 @@
 package com.bitplay.persistance.migration.changelogs.y2019;
 
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.MarketSettings;
 import com.github.mongobee.changeset.ChangeLog;
 import com.github.mongobee.changeset.ChangeSet;
@@ -16,9 +18,9 @@ public class Changelog0721 {
         final MarketSettings btm = new MarketSettings();
         final MarketSettings ok = new MarketSettings();
         btm.setMarketId(1);
-        btm.setMarketName("bitmex");
+        btm.setMarketName(BitmexService.NAME);
         ok.setMarketId(2);
-        ok.setMarketName("okex");
+        ok.setMarketName(OkCoinService.NAME);
         mongoTemplate.save(btm);
         mongoTemplate.save(ok);
     }

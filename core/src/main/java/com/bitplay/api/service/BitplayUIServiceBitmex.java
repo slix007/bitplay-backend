@@ -52,9 +52,12 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<MarketServi
 
     @Override
     protected String getPositionString(Pos position) {
-        return position.getPositionLong().signum() > 0
-                ? "+" + position.getPositionLong().toPlainString()
-                : position.getPositionLong().toPlainString();
+        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
+            return position.getPositionLong().signum() > 0
+                    ? "+" + position.getPositionLong().toPlainString()
+                    : position.getPositionLong().toPlainString();
+        }
+        return super.getPositionString(position);
     }
 
     @SuppressWarnings("Duplicates")

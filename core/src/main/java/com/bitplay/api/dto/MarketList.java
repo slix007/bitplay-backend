@@ -9,12 +9,12 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class MarketList {
-    String first;
-    String second;
-    String firstFutureContractName;
-    String secondFutureContractName;
+    String left;
+    String right;
+    String leftFutureContractName;
+    String rightFutureContractName;
 
     public boolean isEth() {
-        return firstFutureContractName != null && firstFutureContractName.startsWith("ETH");
+        return leftFutureContractName != null && leftFutureContractName.startsWith("ETH");
     }
 }

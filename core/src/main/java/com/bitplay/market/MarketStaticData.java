@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 public enum MarketStaticData {
     BITMEX("bitmex", 1),
-    OKEX("okcoin", 2),
+    OKEX("okex", 2),
     POLONIEX("poloniex", 3),
     QUOINE("quoine", 4);
 

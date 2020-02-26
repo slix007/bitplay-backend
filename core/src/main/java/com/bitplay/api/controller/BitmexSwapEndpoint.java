@@ -67,7 +67,7 @@ public class BitmexSwapEndpoint {
             return new ResultJson("Wrong version", e.getMessage());
         }
 
-        persistenceService.saveSwapParams(swapParams, "bitmex");
+        persistenceService.saveSwapParams(swapParams, BitmexService.NAME);
 
         return new ResultJson("OK", respDetails);
     }
