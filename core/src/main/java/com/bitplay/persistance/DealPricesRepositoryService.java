@@ -113,9 +113,9 @@ public class DealPricesRepositoryService {
     }
 
     private void updateFactPriceItemsFromDb(DealPrices dealPrices) {
-        final Map<String, AvgPriceItem> btmItems = getPItems(dealPrices.getTradeId(), MarketStaticData.BITMEX.getId());
+        final Map<String, AvgPriceItem> btmItems = getPItems(dealPrices.getTradeId(), dealPrices.getLeftMarket().getId());
         dealPrices.getBPriceFact().getPItems().putAll(btmItems);
-        final Map<String, AvgPriceItem> okItems = getPItems(dealPrices.getTradeId(), MarketStaticData.OKEX.getId());
+        final Map<String, AvgPriceItem> okItems = getPItems(dealPrices.getTradeId(), dealPrices.getRightMarket().getId());
         dealPrices.getOPriceFact().getPItems().putAll(okItems);
     }
 

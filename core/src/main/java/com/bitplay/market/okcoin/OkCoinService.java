@@ -1,6 +1,7 @@
 package com.bitplay.market.okcoin;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -2466,11 +2467,20 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public DqlState updateDqlState() {
-        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        final BigDecimal oDQLCloseMin = dql.getODQLCloseMin();
-        final BigDecimal oDQLOpenMin = dql.getODQLOpenMin();
         final LiqInfo liqInfo = getLiqInfo();
-        final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
+        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+        final BigDecimal oDQLCloseMin;
+        final BigDecimal oDQLOpenMin;
+        final BigDecimal okexDqlKillPos;
+        if (getArbType() == ArbType.LEFT) {
+            oDQLCloseMin = dql.getBDQLCloseMin();
+            oDQLOpenMin = dql.getBDQLOpenMin();
+            okexDqlKillPos = dql.getBtmDqlKillPos();
+        } else {
+            oDQLCloseMin = dql.getODQLCloseMin();
+            oDQLOpenMin = dql.getODQLOpenMin();
+            okexDqlKillPos = dql.getOkexDqlKillPos();
+        }
         return arbitrageService.getDqlStateService().updateDqlState(getArbType(), okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
@@ -2479,25 +2489,24 @@ public class OkCoinService extends MarketServicePreliq {
      */
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
-        final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        final BigDecimal oDQLCloseMin = dql.getODQLCloseMin();
-        final BigDecimal oDQLOpenMin = dql.getODQLOpenMin();
+        final DqlState dqlState = updateDqlState();
+
         final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
-        final Pos position = getPos();
+        final BigDecimal posVal = getPosVal();
 
         boolean isOk;
         if (dqlCurr == null) {
             isOk = true;
         } else {
             if (orderType.equals(Order.OrderType.BID)) { // LONG
-                if ((position.getPositionLong().subtract(position.getPositionShort())).signum() > 0) {
-                    isOk = dqlCurr.compareTo(oDQLOpenMin) >= 0;
+                if (posVal.signum() > 0) {
+                    isOk = dqlState == DqlState.ANY_ORDERS;
                 } else {
                     isOk = true;
                 }
             } else if (orderType.equals(Order.OrderType.ASK)) {
-                if ((position.getPositionLong().subtract(position.getPositionShort()).signum() < 0)) {
-                    isOk = dqlCurr.compareTo(oDQLOpenMin) >= 0;
+                if (posVal.signum() < 0) {
+                    isOk = dqlState == DqlState.ANY_ORDERS;
                 } else {
                     isOk = true;
                 }
@@ -2505,14 +2514,6 @@ public class OkCoinService extends MarketServicePreliq {
                 throw new IllegalArgumentException("Wrong orderType " + orderType);
             }
         }
-
-//        debugLog.debug(String.format("CheckLiqEdge:%s(p%s/%s/%s)", isOk,
-//                position.getPositionLong().subtract(position.getPositionShort()),
-//                liqInfo.getDqlCurr(),
-//                oDQLOpenMin));
-
-        final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
-        arbitrageService.getDqlStateService().updateDqlState(getArbType(), okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }
@@ -2733,7 +2734,7 @@ public class OkCoinService extends MarketServicePreliq {
      * @param dealPrices the object to be updated.
      */
     public void updateAvgPrice(String counterName, DealPrices dealPrices) {
-        final FactPrice avgPrice = dealPrices.getOPriceFact();
+        final FactPrice avgPrice = getArbType() == ArbType.LEFT ? dealPrices.getBPriceFact() : dealPrices.getOPriceFact();
         if (avgPrice.isZeroOrder()) {
             String msg = String.format("#%s WARNING: no updateAvgPrice for okex orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
             tradeLogger.info(msg);

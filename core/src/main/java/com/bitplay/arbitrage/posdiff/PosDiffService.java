@@ -476,10 +476,10 @@ public class PosDiffService {
     }
 
     private boolean adjOnOkex() {
-        BigDecimal bP = arbitrageService.getLeftMarketService().getPos().getPositionLong();
+        final BigDecimal bP = arbitrageService.getLeftMarketService().getPosVal();
         final Pos secondPos = arbitrageService.getRightMarketService().getPos();
-        BigDecimal oPL = secondPos.getPositionLong();
-        BigDecimal oPS = secondPos.getPositionShort();
+        final BigDecimal oPL = secondPos.getPositionLong();
+        final BigDecimal oPS = secondPos.getPositionShort();
 
         final BigDecimal cm = arbitrageService.getCm();
         boolean isEth = arbitrageService.isEth();
@@ -849,8 +849,9 @@ public class PosDiffService {
 
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         boolean leftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
-        BigDecimal bP = left.getPos().getPositionLong();
-        final Pos secondPos = arbitrageService.getRightMarketService().getPos();
+        BigDecimal bP = left.getPosVal();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        final Pos secondPos = right.getPos();
         BigDecimal oPL = secondPos.getPositionLong();
         BigDecimal oPS = secondPos.getPositionShort();
 
@@ -944,7 +945,7 @@ public class PosDiffService {
                     correctAmount,
                     maxBtm, maxOkex, dc,
                     left.getPos().toString(),
-                    arbitrageService.getRightMarketService().getPos().toString(),
+                    right.getPos().toString(),
                     hedgeAmount.toPlainString(),
                     signalType
             );
@@ -1009,7 +1010,7 @@ public class PosDiffService {
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
 
                     final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
-                            ? arbitrageService.getRightMarketService()
+                            ? right
                             : left;
                     final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
@@ -1632,8 +1633,9 @@ public class PosDiffService {
     BigDecimal getDcMainSet() {
         final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
         final boolean isEth = arbitrageService.isEth();
-        final BigDecimal okexUsd = getOkexUsd(isEth);
-        final BigDecimal bitmexUsd = getBitmexUsd(isEth);
+        final BigDecimal okexUsd = getRightUsd(isEth, arbitrageService.getRightMarketService().getPosVal());
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final BigDecimal bitmexUsd = getLeftUsd(arbitrageService.getCm(), isEth, left.getPosVal(), left.isBtm());
         final BigDecimal bitmexUsdWithHedge = bitmexUsd.subtract(hedgeAmountUsd);
 
         return okexUsd.add(bitmexUsdWithHedge);
@@ -1648,28 +1650,22 @@ public class PosDiffService {
         return bitmexUsd.subtract(hedgeAmountUsd);
     }
 
-    private BigDecimal getOkexUsd(boolean isEth) {
-        final Pos secondServicePosition = arbitrageService.getRightMarketService().getPos();
-        final BigDecimal oPL = secondServicePosition.getPositionLong();
-        final BigDecimal oPS = secondServicePosition.getPositionShort();
-        if (oPL == null || oPS == null) {
-            throw new NotYetInitializedException("Position is not yet defined");
-        }
+    public static BigDecimal getRightUsd(boolean isEth, BigDecimal oP) {
         return isEth
-                ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
-                : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
+                ? (oP).multiply(BigDecimal.valueOf(10))
+                : (oP).multiply(BigDecimal.valueOf(100));
     }
 
-    private BigDecimal getBitmexUsd(boolean isEth) {
-        BigDecimal cm = arbitrageService.getCm();
-
-        final BigDecimal bP = arbitrageService.getLeftMarketService().getPos().getPositionLong();
-        if (bP == null) {
-            throw new NotYetInitializedException("Position is not yet defined");
+    public static BigDecimal getLeftUsd(BigDecimal cm, boolean isEth, BigDecimal lP, boolean leftIsBitmex) {
+        final BigDecimal bitmexUsd;
+        if (leftIsBitmex) {
+            bitmexUsd = isEth
+                    ? lP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
+                    : lP;
+        } else {
+            bitmexUsd = getRightUsd(isEth, lP);
         }
-        return isEth
-                ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
-                : bP;
+        return bitmexUsd;
     }
 
     public void setPeriodToCorrection(Long periodToCorrection) {

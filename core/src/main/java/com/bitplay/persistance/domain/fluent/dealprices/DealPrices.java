@@ -4,6 +4,7 @@ import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MO
 import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
@@ -48,6 +49,9 @@ public class DealPrices {
     private LocalDateTime created;
     @LastModifiedDate
     private LocalDateTime updated;
+
+    private MarketStaticData leftMarket;
+    private MarketStaticData rightMarket;
 
     private List<BigDecimal> borderList = new ArrayList<>();
     private BigDecimal oBlock;

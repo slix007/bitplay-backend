@@ -280,11 +280,8 @@ public class BordersRecalcService {
 
     @SuppressWarnings("Duplicates")
     private void recalcBaseLvlType(BorderParams borderParams) {
-        final BigDecimal b_pos = arbitrageService.getLeftMarketService().getPos().getPositionLong();
-        final Pos secondPos = arbitrageService.getRightMarketService().getPos();
-        final BigDecimal ok_pos_long = secondPos.getPositionLong();
-        final BigDecimal ok_pos_short = secondPos.getPositionShort();
-        final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
+        final BigDecimal b_pos = arbitrageService.getLeftMarketService().getPosVal();
+        final BigDecimal ok_pos = arbitrageService.getRightMarketService().getPosVal();
 
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
@@ -305,11 +302,8 @@ public class BordersRecalcService {
 
     @SuppressWarnings("Duplicates")
     private void recalcBaseLvlCnt(BorderParams borderParams) {
-        final BigDecimal b_pos = arbitrageService.getLeftMarketService().getPos().getPositionLong();
-        final Pos secondPos = arbitrageService.getRightMarketService().getPos();
-        final BigDecimal ok_pos_long = secondPos.getPositionLong();
-        final BigDecimal ok_pos_short = secondPos.getPositionShort();
-        final BigDecimal ok_pos = ok_pos_long.subtract(ok_pos_short);
+        final BigDecimal b_pos = arbitrageService.getLeftMarketService().getPosVal();
+        final BigDecimal ok_pos = arbitrageService.getRightMarketService().getPosVal();
 
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 

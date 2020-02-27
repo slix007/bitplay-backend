@@ -1,5 +1,7 @@
 package com.bitplay.persistance.domain.correction;
 
+import com.bitplay.arbitrage.dto.ArbType;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
@@ -45,6 +47,9 @@ public class Preliq extends CountedPreliq {
         this.maxTotalCount = preliq.maxTotalCount;
     }
 
+    public Integer getPreliqBlockLeft(String marketName) {
+        return BitmexService.NAME.equals(marketName) ? getPreliqBlockBitmex() : getPreliqBlockOkex();
+    }
 
     public Integer getPreliqBlockBitmex() {
         if (isEth == null || cm == null) {

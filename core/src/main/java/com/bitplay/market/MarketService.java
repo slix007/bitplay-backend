@@ -603,10 +603,17 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public Integer getMarketId() {
+        if (getMarketStaticData() == MarketStaticData.OKEX && getArbType() == ArbType.LEFT) {
+            return MarketStaticData.LEFT_OKEX.getId();
+        }
         return getMarketStaticData().getId();
     }
 
     public abstract MarketStaticData getMarketStaticData();
+
+    public boolean isBtm() {
+        return getMarketStaticData() == MarketStaticData.BITMEX;
+    }
 
     public String getFuturesContractName() {
         return "";
@@ -677,6 +684,9 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public BigDecimal getPosVal() {
         final Pos pos = getPos();
+        if (pos.getPositionLong() == null || pos.getPositionShort() == null) {
+            throw new NotYetInitializedException("Position is not yet defined");
+        }
         return pos.getPositionLong().subtract(pos.getPositionShort());
     }
 
@@ -1310,8 +1320,8 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public BigDecimal getHbPosUsd() {
         final Pos positionXBTUSD = this.posXBTUSD.get();
-        return positionXBTUSD.getPositionLong() != null
-                ? positionXBTUSD.getPositionLong()
+        return positionXBTUSD.getPositionLong() != null && positionXBTUSD.getPositionShort() != null
+                ? positionXBTUSD.getPositionLong().subtract(positionXBTUSD.getPositionShort())
                 : BigDecimal.ZERO;
     }
 
@@ -1412,7 +1422,7 @@ public abstract class MarketService extends MarketServiceWithState {
     public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
         final String counterName = dealPrices.getCounterName();
         final String contractTypeStr = getContractType().getCurrencyPair().toString();
-        final FactPrice avgPrice = dealPrices.getBPriceFact();
+        final FactPrice avgPrice = getArbType() == ArbType.LEFT ? dealPrices.getBPriceFact() : dealPrices.getOPriceFact();
         final LogService tradeLogger = getTradeLogger();
         if (avgPrice.isZeroOrder()) {
             String msg = String.format("#%s WARNING: no updateAvgPrice for btm orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
@@ -1437,8 +1447,8 @@ public abstract class MarketService extends MarketServiceWithState {
                 Set<String> set = itemMap.keySet();
                 String[] orderIdList = new String[set.size()];
                 set.toArray(orderIdList);
-//                final String[] orderIdList = (String[]) strings.toArray();
                 final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, Arrays.toString(orderIdList));
+                log.info(logMsg);
                 Collection<Order> apiOrders = getApiOrders(orderIdList);
                 for (Order order : apiOrders) {
                     avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());

@@ -116,7 +116,7 @@ public class NtUsdRecoveryService {
         BigDecimal maxBtm = PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxBlockUsd), isEth, cm, leftOkex);
         BigDecimal maxOk = PlacingBlocks.toOkexCont(BigDecimal.valueOf(maxBlockUsd), isEth);
 
-        BigDecimal bP = arbitrageService.getLeftMarketService().getPos().getPositionLong();
+        BigDecimal bP = arbitrageService.getLeftMarketService().getPosVal();
         final Pos secondPos = arbitrageService.getRightMarketService().getPos();
         BigDecimal oPL = secondPos.getPositionLong();
         BigDecimal oPS = secondPos.getPositionShort();

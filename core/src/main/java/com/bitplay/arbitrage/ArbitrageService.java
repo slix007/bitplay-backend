@@ -656,8 +656,8 @@ public class ArbitrageService {
         final Boolean onlyOpen = borderParams.getOnlyOpen();
         final boolean applyForOnlyOpen = onlyOpen != null ? onlyOpen : false;
         final BigDecimal defaultMaxVal = BigDecimal.valueOf(9999);
-        final BigDecimal posBtm = getLeftMarketService().getPos().getPositionLong();
-        final BigDecimal posOk = getRightMarketService().getPos().getPositionLong().subtract(getRightMarketService().getPos().getPositionShort());
+        final BigDecimal posBtm = getLeftMarketService().getPosVal();
+        final BigDecimal posOk = getRightMarketService().getPosVal();
         final boolean isCloseBtm;
         final boolean isCloseOk;
         final BigDecimal maxDelta;
@@ -704,7 +704,7 @@ public class ArbitrageService {
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
                                     PlBefore plBeforeBtm) {
 
-        final BigDecimal bP = leftMarketService.getPos().getPositionLong();
+        final BigDecimal bP = leftMarketService.getPosVal();
         final BigDecimal oPL = rightMarketService.getPos().getPositionLong();
         final BigDecimal oPS = rightMarketService.getPos().getPositionShort();
 
@@ -1208,6 +1208,9 @@ public class ArbitrageService {
             okPriceFact.setFakeOrder(o_block_input, oPricePlan);
         }
 
+        final MarketStaticData leftMarket = leftMarketService.getMarketStaticData() == MarketStaticData.OKEX
+                ? MarketStaticData.LEFT_OKEX
+                : leftMarketService.getMarketStaticData();
         final DealPrices dealPrices = DealPrices.builder()
                 .btmPlacingType(btmPlacingType)
                 .okexPlacingType(okexPlacingType)
@@ -1231,6 +1234,8 @@ public class ArbitrageService {
                 .tradeId(tradeId)
                 .counterName(counterName)
                 .btmFokAutoArgs(btmFokAutoArgs)
+                .leftMarket(leftMarket)
+                .rightMarket(rightMarketService.getMarketStaticData())
                 .build();
 
         if (dealPrices.getPlan_pos_ao().equals(dealPrices.getPos_bo())) {
@@ -1580,7 +1585,7 @@ public class ArbitrageService {
                 final BigDecimal bU = firstAccount.getUpl();
                 final BigDecimal bM = firstAccount.getMargin();
                 final BigDecimal bA = firstAccount.getAvailable();
-                final BigDecimal bP = leftMarketService.getPos().getPositionLong();
+                final BigDecimal bP = leftMarketService.getPosVal();
                 final BigDecimal bLv = leftMarketService.getPos().getLeverage();
                 final BigDecimal bAL = leftMarketService.getAffordable().getForLong();
                 final BigDecimal bAS = leftMarketService.getAffordable().getForShort();
@@ -1588,8 +1593,11 @@ public class ArbitrageService {
                 final OrderBook bOrderBook = leftMarketService.getOrderBook();
                 final BigDecimal bBestAsk = Utils.getBestAsks(bOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal bBestBid = Utils.getBestBids(bOrderBook, 1).get(0).getLimitPrice();
+                String leftPosString = leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX
+                        ? ("p" + Utils.withSign(bP))
+                        : String.format("p+%s-%s", leftMarketService.getPos().getPositionLong(), leftMarketService.getPos().getPositionShort());
                 fplayTradeService.info(tradeId, counterName, String.format(
-                        "#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p%s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
+                        "#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, %s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         bW.toPlainString(), bW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bEmark.toPlainString(), bEmark.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1598,7 +1606,7 @@ public class ArbitrageService {
                         bU.toPlainString(), bU.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bM.toPlainString(), bM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bA.toPlainString(), bA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        Utils.withSign(bP),
+                        leftPosString,
                         bLv.toPlainString(),
                         Utils.withSign(bAL),
                         Utils.withSign(bAS),
@@ -1697,11 +1705,11 @@ public class ArbitrageService {
                 final String oDQLMin;
                 Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                    bDQLMin = String.format("b_DQL_close_min=%s", dql.getBDQLCloseMin());
-                    oDQLMin = String.format("o_DQL_close_min=%s", dql.getODQLCloseMin());
+                    bDQLMin = String.format("L_DQL_close_min=%s", dql.getBDQLCloseMin());
+                    oDQLMin = String.format("R_DQL_close_min=%s", dql.getODQLCloseMin());
                 } else {
-                    bDQLMin = String.format("b_DQL_open_min=%s", dql.getBDQLOpenMin());
-                    oDQLMin = String.format("o_DQL_open_min=%s", dql.getODQLOpenMin());
+                    bDQLMin = String.format("L_DQL_open_min=%s", dql.getBDQLOpenMin());
+                    oDQLMin = String.format("R_DQL_open_min=%s", dql.getODQLOpenMin());
                 }
 
                 fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));
@@ -1790,38 +1798,28 @@ public class ArbitrageService {
 
         boolean isEth = bitmexService.getContractType().isEth();
 
-        final BigDecimal bP = bitmexService.getPos().getPositionLong();
-        final BigDecimal oPL = okcoinService.getPos().getPositionLong();
-        final BigDecimal oPS = okcoinService.getPos().getPositionShort();
         final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
-        final BigDecimal bitmexUsd = isEth
-                ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
-                : bP;
-        final BigDecimal okexUsd = isEth
-                ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
-                : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
-        final BigDecimal notionalUsd = (bitmexUsd.add(okexUsd).subtract(ha)).negate();
+        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isEth, bitmexService.getPosVal(), leftMarketService.isBtm());
+        final BigDecimal rightUsd = PosDiffService.getRightUsd(isEth, okcoinService.getPosVal());
+        final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
 
-        final String modeName = settings.getContractMode().getModeName();
         final String setName = settings.getContractMode().getMainSetName();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
         if (isEth) {
-            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - h(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
-                    modeName,
+            return String.format("%s, nt_usd = -(L(%s) + R(%s) - h(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
                     setName,
-                    Utils.withSign(bitmexUsd),
-                    Utils.withSign(okexUsd),
+                    Utils.withSign(leftUsd),
+                    Utils.withSign(rightUsd),
                     Utils.withSign(ha),
                     Utils.withSign(notionalUsd),
                     mdc, cm, adj, adjMax
             );
         } else {
-            return String.format("%s, %s, nt_usd = -(b(%s) + o(%s) - h(%s)) = %s, mdc=%s. ",
-                    modeName,
+            return String.format("%s, nt_usd = -(L(%s) + R(%s) - h(%s)) = %s, mdc=%s. ",
                     setName,
-                    Utils.withSign(bitmexUsd),
-                    Utils.withSign(okexUsd),
+                    Utils.withSign(leftUsd),
+                    Utils.withSign(rightUsd),
                     Utils.withSign(ha),
                     Utils.withSign(notionalUsd),
                     mdc
@@ -1831,14 +1829,14 @@ public class ArbitrageService {
 
     public String getExtraSetStr() {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
-        final MarketService bitmexService = getLeftMarketService();
-        if (bitmexService.getContractType().isEth()) {
+        final MarketService left = getLeftMarketService();
+        if (left.getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-            final BigDecimal b_pos_usd = bitmexService.getHbPosUsd();
+            final BigDecimal b_pos_usd = left.getHbPosUsd();
             final BigDecimal hb_usd = hedgeService.getHedgeBtc();
             final BigDecimal nt_usd = (b_pos_usd.subtract(hb_usd)).negate();
 
-            return String.format("%s, %s, nt_usd = -(b(%s) + o(+0) - h(%s)) = %s. ",
+            return String.format("%s, %s, nt_usd = -(L(%s) + R(+0) - h(%s)) = %s. ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
                     Utils.withSign(b_pos_usd),
@@ -1853,15 +1851,16 @@ public class ArbitrageService {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal bP = getLeftMarketService().getPos().getPositionLong();
-        final BigDecimal oPL = getRightMarketService().getPos().getPositionLong();
-        final BigDecimal oPS = getRightMarketService().getPos().getPositionShort();
-        return String.format("%s, %s, cont: b(%s) o(+%s, -%s). ",
-                settings.getContractMode().getModeName(),
+        final Pos lPos = leftMarketService.getPos();
+        final String lPosStr = leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX
+                ? Utils.withSign(lPos.getPositionLong())
+                : String.format("+%s, -%s", lPos.getPositionLong(), lPos.getPositionShort());
+        final Pos rPos = getRightMarketService().getPos();
+        return String.format("%s, cont: L(%s) R(+%s, -%s). ",
                 settings.getContractMode().getMainSetName(),
-                Utils.withSign(bP),
-                oPL.toPlainString(),
-                oPS.toPlainString());
+                lPosStr,
+                rPos.getPositionLong().toPlainString(),
+                rPos.getPositionShort().toPlainString());
     }
 
     public String getExtraSetSource() {
@@ -1870,7 +1869,7 @@ public class ArbitrageService {
         if (getLeftMarketService().getContractType().isEth()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal bP = getLeftMarketService().getHbPosUsd();
-            return String.format("%s, %s, cont: b(%s) o(+0, -0). ",
+            return String.format("%s, %s, cont: L(%s) R(+0, -0). ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
                     Utils.withSign(bP));
@@ -2017,23 +2016,16 @@ public class ArbitrageService {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         final BigDecimal cm = settings.getPlacingBlocks().getCm();
 
-        MarketService bitmexService = getLeftMarketService();
-        MarketService okcoinService = getRightMarketService();
+        MarketService left = getLeftMarketService();
+        MarketService right = getRightMarketService();
 
-        boolean isEth = bitmexService.getContractType().isEth();
+        boolean isEth = left.getContractType().isEth();
 
-        final BigDecimal bP = bitmexService.getPos().getPositionLong();
-        final BigDecimal oPL = okcoinService.getPos().getPositionLong();
-        final BigDecimal oPS = okcoinService.getPos().getPositionShort();
         final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
-        final BigDecimal bitmexUsd = isEth
-                ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
-                : bP;
-        final BigDecimal okexUsd = isEth
-                ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
-                : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
+        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isEth, left.getPosVal(), leftMarketService.isBtm());
+        final BigDecimal rightUsd = PosDiffService.getRightUsd(isEth, right.getPosVal());
         //noinspection UnnecessaryLocalVariable
-        final BigDecimal notionalUsd = (bitmexUsd.add(okexUsd).subtract(ha)).negate();
+        final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
         return notionalUsd;
     }
 

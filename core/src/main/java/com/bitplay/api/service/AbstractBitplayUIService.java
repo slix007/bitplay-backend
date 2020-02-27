@@ -203,7 +203,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         if (bitmexService.getPos() == null || bitmexService.getPos().getPositionLong() == null) {
             return FutureIndexJson.empty();
         }
-        final String position = bitmexService.getPos().getPositionLong().toPlainString();
+        final String position = bitmexService.getPosVal().toPlainString();
 
         final String timeCompareString = getBitmexTimeService().getTimeCompareString();
         final Integer timeCompareUpdating = getBitmexTimeService().fetchTimeCompareUpdating();
@@ -402,8 +402,9 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
         final LiqInfo liqInfo = getBusinessService().getLiqInfo();
         final LiqParams liqParams = getBusinessService().getPersistenceService().fetchLiqParams(getBusinessService().getNameWithType());
         String dqlString = liqInfo.getDqlString();
-        if (dqlString != null && dqlString.startsWith("o_DQL = na")) {
-            dqlString = "o_DQL = na";
+        String s = getBusinessService().getArbType().s();
+        if (dqlString != null && dqlString.startsWith(s + "_DQL = na")) {
+            dqlString = s + "_DQL = na";
         }
         return new LiquidationInfoJson(dqlString,
                 liqInfo.getDmrlString(),

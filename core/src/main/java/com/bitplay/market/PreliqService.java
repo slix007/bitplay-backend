@@ -1,6 +1,7 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -206,7 +207,7 @@ public class PreliqService {
     private BigDecimal getDqlKillPos() {
         final PersistenceService persistenceService = marketService.getPersistenceService();
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        return getName().equals(BitmexService.NAME) ? dql.getBtmDqlKillPos() : dql.getOkexDqlKillPos();
+        return marketService.getArbType() == ArbType.LEFT ? dql.getBtmDqlKillPos() : dql.getOkexDqlKillPos();
     }
 
     private String getName() {
@@ -254,10 +255,11 @@ public class PreliqService {
 
 
     private boolean posZeroViolation(Pos pos) {
-        if (getName().equals(BitmexService.NAME)) {
+        String name = marketService.getName();
+        if (name.equals(BitmexService.NAME)) {
             return pos.getPositionLong().signum() == 0; // no preliq
         }
-        if (getName().equals(OkCoinService.NAME)) {
+        if (name.equals(OkCoinService.NAME)) {
             return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
         }
         return false;
@@ -268,8 +270,8 @@ public class PreliqService {
             final String prefix = String.format("#%s %s_%s starting: ", counterForLogs, nameSymbol, opName);
             final MarketServicePreliq thatMarket = getTheOtherMarket();
 
-            final String thisMarketStr = prefix + getPreliqStartingStr(getName(), position, liqInfo);
-            final String thatMarketStr = prefix + getPreliqStartingStr(thatMarket.getName(), thatMarket.getPos(), thatMarket.getLiqInfo());
+            final String thisMarketStr = prefix + getPreliqStartingStr(marketService.getNameWithType(), position, liqInfo);
+            final String thatMarketStr = prefix + getPreliqStartingStr(thatMarket.getNameWithType(), thatMarket.getPos(), thatMarket.getLiqInfo());
 
             log.info(thisMarketStr);
             log.info(thatMarketStr);
@@ -291,13 +293,13 @@ public class PreliqService {
     }
 
     private MarketServicePreliq getTheOtherMarket() {
-        return getName().equals(BitmexService.NAME)
+        return marketService.getArbType() == ArbType.LEFT
                 ? marketService.getArbitrageService().getRightMarketService()
                 : marketService.getArbitrageService().getLeftMarketService();
     }
 
     private String getPreliqStartingStr(String name, Pos position, LiqInfo liqInfo) {
-        final BigDecimal dqlCloseMin = getDqlCloseMin(name);
+        final BigDecimal dqlCloseMin = getDqlCloseMin();
         final BigDecimal dqlKillPos = getDqlKillPos();
         final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
         final String dqlCloseMinStr = dqlCloseMin != null ? dqlCloseMin.toPlainString() : "null";
@@ -430,12 +432,9 @@ public class PreliqService {
     }
 
     public BigDecimal getDqlCloseMin() {
-        return getDqlCloseMin(getName());
-    }
-
-    public BigDecimal getDqlCloseMin(String marketName) {
+        ArbType arbType = marketService.getArbType();
         final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
-        if (marketName.equals(BitmexService.NAME)) {
+        if (arbType == ArbType.LEFT) {
             return dql.getBDQLCloseMin();
         }
         return dql.getODQLCloseMin();
@@ -443,7 +442,8 @@ public class PreliqService {
 
     public BigDecimal getDqlOpenMin() {
         final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
-        if (getName().equals(BitmexService.NAME)) {
+        ArbType arbType = marketService.getArbType();
+        if (arbType == ArbType.LEFT) {
             return dql.getBDQLOpenMin();
         }
         return dql.getODQLOpenMin();
@@ -451,35 +451,35 @@ public class PreliqService {
 
     private PreliqBlocks getPreliqBlocks(DeltaName deltaName, Pos posObj) {
         final CorrParams corrParams = marketService.getPersistenceService().fetchCorrParams();
-        BigDecimal b_block = BigDecimal.ZERO;
-        BigDecimal o_block = BigDecimal.ZERO;
+        BigDecimal l_block = BigDecimal.ZERO;
+        BigDecimal r_block = BigDecimal.ZERO;
         if (getName().equals(BitmexService.NAME)) {
-            b_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockBitmex());
+            l_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockLeft(marketService.getName()));
             final BigDecimal pos = posObj.getPositionLong();
             if (pos != null && pos.signum() != 0) {
-                if (deltaName == DeltaName.B_DELTA && pos.signum() > 0 && pos.compareTo(b_block) < 0) { // btm sell
-                    b_block = pos;
+                if (deltaName == DeltaName.B_DELTA && pos.signum() > 0 && pos.compareTo(l_block) < 0) { // btm sell
+                    l_block = pos;
                 }
-                if (deltaName == DeltaName.O_DELTA && pos.signum() < 0 && (pos.abs()).compareTo(b_block) < 0) { // btm buy
-                    b_block = pos.abs();
+                if (deltaName == DeltaName.O_DELTA && pos.signum() < 0 && (pos.abs()).compareTo(l_block) < 0) { // btm buy
+                    l_block = pos.abs();
                 }
             }
-            if (b_block.signum() == 0) {
-                log.warn("b_block = 0");
+            if (l_block.signum() == 0) {
+                log.warn("L_block = 0");
             }
         } else if (getName().equals(OkCoinService.NAME)) {
-            o_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
+            r_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
             final BigDecimal okLong = posObj.getPositionLong();
             final BigDecimal okShort = posObj.getPositionShort();
             BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
-            if (okMeaningPos != null && okMeaningPos.signum() != 0 && okMeaningPos.compareTo(o_block) < 0) {
-                o_block = okMeaningPos;
+            if (okMeaningPos != null && okMeaningPos.signum() != 0 && okMeaningPos.compareTo(r_block) < 0) {
+                r_block = okMeaningPos;
             }
-            if (o_block.signum() == 0) {
-                log.warn("o_block = 0");
+            if (r_block.signum() == 0) {
+                log.warn("R_block = 0");
             }
         }
-        return new PreliqBlocks(b_block, o_block);
+        return new PreliqBlocks(l_block, r_block);
     }
 
     @Data
