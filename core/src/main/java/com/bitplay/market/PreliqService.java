@@ -77,7 +77,7 @@ public class PreliqService {
             maxCountNotify(corrParams.getKillpos(), "killpos");
 
             final DqlStateService dqlStateService = arbitrageService.getDqlStateService();
-            final DqlState marketDqlState = dqlStateService.updateDqlState(getName(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
+            final DqlState marketDqlState = dqlStateService.updateDqlState(marketService.getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
 
             if (marketDqlState != DqlState.KILLPOS) {
                 if (corrParams.getKillpos().tryIncSuccessful(getName())) {

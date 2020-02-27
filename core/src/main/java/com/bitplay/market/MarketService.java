@@ -1,6 +1,7 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.dto.ArbType;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -57,7 +58,6 @@ import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -70,8 +70,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -84,8 +86,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * Created by Sergey Shurmin on 4/16/17.
  */
 public abstract class MarketService extends MarketServiceWithState {
-
-    private final static Logger logger = LoggerFactory.getLogger(MarketService.class);
 
     protected static final int MAX_ATTEMPTS_CANCEL = 90;
 
@@ -108,14 +108,14 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile int usdInContract = 0;
 
 
-    protected final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3,
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-overload-scheduler-%d").build());
-    public final ScheduledExecutorService ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
-    protected final Scheduler freeOoCheckerScheduler =
+    protected volatile ScheduledExecutorService scheduler =
+            Executors.newScheduledThreadPool(3, new NamedThreadFactory(getName() + "-overload-scheduler-%d"));
+    public volatile ScheduledExecutorService ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
+    protected volatile Scheduler freeOoCheckerScheduler =
             Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-free-oo-checker")));
-    protected final Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
+    protected volatile Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
-    protected final Scheduler stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(
+    protected volatile Scheduler stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat(getName() + "-state-updater-%d").build()));
 
     // Moving timeout
@@ -147,6 +147,14 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public void init(String key, String secret, ContractType contractType, ArbType arbType, Object... exArgs) {
         this.arbType = arbType;
+        final String s = arbType.s() + "_" + getName();
+        log = LoggerFactory.getLogger(arbType.s() + "OkexService");
+        scheduler = Executors.newScheduledThreadPool(3, new NamedThreadFactory(s + "-overload-scheduler"));
+        ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-oo-executor"));
+        freeOoCheckerScheduler = Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-free-oo-checker")));
+        indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(new NamedThreadFactory(s + "-index-executor-%d")));
+        stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(new NamedThreadFactory(s + "-state-updater")));
+
         initEventBus();
         initializeMarket(key, secret, contractType, exArgs);
     }
@@ -176,7 +184,7 @@ public abstract class MarketService extends MarketServiceWithState {
             this.orderBook = ob;
             this.orderBookShort.setOb(ob);
         } catch (IOException e) {
-            logger.error("can not fetch orderBook");
+            log.error("can not fetch orderBook");
         }
         return this.orderBookShort.getOb();
     }
@@ -246,7 +254,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 .andThen(endSample)
                 .onErrorComplete(throwable -> {
                     if (!(throwable instanceof NotYetInitializedException)) {
-                        logger.error("stateUpdater recalc error", throwable);
+                        log.error("stateUpdater recalc error", throwable);
                     }
                     return true;
                 })
@@ -283,7 +291,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     private void initEventBus() {
         Disposable subscribe = eventBus.toObserverable()
-                .doOnError(throwable -> logger.error("doOnError handling", throwable))
+                .doOnError(throwable -> log.error("doOnError handling", throwable))
                 .retry()
                 .subscribe(btsEventBox -> {
                     BtsEvent btsEvent = btsEventBox.getBtsEvent();
@@ -298,7 +306,7 @@ public abstract class MarketService extends MarketServiceWithState {
                     } else if (btsEvent == BtsEvent.MARKET_FREE_FOR_ARB) {
                         // do not repeat. the event is for ArbitrageService
                     }
-                }, throwable -> logger.error("On event handling", throwable));
+                }, throwable -> log.error("On event handling", throwable));
     }
 
     public void setBusy(String counterName, MarketState stateToSet) {
@@ -315,7 +323,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     protected void setFree(Long tradeId, String... flags) {
-        logger.info(String.format("setFree(%s, %s, %s), curr marketState=%s", tradeId,
+        log.info(String.format("setFree(%s, %s, %s), curr marketState=%s", tradeId,
                 flags != null && flags.length > 0 ? flags[0] : null,
                 flags != null && flags.length > 1 ? flags[1] : null,
                 marketState));
@@ -325,10 +333,10 @@ public abstract class MarketService extends MarketServiceWithState {
             case SWAP_AWAIT:
                 // do nothing
                 if (flags != null && flags.length > 0 && flags[0].equals("UI")) {
-                    logger.info("reset {} from UI", marketState);
+                    log.info("reset {} from UI", marketState);
                     setMarketState(MarketState.READY);
                 } else {
-                    logger.info("Free attempt when {}", marketState);
+                    log.info("Free attempt when {}", marketState);
                 }
                 break;
             case WAITING_ARB: // openOrderSubscr can setFree, when it's not needed
@@ -338,17 +346,17 @@ public abstract class MarketService extends MarketServiceWithState {
             case PRELIQ:
             case KILLPOS:
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) {
-                    logger.info("reset {} from " + flags[0], marketState);
+                    log.info("reset {} from " + flags[0], marketState);
                     setMarketState(MarketState.READY);
                     eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId)); // end arbitrage trigger s==> already ready.
                 }
                 break;
             case SYSTEM_OVERLOADED:
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) { // only UI and 6 min flag
-                    logger.info("reset SYSTEM_OVERLOADED from UI");
+                    log.info("reset SYSTEM_OVERLOADED from UI");
                     resetOverload();
                 } else {
-                    logger.info("Free attempt when SYSTEM_OVERLOADED");
+                    log.info("Free attempt when SYSTEM_OVERLOADED");
                 }
                 break;
 
@@ -364,7 +372,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (flags != null && flags.length > 0 && flags[0].equals("CHECKER")) {
                     // do nothing
                 } else {
-                    logger.warn("{}: already ready. Iterate OO.", getName());
+                    log.warn("{}: already ready. Iterate OO.", getName());
                 }
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FOR_ARB, tradeId)); // end arbitrage trigger
 
@@ -395,7 +403,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 MarketState.SYSTEM_OVERLOADED);
         getTradeLogger().warn(changeStat);
         warningLogger.warn(changeStat);
-        logger.warn(changeStat);
+        log.warn(changeStat);
 
         setMarketState(MarketState.SYSTEM_OVERLOADED);
         this.placeOrderArgs = placeOrderArgs;
@@ -420,19 +428,19 @@ public abstract class MarketService extends MarketServiceWithState {
                 scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, 1, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
-            logger.error("can not resetOverloaded.", e);
+            log.error("can not resetOverloaded.", e);
         }
     }
 
     private synchronized void resetOverload() {
-        logger.info("resetOverload: starting");
+        log.info("resetOverload: starting");
         postOverload();
 
         final MarketState currMarketState = getMarketState();
-        logger.info("resetOverload: currMarketState=" + currMarketState);
+        log.info("resetOverload: currMarketState=" + currMarketState);
 
         if (isMarketStopped()) {
-            logger.info(String.format("resetOverload: skip. Market is stopped. state=%s, ", currMarketState));
+            log.info(String.format("resetOverload: skip. Market is stopped. state=%s, ", currMarketState));
             // do nothing
             return;
         }
@@ -453,7 +461,7 @@ public abstract class MarketService extends MarketServiceWithState {
                     marketStateToSet);
             getTradeLogger().warn(backWarn);
             warningLogger.warn(backWarn);
-            logger.warn(backWarn);
+            log.warn(backWarn);
 
             if (marketStateToSet == MarketState.READY && getName().equals(BitmexService.NAME)
                     && getArbitrageService().getRightMarketService().getMarketState() == MarketState.WAITING_ARB) {
@@ -565,7 +573,7 @@ public abstract class MarketService extends MarketServiceWithState {
     public void setMarketState(MarketState newState, String counterName) {
         final String msg = String.format("#%s %s marketState: %s %s", counterName, getName(), newState, getArbitrageService().getFullPosDiff());
         getTradeLogger().info(msg);
-        logger.info(msg);
+        log.info(msg);
         if (newState == MarketState.READY) {
             this.readyTime = Instant.now();
             boolean isOk = onReadyState(); // may reset WAITING_ARB, iterateOpenOrdersMoveAsync
@@ -589,9 +597,15 @@ public abstract class MarketService extends MarketServiceWithState {
     public String getName() {
         return getMarketStaticData().getName();
     }
+
+    public String getNameWithType() {
+        return getArbType().s() + "_" + getMarketStaticData().getName();
+    }
+
     public Integer getMarketId() {
         return getMarketStaticData().getId();
     }
+
     public abstract MarketStaticData getMarketStaticData();
 
     public String getFuturesContractName() {
@@ -613,11 +627,11 @@ public abstract class MarketService extends MarketServiceWithState {
         boolean success = false;
         while (!success) {
             AccountBalance current = this.account.get();
-            logger.debug("AccountInfo.Websocket: " + current.toString());
+            log.debug("AccountInfo.Websocket: " + current.toString());
             final AccountBalance updated = mergeAccount(newInfo, current);
             success = this.account.compareAndSet(current, updated);
             if (++iter > 1) {
-                logger.warn("merge account iter=" + iter);
+                log.warn("merge account iter=" + iter);
             }
         }
     }
@@ -694,11 +708,11 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     protected void storeLiqParams(LiqParams liqParams) {
-        getPersistenceService().saveLiqParams(liqParams, getName());
+        getPersistenceService().saveLiqParams(liqParams, getNameWithType());
     }
 
     public void resetLiqInfo() {
-        final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+        final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
         liqParams.setDqlMin(BigDecimal.valueOf(10000));
         liqParams.setDqlMax(BigDecimal.valueOf(-10000));
         liqParams.setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
@@ -750,12 +764,12 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (fetchedList.size() > 1) {
                     final String msg = "Warning: openOrders count " + fetchedList.size();
                     getTradeLogger().warn(msg);
-                    logger.warn(msg);
+                    log.warn(msg);
                 }
 
                 updateFplayOrdersToCurrStab(fetchedList, new FplayOrder(getMarketId()));
             } catch (Exception e) {
-                logger.error("GetOpenOrdersError", e);
+                log.error("GetOpenOrdersError", e);
                 throw new IllegalStateException("GetOpenOrdersError", e);
             }
         }
@@ -777,10 +791,10 @@ public abstract class MarketService extends MarketServiceWithState {
                             final Future<?> task = ooSingleExecutor.submit(() -> setFreeIfNoOpenOrders("freeOoChecker", i));
                             task.get(10, TimeUnit.SECONDS);
                         } catch (Exception e) {
-                            logger.error("freeOoChecker error", e);
+                            log.error("freeOoChecker error", e);
                             getTradeLogger().warn("freeOoChecker error " + e.toString());
                         }
-                    }, e -> logger.error("ERROR freeOoChecker error", e)
+                    }, e -> log.error("ERROR freeOoChecker error", e)
             );
 
     protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
@@ -790,7 +804,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (marketState != MarketState.PLACING_ORDER && marketState != MarketState.STARTING_VERT
                         && (attempt == 2 || attempt == 100 || attempt == 10000 || attempt == 100000 || attempt == 1000000)
                 ) { // log possible errors //todo remove this log
-                    logger.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + marketState);
+                    log.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + marketState);
                 }
                 addCheckOoToFreeRepeat(attempt + 1);
             }
@@ -798,12 +812,12 @@ public abstract class MarketService extends MarketServiceWithState {
                     && !hasOpenOrdersNoBlock()
                     && !hasDeferredOrders()) {
                 getTradeLogger().warn(checkerName);
-                logger.warn(checkerName);
+                log.warn(checkerName);
                 final Long tradeId = getArbitrageService().getTradeId();
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE, tradeId));
             }
         } catch (Exception e) {
-            logger.error(checkerName + " error", e);
+            log.error(checkerName + " error", e);
             getTradeLogger().warn(checkerName + " error " + e.getMessage());
         }
     }
@@ -872,7 +886,7 @@ public abstract class MarketService extends MarketServiceWithState {
                         logInfoId,
                         Arrays.toString(orderIds), "Market did not return info by orderIds");
                 customLogger.error(message);
-                logger.error(message);
+                log.error(message);
             } else {
                 for (Order orderInfo : orders) {
                     orderInfo = orders.iterator().next();
@@ -887,7 +901,7 @@ public abstract class MarketService extends MarketServiceWithState {
                                 orderInfo.getType(),
                                 orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
                         customLogger.info(errorMsg);
-                        logger.info(errorMsg);
+                        log.info(errorMsg);
                     }
                 }
             }
@@ -897,7 +911,7 @@ public abstract class MarketService extends MarketServiceWithState {
                     logInfoId,
                     Arrays.toString(orderIds), e.toString());
             customLogger.error(message);
-            logger.error(message, e);
+            log.error(message, e);
         }
         return orders;
     }
@@ -976,7 +990,7 @@ public abstract class MarketService extends MarketServiceWithState {
         } else { // placingType == null???
             String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
 //            warningLogger.warn(msg);
-            logger.warn(msg);
+            log.warn(msg);
             thePrice = createBestMakerPrice(orderType, orderBook);
         }
         return thePrice.setScale(contractType.getScale(), RoundingMode.HALF_UP);
@@ -1086,7 +1100,7 @@ public abstract class MarketService extends MarketServiceWithState {
         if (thePrice.signum() == 0) {
             getTradeLogger().info("WARNING: PRICE IS 0");
             warningLogger.warn(getName() + " WARNING: PRICE IS 0");
-            logger.warn(getName() + " WARNING: PRICE IS 0");
+            log.warn(getName() + " WARNING: PRICE IS 0");
         }
     }
 
@@ -1098,7 +1112,7 @@ public abstract class MarketService extends MarketServiceWithState {
             if (fromDb == null) {
                 return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null, id=" + limitOrder.getId());
             } else {
-                logger.warn("order found only in DB. " + fromDb);
+                log.warn("order found only in DB. " + fromDb);
                 limitOrder = (LimitOrder) fromDb.getOrder();
                 if (limitOrder.getLimitPrice() == null) {
                     return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "limitPrice is null, id=" + limitOrder.getId());
@@ -1163,7 +1177,7 @@ public abstract class MarketService extends MarketServiceWithState {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
-            logger.error("Error on sleep", e);
+            log.error("Error on sleep", e);
         }
     }
 
@@ -1275,7 +1289,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 cancelAllOrders(stub, "StopAllActions: CancelAllOpenOrders", false, true);
             }
         } catch (Exception e) {
-            logger.error("stopAllActions error", e);
+            log.error("stopAllActions error", e);
         }
 
         if (getMarketState() != MarketState.READY) {
@@ -1351,7 +1365,7 @@ public abstract class MarketService extends MarketServiceWithState {
             final String msg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
                     counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
             );
-            logger.info(msg);
+            log.info(msg);
             if (withLogs) {
                 getArbitrageService().getLeftMarketService().getTradeLogger().info(msg);
                 getArbitrageService().getRightMarketService().getTradeLogger().info(msg);
@@ -1366,12 +1380,12 @@ public abstract class MarketService extends MarketServiceWithState {
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
-                    logger.error("sleep interrupted", e);
+                    log.error("sleep interrupted", e);
                 }
                 final String updMsg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
                         counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
                 );
-                logger.info(updMsg);
+                log.info(updMsg);
                 warningLogger.info(updMsg);
             }
             final String msg1;
@@ -1385,7 +1399,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 );
 
             }
-            logger.info(msg1);
+            log.info(msg1);
             if (withLogs) {
                 getArbitrageService().getLeftMarketService().getTradeLogger().info(msg1);
                 getArbitrageService().getRightMarketService().getTradeLogger().info(msg1);
@@ -1396,7 +1410,59 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
-        // it's overwritten for bitmex
+        final String counterName = dealPrices.getCounterName();
+        final String contractTypeStr = getContractType().getCurrencyPair().toString();
+        final FactPrice avgPrice = dealPrices.getBPriceFact();
+        final LogService tradeLogger = getTradeLogger();
+        if (avgPrice.isZeroOrder()) {
+            String msg = String.format("#%s WARNING: no updateAvgPrice for btm orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
+            tradeLogger.info(msg, contractTypeStr);
+            log.warn(msg);
+            return;
+        }
+
+        final Map<String, AvgPriceItem> itemMap = getPersistenceService().getDealPricesRepositoryService().getPItems(dealPrices.getTradeId(), getMarketId());
+
+        if (getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden()) {
+            tradeLogger.info(String.format("#%s WARNING: no updateAvgPrice. ArbState.STOPPED", counterName),
+                    contractTypeStr);
+            return;
+        }
+        avgPrice.getPItems().clear(); // TODO replace one by one.
+
+
+        int MAX_ATTEMPTS = 5;
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            try {
+                Set<String> set = itemMap.keySet();
+                String[] orderIdList = new String[set.size()];
+                set.toArray(orderIdList);
+//                final String[] orderIdList = (String[]) strings.toArray();
+                final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, Arrays.toString(orderIdList));
+                Collection<Order> apiOrders = getApiOrders(orderIdList);
+                for (Order order : apiOrders) {
+                    avgPrice.addPriceItem(order.getId(), order.getCumulativeAmount(), order.getAveragePrice(), order.getStatus());
+                }
+                break;
+            } catch (Exception e) {
+                log.info("updateAvgPriceError.", e);
+                tradeLogger.info(String.format("updateAvgPriceError %s", e.getMessage()),
+                        contractTypeStr);
+                warningLogger.info(String.format("updateAvgPriceError %s", e.getMessage()));
+            }
+        }
+
+        tradeLogger.info(String.format("#%s AvgPrice by %s orders(%s) is %s", counterName,
+                itemMap.size(),
+                Arrays.toString(itemMap.keySet().toArray()),
+                avgPrice.getAvg()),
+                contractTypeStr);
+
+        tradeLogger.info(String.format("#%s %s", counterName, getArbitrageService().getDealPrices().getDiffB().str),
+                contractTypeStr);
+
+        getPersistenceService().getDealPricesRepositoryService().updateBtmFactPrice(dealPrices.getTradeId(), avgPrice);
+
     }
 
     public OrderResultTiny cancelOrderSync(String orderId, String logInfoId) {
@@ -1407,5 +1473,8 @@ public abstract class MarketService extends MarketServiceWithState {
         return false;
     }
 
+    public void sleepByXrateLimit(String logStr) {
+        // overwritten in Bitmex
+    }
 
 }

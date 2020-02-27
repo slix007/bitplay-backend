@@ -78,7 +78,6 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.ExchangeSpecification;
@@ -135,7 +134,6 @@ import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
-@Slf4j
 @Service("okex") // lookup context.getBean("okex");
 @RequiredArgsConstructor
 @Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -2436,7 +2434,7 @@ public class OkCoinService extends MarketServicePreliq {
                     dmrlString = "o_DMRL = na";
                 }
 
-                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
                 if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
                     if (liqParams.getDqlMax().compareTo(dql) < 0) {
                         liqParams.setDqlMax(dql);
@@ -2473,7 +2471,7 @@ public class OkCoinService extends MarketServicePreliq {
         final BigDecimal oDQLOpenMin = dql.getODQLOpenMin();
         final LiqInfo liqInfo = getLiqInfo();
         final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
-        return arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     /**
@@ -2514,7 +2512,7 @@ public class OkCoinService extends MarketServicePreliq {
 //                oDQLOpenMin));
 
         final BigDecimal okexDqlKillPos = dql.getOkexDqlKillPos();
-        arbitrageService.getDqlStateService().updateOkexDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
+        arbitrageService.getDqlStateService().updateDqlState(getArbType(), okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
 
         return isOk;
     }

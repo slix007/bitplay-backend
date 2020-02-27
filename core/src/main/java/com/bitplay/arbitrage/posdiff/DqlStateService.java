@@ -1,10 +1,10 @@
 package com.bitplay.arbitrage.posdiff;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.DqlState;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,51 +26,61 @@ public class DqlStateService {
 
     private final SlackNotifications slackNotifications;
 
-    private volatile DqlState btmState = DqlState.ANY_ORDERS;
-    private volatile DqlState okexState = DqlState.ANY_ORDERS;
+    private volatile DqlState leftState = DqlState.ANY_ORDERS;
+    private volatile DqlState rightState = DqlState.ANY_ORDERS;
 
 
     public boolean isPreliq() {
-        return btmState == DqlState.PRELIQ
-                || okexState == DqlState.PRELIQ
-                || btmState == DqlState.KILLPOS
-                || okexState == DqlState.KILLPOS
+        return leftState == DqlState.PRELIQ
+                || rightState == DqlState.PRELIQ
+                || leftState == DqlState.KILLPOS
+                || rightState == DqlState.KILLPOS
                 ;
     }
 
-    public DqlState updateDqlState(String serviceName, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr) {
-        if (serviceName.equals(BitmexService.NAME)) {
-            return updateBtmDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
+    public DqlState updateDqlState(ArbType arbType, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr) {
+        if (arbType == ArbType.LEFT) {
+            return updateLeftDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
         } else {
-            return updateOkexDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
+            return updateRightDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
         }
     }
 
-    public DqlState updateBtmDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
-        btmState = defineDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, btmState);
-        if (btmState.isClose()) {
+    public DqlState updateLeftDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
+        DqlState currState = this.leftState;
+        DqlState resState = defineDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        if (currState != resState) {
+            log.info(String.format("left DqlState %s => %s", currState, resState));
+        }
+        this.leftState = resState;
+
+        if (leftState.isClose()) {
             slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
                     MarketStaticData.BITMEX.getName(), dqlCurr, bDQLOpenMin));
         } else {
             slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
 //        log.info("dqlCurr=" + dqlCurr);
-        return btmState;
+        return leftState;
     }
 
-    public DqlState updateOkexDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
-        okexState = defineDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, okexState);
-        if (okexState.isClose()) {
+    public DqlState updateRightDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
+        DqlState currState = this.rightState;
+        DqlState resState = defineDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
+        if (currState != resState) {
+            log.info(String.format("right DqlState %s => %s", currState, resState));
+        }
+        this.rightState = resState;
+        if (this.rightState.isClose()) {
             slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
                     MarketStaticData.OKEX.getName(), dqlCurr, oDQLOpenMin));
         } else {
             slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }
-        return okexState;
+        return this.rightState;
     }
 
-    private DqlState defineDqlState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr,
-                                    DqlState currState) {
+    private DqlState defineDqlState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr) {
         //TODO send event to check preliq/killpos
         final DqlState resState;
         if (dqlCurr == null) {
@@ -88,20 +98,17 @@ public class DqlStateService {
                 throw new IllegalStateException("Illegal dqlCurr=" + dqlCurr);
             }
         }
-        if (currState != resState) {
-            log.info(String.format("DqlState %s => %s", currState, resState));
-        }
         return resState;
     }
 
     public DqlState getCommonDqlState() {
-        if (okexState == DqlState.KILLPOS || btmState == DqlState.KILLPOS) {
+        if (rightState == DqlState.KILLPOS || leftState == DqlState.KILLPOS) {
             return DqlState.KILLPOS;
         }
-        if (okexState == DqlState.PRELIQ || btmState == DqlState.PRELIQ) {
+        if (rightState == DqlState.PRELIQ || leftState == DqlState.PRELIQ) {
             return DqlState.PRELIQ;
         }
-        if (okexState == DqlState.CLOSE_ONLY || btmState == DqlState.CLOSE_ONLY) {
+        if (rightState == DqlState.CLOSE_ONLY || leftState == DqlState.CLOSE_ONLY) {
             return DqlState.CLOSE_ONLY;
         }
         return DqlState.ANY_ORDERS;

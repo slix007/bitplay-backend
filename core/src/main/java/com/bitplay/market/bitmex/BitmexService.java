@@ -2709,7 +2709,7 @@ public class BitmexService extends MarketServicePreliq {
                     dmrlString = "b_DMRL = na";
                 }
 
-                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getName());
+                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
                 if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
                     if (liqParams.getDqlMax().compareTo(dql) < 0) {
                         liqParams.setDqlMax(dql);
@@ -2746,7 +2746,7 @@ public class BitmexService extends MarketServicePreliq {
         final BigDecimal bDQLCloseMin = dql.getBDQLCloseMin();
         final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
         final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
-        return arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        return arbitrageService.getDqlStateService().updateLeftDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
     }
 
     @Override
@@ -2779,7 +2779,7 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
-        arbitrageService.getDqlStateService().updateBtmDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        arbitrageService.getDqlStateService().updateLeftDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
 
         return isOk;
     }
@@ -2958,6 +2958,7 @@ public class BitmexService extends MarketServicePreliq {
         getPersistenceService().getDealPricesRepositoryService().updateBtmFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
+    @Override
     public void sleepByXrateLimit(String logStr) {
         final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
         int sleepSec = (xRateLimit.getxRateLimit() > 20) ? 1 : 5; // xRateLimit: 60 attempts in 1 min

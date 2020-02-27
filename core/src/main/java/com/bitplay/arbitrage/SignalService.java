@@ -4,8 +4,6 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.BtmFokAutoArgs;
@@ -42,20 +40,20 @@ public class SignalService {
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         if (marketService.getArbType() == ArbType.LEFT) {
             // bitmex or okex
-            promise = placeBitmexOrderOnSignal(marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
+            promise = placeLeftOrderOnSignal(marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
                     beforeSignalMetrics, btmFokAutoArgs);
         } else {
             // always okex
-            promise = placeOkexOrderOnSignal((OkCoinService) marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
+            promise = placeRightOrderOnSignal((OkCoinService) marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,
                     portionsQty, arbScheme);
         }
         return promise;
     }
 
-    private CompletableFuture<Void> placeOkexOrderOnSignal(OkCoinService okexService, OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
-                                                           PlacingType placingType, String counterName, Long tradeId,
-                                                           boolean isConBo, Integer portionsQty,
-                                                           ArbScheme arbScheme) {
+    private CompletableFuture<Void> placeRightOrderOnSignal(OkCoinService okexService, OrderType orderType, BigDecimal o_block, BestQuotes bestQuotes,
+                                                            PlacingType placingType, String counterName, Long tradeId,
+                                                            boolean isConBo, Integer portionsQty,
+                                                            ArbScheme arbScheme) {
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         try {
             if (o_block.signum() <= 0) {
@@ -104,10 +102,10 @@ public class SignalService {
         return promise;
     }
 
-    private CompletableFuture<Void> placeBitmexOrderOnSignal(MarketServicePreliq left, OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
-                                                             PlacingType placingType, String counterName, Long tradeId, boolean isConBo,
-                                                             PlBefore beforeSignalMetrics,
-                                                             BtmFokAutoArgs btmFokAutoArgs) {
+    private CompletableFuture<Void> placeLeftOrderOnSignal(MarketServicePreliq left, OrderType orderType, BigDecimal b_block, BestQuotes bestQuotes,
+                                                           PlacingType placingType, String counterName, Long tradeId, boolean isConBo,
+                                                           PlBefore beforeSignalMetrics,
+                                                           BtmFokAutoArgs btmFokAutoArgs) {
 
         CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
         try {

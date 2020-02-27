@@ -396,7 +396,7 @@ public class ArbitrageService {
                             counterNameSnap,
                             settings,
                             okexPosition,
-                            (BitmexService) getLeftMarketService(),
+                            getLeftMarketService(),
                             (OkCoinService) getRightMarketService(),
                             dealPricesRepositoryService,
                             cumService,
@@ -1380,7 +1380,7 @@ public class ArbitrageService {
     }
 
     private void vertHasStartedLog(Long tradeId, String counterName) {
-        final String msg = String.format("#%s:%s bitmex orders sent. ---", counterName, tradeId);
+        final String msg = String.format("#%s:%s left orders sent. ---", counterName, tradeId);
         log.info(msg);
         fplayTradeService.info(tradeId, counterName, msg);
     }

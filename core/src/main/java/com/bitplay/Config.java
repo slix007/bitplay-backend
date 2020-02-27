@@ -30,6 +30,13 @@ public class Config {
     @Value("${market.okex.ex.passphrase:DEFAULT}")
     private String okexMarketExPassphrase;
 
+    @Value("${market.okex.left.ex.key:DEFAULT}")
+    private String okexLeftMarketExKey;
+    @Value("${market.okex.left.ex.secret:DEFAULT}")
+    private String okexLeftMarketExSecret;
+    @Value("${market.okex.left.ex.passphrase:DEFAULT}")
+    private String okexLeftMarketExPassphrase;
+
     @Value("${ui.password.trader}")
     private String uiPasswordForTrader;
     @Value("${ui.password.admin}")

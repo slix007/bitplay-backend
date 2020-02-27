@@ -24,13 +24,10 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.CompletableFuture;
@@ -150,15 +147,19 @@ public class TwoMarketStarter {
         try {
             marketService = (MarketServicePreliq) context.getBean(marketName);
             if (marketName.equals(BitmexService.NAME)) {
-//                marketService = new BitmexService();
-
-
                 marketService.init(config.getBitmexMarketKey(), config.getBitmexMarketSecret(), contractType, arbType);
             } else if (marketName.equals(OkCoinService.NAME)) {
-                marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
-                        config.getOkexMarketExKey(),
-                        config.getOkexMarketExSecret(),
-                        config.getOkexMarketExPassphrase());
+                if (arbType == ArbType.LEFT) {
+                    marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
+                            config.getOkexLeftMarketExKey(),
+                            config.getOkexLeftMarketExSecret(),
+                            config.getOkexLeftMarketExPassphrase());
+                } else {
+                    marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
+                            config.getOkexMarketExKey(),
+                            config.getOkexMarketExSecret(),
+                            config.getOkexMarketExPassphrase());
+                }
             }
 
         } catch (Exception e) {

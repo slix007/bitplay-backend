@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  */
 public abstract class MarketServiceOpenOrders {
 
-    private final static Logger logger = LoggerFactory.getLogger(MarketServiceOpenOrders.class);
+    protected Logger log = LoggerFactory.getLogger(MarketService.class);
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
 //    private final Object ooLock = new Object();
@@ -83,7 +83,7 @@ public abstract class MarketServiceOpenOrders {
 
     public boolean hasOpenOrdersNoBlock() {
         if (Thread.holdsLock(this)) {
-            logger.warn("hasOpenOrdersNoBlock... but something holdsBlock");
+            log.warn("hasOpenOrdersNoBlock... but something holdsBlock");
         }
         return this.openOrders.stream().anyMatch(FplayOrder::isOpen);
     }
@@ -108,9 +108,9 @@ public abstract class MarketServiceOpenOrders {
             if (map.containsKey(key)) {
                 FplayOrder first = map.get(key);
                 FplayOrder merged = FplayOrderUtils.updateFplayOrder(first, fplayOrder);
-                logger.warn("OO is repeated first " + first.toString());
-                logger.warn("OO is repeated second " + fplayOrder.toString());
-                logger.warn("OO is repeated merged " + merged.toString());
+                log.warn("OO is repeated first " + first.toString());
+                log.warn("OO is repeated second " + fplayOrder.toString());
+                log.warn("OO is repeated merged " + merged.toString());
                 map.put(key, merged);
             } else {
                 map.put(key, fplayOrder);
@@ -138,7 +138,7 @@ public abstract class MarketServiceOpenOrders {
             final ArrayList<FplayOrder> allUpdated = new ArrayList<>();
             for (FplayOrder u : updates) {
                 if (u.getOrderId() == null) {
-                    logger.warn("ORDER_ID IS NULL " + u);
+                    log.warn("ORDER_ID IS NULL " + u);
                     continue;
                 }
                 FplayOrder res = u;
@@ -211,7 +211,7 @@ public abstract class MarketServiceOpenOrders {
             final long nowMs = Instant.now().toEpochMilli();
             final Date orderTimestamp = theOrder.getTimestamp();
             if (orderTimestamp == null) {
-                logger.warn("orderTimestamp is null." + fplayOrder);
+                log.warn("orderTimestamp is null." + fplayOrder);
             }
             if (orderTimestamp == null || nowMs - orderTimestamp.toInstant().toEpochMilli() > maxMs) {
                 return true; // remove the old
@@ -226,7 +226,7 @@ public abstract class MarketServiceOpenOrders {
                     try {
                         return updateOOStatus(fplayOrder);
                     } catch (Exception e) {
-                        logger.error("updateOOStatus error", e);
+                        log.error("updateOOStatus error", e);
                     }
                     return fplayOrder.cloneDeep();
                 }).collect(Collectors.toList());

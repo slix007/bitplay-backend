@@ -6,7 +6,7 @@ import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.DealPricesRepositoryService;
@@ -49,7 +49,7 @@ public class AfterArbTask implements Runnable {
     private final String counterName;
     private final Settings settings;
     private final Pos okPosition;
-    private final BitmexService bitmexService;
+    private final MarketServicePreliq bitmexService;
     private final OkCoinService okCoinService;
     private final DealPricesRepositoryService dealPricesRepositoryService;
     private final CumService cumService;
@@ -408,7 +408,7 @@ public class AfterArbTask implements Runnable {
                             deltaFact,
                             bordersV2,
                             bitmexService.getContractType().isEth(),
-                            bitmexService.getCm()
+                            arbitrageService.getCm()
                     );
                     try {
                         diffFactBr = diffFactBrComputer.compute();
