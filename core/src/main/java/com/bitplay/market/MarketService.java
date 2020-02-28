@@ -22,6 +22,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.SpecialFlags;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
+import com.bitplay.market.okcoin.TradeLogger;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
@@ -38,7 +39,6 @@ import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.Completable;
@@ -108,15 +108,11 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile int usdInContract = 0;
 
 
-    protected volatile ScheduledExecutorService scheduler =
-            Executors.newScheduledThreadPool(3, new NamedThreadFactory(getName() + "-overload-scheduler-%d"));
-    public volatile ScheduledExecutorService ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-oo-executor"));
-    protected volatile Scheduler freeOoCheckerScheduler =
-            Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-free-oo-checker")));
-    protected volatile Scheduler indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-index-executor-%d").build()));
-    protected volatile Scheduler stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder().setNameFormat(getName() + "-state-updater-%d").build()));
+    protected volatile ScheduledExecutorService scheduler;
+    public volatile ScheduledExecutorService ooSingleExecutor;
+    protected volatile Scheduler freeOoCheckerScheduler;
+    protected volatile Scheduler indexSingleExecutor;
+    protected volatile Scheduler stateUpdater;
 
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
@@ -147,8 +143,9 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public void init(String key, String secret, ContractType contractType, ArbType arbType, Object... exArgs) {
         this.arbType = arbType;
-        final String s = arbType.s() + "_" + getName();
-        log = LoggerFactory.getLogger(arbType.s() + "OkexService");
+        final String s = getNameWithType();
+        log = LoggerFactory.getLogger(s);
+        tradeLogger = new TradeLogger(contractType, arbType);
         scheduler = Executors.newScheduledThreadPool(3, new NamedThreadFactory(s + "-overload-scheduler"));
         ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-oo-executor"));
         freeOoCheckerScheduler = Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-free-oo-checker")));
@@ -157,6 +154,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
         initEventBus();
         initializeMarket(key, secret, contractType, exArgs);
+        initFreeOoCheckerDisposable();
     }
 
     protected abstract void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs);
@@ -240,10 +238,10 @@ public abstract class MarketService extends MarketServiceWithState {
      */
     protected void stateRecalcInStateUpdaterThread() {
         final Completable startSample = Completable.fromAction(() -> {
-            getMetricsDictionary().startRecalcAfterUpdate(getName());
+            getMetricsDictionary().startRecalcAfterUpdate(getArbType());
         });
         final Completable endSample = Completable.fromAction(() -> {
-            getMetricsDictionary().stopRecalcAfterUpdate(getName());
+            getMetricsDictionary().stopRecalcAfterUpdate(getArbType());
         });
 
         startSample.subscribeOn(stateUpdater)
@@ -315,7 +313,7 @@ public abstract class MarketService extends MarketServiceWithState {
         }
         if (this.marketState != MarketState.SWAP && this.marketState != MarketState.SWAP_AWAIT) {
             if (!isBusy()) {
-                getTradeLogger().info(String.format("#%s %s: busy marketState=%s, %s", counterName, getName(),
+                getTradeLogger().info(String.format("#%s %s: busy marketState=%s, %s", counterName, getNameWithType(),
                         stateToSet, getArbitrageService().getFullPosDiff()));
             }
             this.marketState = stateToSet;
@@ -372,7 +370,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (flags != null && flags.length > 0 && flags[0].equals("CHECKER")) {
                     // do nothing
                 } else {
-                    log.warn("{}: already ready. Iterate OO.", getName());
+                    log.warn("{}: already ready. Iterate OO.", getNameWithType());
                 }
                 eventBus.send(new BtsEventBox(BtsEvent.MARKET_FREE_FOR_ARB, tradeId)); // end arbitrage trigger
 
@@ -571,7 +569,7 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public void setMarketState(MarketState newState, String counterName) {
-        final String msg = String.format("#%s %s marketState: %s %s", counterName, getName(), newState, getArbitrageService().getFullPosDiff());
+        final String msg = String.format("#%s %s marketState: %s %s", counterName, getNameWithType(), newState, getArbitrageService().getFullPosDiff());
         getTradeLogger().info(msg);
         log.info(msg);
         if (newState == MarketState.READY) {
@@ -600,6 +598,10 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public String getNameWithType() {
         return getArbType().s() + "_" + getMarketStaticData().getName();
+    }
+
+    public String getNameWithTypeLower() {
+        return getArbType().sLower() + "_" + getMarketStaticData().getName();
     }
 
     public Integer getMarketId() {
@@ -789,23 +791,27 @@ public abstract class MarketService extends MarketServiceWithState {
     // Only one active task 'freeOoChecker' in ooSingleScheduler.
     private PublishProcessor<Integer> freeOoChecker = PublishProcessor.create();
     //    private Disposable periodicChecker = freeOoCheckerScheduler.schedulePeriodicallyDirect(this::addCheckOoToFree, 10, 2, TimeUnit.SECONDS);
-    private Disposable disposable = Flowable.fromPublisher(freeOoChecker)
-            .observeOn(freeOoCheckerScheduler)
-            .onBackpressureBuffer(2)
-            .onBackpressureDrop()
-            .subscribe((i) -> {
-                        try {
-                            if (i > 2) {
-                                Thread.sleep(1000);
+    private Disposable freeOoCheckerDisposable;
+    private void initFreeOoCheckerDisposable() {
+        freeOoCheckerDisposable = Flowable.fromPublisher(freeOoChecker)
+                .observeOn(freeOoCheckerScheduler)
+                .onBackpressureBuffer(2)
+                .onBackpressureDrop()
+                .subscribe((i) -> {
+                            try {
+                                if (i > 2) {
+                                    Thread.sleep(1000);
+                                }
+                                final Future<?> task = ooSingleExecutor.submit(() -> setFreeIfNoOpenOrders("freeOoChecker", i));
+                                task.get(10, TimeUnit.SECONDS);
+                            } catch (Exception e) {
+                                log.error("freeOoChecker error", e);
+                                getTradeLogger().warn("freeOoChecker error " + e.toString());
                             }
-                            final Future<?> task = ooSingleExecutor.submit(() -> setFreeIfNoOpenOrders("freeOoChecker", i));
-                            task.get(10, TimeUnit.SECONDS);
-                        } catch (Exception e) {
-                            log.error("freeOoChecker error", e);
-                            getTradeLogger().warn("freeOoChecker error " + e.toString());
-                        }
-                    }, e -> log.error("ERROR freeOoChecker error", e)
-            );
+                        }, e -> log.error("ERROR freeOoChecker error", e)
+                );
+
+    }
 
     protected void setFreeIfNoOpenOrders(String checkerName, int attempt) {
         try {
@@ -814,7 +820,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (marketState != MarketState.PLACING_ORDER && marketState != MarketState.STARTING_VERT
                         && (attempt == 2 || attempt == 100 || attempt == 10000 || attempt == 100000 || attempt == 1000000)
                 ) { // log possible errors //todo remove this log
-                    log.info("freeOoChecker attempt " + attempt + ", " + getName() + ", marketState=" + marketState);
+                    log.info("freeOoChecker attempt " + attempt + ", " + getNameWithType() + ", marketState=" + marketState);
                 }
                 addCheckOoToFreeRepeat(attempt + 1);
             }
@@ -998,7 +1004,7 @@ public abstract class MarketService extends MarketServiceWithState {
         } else if (placingType.isTaker()) {
             thePrice = createBestTakerPrice(orderType, orderBook, contractType);
         } else { // placingType == null???
-            String msg = String.format("%s PlacingType==%s, use MAKER", getName(), placingType);
+            String msg = String.format("%s PlacingType==%s, use MAKER", getNameWithType(), placingType);
 //            warningLogger.warn(msg);
             log.warn(msg);
             thePrice = createBestMakerPrice(orderType, orderBook);
@@ -1108,9 +1114,10 @@ public abstract class MarketService extends MarketServiceWithState {
 
     protected void tryPrintZeroPriceWarning(BigDecimal thePrice) {
         if (thePrice.signum() == 0) {
-            getTradeLogger().info("WARNING: PRICE IS 0");
-            warningLogger.warn(getName() + " WARNING: PRICE IS 0");
-            log.warn(getName() + " WARNING: PRICE IS 0");
+            String msg = getNameWithType() + " WARNING: PRICE IS 0";
+            getTradeLogger().info(msg);
+            warningLogger.warn(msg);
+            log.warn(msg);
         }
     }
 
@@ -1139,7 +1146,8 @@ public abstract class MarketService extends MarketServiceWithState {
         } else {
             OrderBook orderBook = getOrderBook();
             ContractType contractType = getContractType();
-            if (getName().equals(BitmexService.NAME) && contractType.isEth()) {
+            String marketName = getName();
+            if (marketName.equals(BitmexService.NAME) && contractType.isEth()) {
                 if (limitOrder.getCurrencyPair() == null) {
                     return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST,
                             "can not move when CurrencyPair is null");
@@ -1151,7 +1159,7 @@ public abstract class MarketService extends MarketServiceWithState {
             }
 
             BigDecimal bestPrice = createBestPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook, contractType);
-            if (getName().equals(BitmexService.NAME)) {
+            if (marketName.equals(BitmexService.NAME)) {
                 final Settings settings = getPersistenceService().getSettingsRepositoryService().getSettings();
                 if (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0) {
                     bestPrice = settings.getBitmexPrice();
@@ -1280,7 +1288,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
         try {
             if (!hasOpenOrders()) {
-                String msg = String.format("%s: StopAllActions", getName());
+                String msg = String.format("%s: StopAllActions", getNameWithType());
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
             } else {
@@ -1291,7 +1299,7 @@ public abstract class MarketService extends MarketServiceWithState {
                         .map(FplayOrder::getOrder)
                         .forEach(order -> orderIds.append(order.getId()).append(","));
 
-                String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getName(), orderIds.toString());
+                String msg = String.format("%s: StopAllActions: CancelAllOpenOrders=%s", getNameWithType(), orderIds.toString());
                 warningLogger.info(msg);
                 getTradeLogger().info(msg);
 
@@ -1329,11 +1337,11 @@ public abstract class MarketService extends MarketServiceWithState {
         throw new IllegalArgumentException("Not implemented");
     }
 
-    /**
-     * For now only removes wrong.
-     * @param tradeId of the order
-     * @param avgPrice to update
-     */
+//    /**
+//     * For now only removes wrong.
+//     * @param tradeId of the order
+//     * @param avgPrice to update
+//     */
 //    public void updateAvgPriceFromDb(Long tradeId, AvgPrice avgPrice) {
 //        final Map<String, AvgPriceItem> stringAvgPriceItemMap = avgPrice.getpItems();
 //        for (String orderId : stringAvgPriceItemMap.keySet()) {

@@ -159,7 +159,6 @@ public class OkCoinService extends MarketServicePreliq {
     // late init
     private OkexBalanceService okexBalanceService;
     ArbitrageService arbitrageService;
-    private OkexTradeLogger tradeLogger = new OkexTradeLogger(this);
 
     @Autowired
     private MetricsDictionary metricsDictionary;
@@ -527,11 +526,6 @@ public class OkCoinService extends MarketServicePreliq {
             return this.getOrderBook();
         }
         return this.orderBookXBTUSDShort;
-    }
-
-    @Override
-    public LogService getTradeLogger() {
-        return tradeLogger;
     }
 
     @Override
@@ -1014,7 +1008,7 @@ public class OkCoinService extends MarketServicePreliq {
             BigDecimal thePrice = createBestTakerPrice(orderType, null, okexContractType);
 
             // metrics
-            final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
+            final Mon monPlacing = monitoringDataService.fetchMon(getNameWithType(), "placeOrder");
             final Instant startReq = Instant.now();
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
@@ -1447,7 +1441,7 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         // metrics
-        final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
+        final Mon monPlacing = monitoringDataService.fetchMon(getNameWithType(), "placeOrder");
 //        if (beforeSignalMetrics != null && beforeSignalMetrics.getLastObTime() != null) {
 //            long beforeMs = startPlacing.toEpochMilli() - beforeSignalMetrics.getLastObTime().toEpochMilli();
 //            monPlacing.getBefore().add(BigDecimal.valueOf(beforeMs));
@@ -1704,7 +1698,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                     // metrics
                     final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
-                    final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
+                    final Mon monPlacing = monitoringDataService.fetchMon(getNameWithType(), "placeOrder");
                     monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
                     if (waitingMarketMs > 5000) {
                         log.warn(placingSubType + " okexPlaceOrder waitingMarketMs=" + waitingMarketMs);
@@ -2009,7 +2003,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         { // mon
             Instant lastEnd = Instant.now();
-            Mon mon = monitoringDataService.fetchMon(getName(), "moveMakerOrder");
+            Mon mon = monitoringDataService.fetchMon(getNameWithType(), "moveMakerOrder");
             if (reqMovingArgs != null && reqMovingArgs.length == 1 && reqMovingArgs[0] != null) {
                 Instant lastObTime = (Instant) reqMovingArgs[0];
                 long beforeMs = startMoving.toEpochMilli() - lastObTime.toEpochMilli();
@@ -2869,7 +2863,7 @@ public class OkCoinService extends MarketServicePreliq {
             final String message = res.toString() + " Error: " + e.getMessage() + timeStr;
             tradeResponse.setErrorCode(message);
 
-            final String logString = String.format("#%s %s closeAllPos: %s", counterForLogs, getName(), message);
+            final String logString = String.format("#%s %s closeAllPos: %s", counterForLogs, getNameWithType(), message);
             log.error(logString, e);
             tradeLogger.error(logString);
             warningLogger.error(logString);

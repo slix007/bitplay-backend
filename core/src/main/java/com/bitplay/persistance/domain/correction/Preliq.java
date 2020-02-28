@@ -1,15 +1,15 @@
 package com.bitplay.persistance.domain.correction;
 
-import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Transient;
+
+import java.math.BigDecimal;
 
 /**
  * Created by Sergey Shurmin on 3/24/18.

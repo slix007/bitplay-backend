@@ -213,6 +213,7 @@ public class ArbitrageService {
     // Affordable for UI end
 
     private volatile boolean preSignalRecheckInProgress = false;
+    public static final BigDecimal DEFAULT_CM = BigDecimal.ONE;;
 
     public DealPrices getDealPrices() {
         return getDealPrices(tradeId);
@@ -2273,9 +2274,9 @@ public class ArbitrageService {
     }
 
     public BigDecimal getCm() {
-        if (leftMarketService != null && leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX) {
+        if (leftMarketService != null && leftMarketService.isBtm()) {
             return ((BitmexService) leftMarketService).getCm();
         }
-        return BitmexService.DEFAULT_CM;
+        return DEFAULT_CM;
     }
 }

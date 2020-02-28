@@ -6,6 +6,7 @@ import com.bitplay.market.MarketServicePortions;
 import com.bitplay.market.events.EventBus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -36,7 +37,7 @@ public class PortionsListener {
     }
 
     private Disposable readyListener(MarketServicePortions marketService) {
-        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("portions-" + marketService.getName() + "-%d").build();
+        final ThreadFactory namedThreadFactory = new NamedThreadFactory("portions-" + marketService.getNameWithType());
         final ExecutorService executor = Executors.newSingleThreadExecutor(namedThreadFactory);
         final Scheduler scheduler = Schedulers.from(executor);
 
@@ -50,7 +51,7 @@ public class PortionsListener {
                             check(marketService);
                         }
                     } catch (Exception e) {
-                        log.error(marketService.getName() + " PortionsListener exception", e);
+                        log.error(marketService.getNameWithType() + " PortionsListener exception", e);
                     }
                 }, throwable -> log.error("OkcoinPortionsListener", throwable));
     }

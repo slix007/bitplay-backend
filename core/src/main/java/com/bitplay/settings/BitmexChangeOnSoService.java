@@ -1,39 +1,39 @@
 package com.bitplay.settings;
 
+import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.market.bitmex.BitmexTradeLogger;
+import com.bitplay.market.LogService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 @Getter
 @Setter
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class BitmexChangeOnSoService {
 
     private volatile boolean testingSo = false;
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-    @Autowired
-    private BitmexTradeLogger tradeLogger;
-
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
+    private final ArbitrageService arbitrageService;
+    private final SettingsRepositoryService settingsRepositoryService;
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("bitmex-change-so-%d").build()
@@ -93,7 +93,7 @@ public class BitmexChangeOnSoService {
             final String msg = "BitmexChangeOnSo deactivated manually";
             log.info(msg);
             warningLogger.info(msg);
-            tradeLogger.info(msg);
+            arbitrageService.getLeftMarketService().getTradeLogger().info(msg);
         }
     }
 
@@ -112,6 +112,7 @@ public class BitmexChangeOnSoService {
         final String msgStart = "BitmexChangeOnSo activated " + String.join(", ", arr);
         log.info(msgStart);
         warningLogger.info(msgStart);
+        LogService tradeLogger = arbitrageService.getLeftMarketService().getTradeLogger();
         tradeLogger.info(msgStart);
         final Integer durationSec = bitmexChangeOnSo.getDurationSec();
         toResetTask = executor.schedule(() -> {

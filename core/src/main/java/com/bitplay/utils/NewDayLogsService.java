@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 public class NewDayLogsService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
-    private static final Logger okexTradeLogger = LoggerFactory.getLogger("OKCOIN_TRADE_LOG");
-    private static final Logger bitmexTradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
     private static final Logger deltasLogger = LoggerFactory.getLogger("DELTAS_LOG");
 
     @Autowired
@@ -40,8 +38,8 @@ public class NewDayLogsService {
                     arbitrageService.getExtraSetStr()
             );
             warningLogger.info(theLog);
-            okexTradeLogger.info(theLog);
-            bitmexTradeLogger.info(theLog);
+            arbitrageService.getLeftMarketService().getTradeLogger().info(theLog);
+            arbitrageService.getRightMarketService().getTradeLogger().info(theLog);
             deltasLogger.info(theLog);
 
             params.setLastDateLogs(LocalDate.now());

@@ -55,4 +55,11 @@ public enum BitmexContractType implements ContractType {
     public String getMarketName() {
         return BitmexService.NAME;
     }
+
+    @Override
+    public String getName() {
+        return name();
+    }
+
+
 }

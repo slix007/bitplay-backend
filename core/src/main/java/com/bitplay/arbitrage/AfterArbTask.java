@@ -49,8 +49,8 @@ public class AfterArbTask implements Runnable {
     private final String counterName;
     private final Settings settings;
     private final Pos okPosition;
-    private final MarketServicePreliq bitmexService;
-    private final OkCoinService okCoinService;
+    private final MarketServicePreliq left;
+    private final OkCoinService right;
     private final DealPricesRepositoryService dealPricesRepositoryService;
     private final CumService cumService;
     private final ArbitrageService arbitrageService;
@@ -257,7 +257,7 @@ public class AfterArbTask implements Runnable {
 
             try {
 
-                bitmexService.updateAvgPrice(dealPrices, false);
+                left.updateAvgPrice(dealPrices, false);
                 StringBuilder logBuilder = new StringBuilder();
                 b_price_fact = dealPrices.getBPriceFact().getAvg(true, counterName, logBuilder);
                 deltaLogWriter.info(logBuilder.toString());
@@ -273,7 +273,7 @@ public class AfterArbTask implements Runnable {
                 }
                 final String logStr = "fetchBtmFactPrice: RoundIsNotDoneException: sleep before retry.";
                 deltaLogWriter.info(logStr);
-                bitmexService.sleepByXrateLimit(logStr);
+                left.sleepByXrateLimit(logStr);
             }
         }
 
@@ -293,7 +293,7 @@ public class AfterArbTask implements Runnable {
             attempt++;
 
             try {
-                okCoinService.setAvgPriceFromDbOrders(dealPrices);
+                right.setAvgPriceFromDbOrders(dealPrices);
 
                 StringBuilder logBuilder = new StringBuilder();
                 ok_price_fact = dealPrices.getOPriceFact().getAvg(true, counterName, logBuilder);
@@ -301,7 +301,7 @@ public class AfterArbTask implements Runnable {
                 log.info(logBuilder.toString());
                 deltaLogWriter.info(dealPrices.getOPriceFact().getDeltaLogTmp());
 
-                okCoinService.writeAvgPriceLog();
+                right.writeAvgPriceLog();
                 break;
 
             } catch (RoundIsNotDoneException e) {
@@ -318,7 +318,7 @@ public class AfterArbTask implements Runnable {
                     log.error("Error on Wait 200mc for avgPrice", e1);
                 }
 
-                okCoinService.updateAvgPrice(counterName, dealPrices);
+                right.updateAvgPrice(counterName, dealPrices);
             }
         }
 
@@ -407,7 +407,7 @@ public class AfterArbTask implements Runnable {
                             dealPrices.getDelta2Plan(),
                             deltaFact,
                             bordersV2,
-                            bitmexService.getContractType().isEth(),
+                            left.getContractType().isEth(),
                             arbitrageService.getCm()
                     );
                     try {
@@ -432,7 +432,7 @@ public class AfterArbTask implements Runnable {
             warningLogger.warn(msg);
         }
 
-        cumService.getCumPersistenceService().addDiffFactBr(dealPrices.getTradingMode(), diffFactBr.getVal(), bitmexService.getContractType().isEth());
+        cumService.getCumPersistenceService().addDiffFactBr(dealPrices.getTradingMode(), diffFactBr.getVal(), left.getContractType().isEth());
 
         // ast_diff_fact = ast_delta_fact - ast_delta
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);

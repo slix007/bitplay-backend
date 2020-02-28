@@ -110,4 +110,11 @@ public enum OkexContractType implements ContractType {
     public String getMarketName() {
         return OkCoinService.NAME;
     }
+
+    @Override
+    public String getName() {
+        return name();
+    }
+
+
 }

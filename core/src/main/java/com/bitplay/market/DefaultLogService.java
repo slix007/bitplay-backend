@@ -9,7 +9,6 @@ public class DefaultLogService implements LogService {
 
     private static final Logger tradeLogger = LoggerFactory.getLogger(MarketService.class);
 
-
     public void warn(String s, String... args) {
         tradeLogger.warn(s);
     }

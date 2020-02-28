@@ -23,14 +23,14 @@ public class LogsEndpoint {
         return commonUIService.getPoloniexTradeLog();
     }
 
-    @RequestMapping(value = "/market/trade-log/bitmex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/market/trade-log/left", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public TradeLogJson getBitmexTradeLog(@RequestParam(value = "date", required = false) String date) {
-        return commonUIService.getTradeLog("bitmex", date);
+        return commonUIService.getTradeLog("left", date);
     }
 
-    @RequestMapping(value = "/market/trade-log/okcoin", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/market/trade-log/right", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public TradeLogJson getOkcoinTradeLog(@RequestParam(value = "date",required = false) String date) {
-        return commonUIService.getTradeLog("okcoin", date);
+        return commonUIService.getTradeLog("right", date);
     }
 
     @RequestMapping(value = "/market/deltas-log", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

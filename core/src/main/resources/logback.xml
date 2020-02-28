@@ -104,11 +104,11 @@
         </encoder>
     </appender>
 
-    <appender name="OKCOIN_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/okcoin-trades.log</file>
+    <appender name="RIGHT_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/right-trades.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>logs/okcoin-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/right-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>90</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
@@ -132,11 +132,11 @@
         </encoder>
     </appender>
 
-    <appender name="BITMEX_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/bitmex-trades.log</file>
+    <appender name="LEFT_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/left-trades.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>logs/bitmex-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>logs/left-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
             <!-- keep 30 days' worth of history capped at 3GB total size -->
             <maxHistory>90</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
@@ -236,8 +236,8 @@
         <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 
-    <logger name="OKCOIN_TRADE_LOG" level="debug" additivity="false">
-        <appender-ref ref="OKCOIN_TRADING_APPENDER"/>
+    <logger name="RIGHT_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="RIGHT_TRADING_APPENDER"/>
     </logger>
     <logger name="OKCOIN_ORDERS_LOG" level="debug" additivity="false">
         <appender-ref ref="OKCOIN_ORDERS_APPENDER"/>
@@ -245,8 +245,8 @@
     <logger name="POLONIEX_TRADE_LOG" level="debug" additivity="false">
         <appender-ref ref="POLONIEX_TRADING_APPENDER"/>
     </logger>
-    <logger name="BITMEX_TRADE_LOG" level="debug" additivity="false">
-        <appender-ref ref="BITMEX_TRADING_APPENDER"/>
+    <logger name="LEFT_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="LEFT_TRADING_APPENDER"/>
     </logger>
     <logger name="BITMEX_ORDERS_LOG" level="debug" additivity="false">
         <appender-ref ref="BITMEX_ORDERS_APPENDER"/>

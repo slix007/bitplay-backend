@@ -6,7 +6,6 @@ import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.ArbState;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -139,16 +138,9 @@ public class PosDiffPortionsService {
     private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         final BigDecimal btmFilled = left.getLeftFilledAndUpdateBPriceFact(currArgs, true);
-        BigDecimal filledUsd = BigDecimal.ZERO;
-        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
-            final BigDecimal cm = ((BitmexService) left).getCm();
-            filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, left.getContractType().isEth(), cm);
-            logString.append("Left Bitmex READY.");
-        }
-        if (left.getMarketStaticData() == MarketStaticData.OKEX) {
-            filledUsd = PlacingBlocks.okexContToUsd(btmFilled, left.getContractType().isEth());
-            logString.append("Left Okex READY.");
-        }
+        final BigDecimal cm = arbitrageService.getCm();
+        BigDecimal filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, left.getContractType().isEth(), cm);
+        logString.append(left.getNameWithType()).append(" READY.");
         return filledUsd;
     }
 

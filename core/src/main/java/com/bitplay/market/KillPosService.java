@@ -19,7 +19,7 @@ public class KillPosService {
     private final MarketServicePreliq marketService;
 
     public void doKillPos(String counterForLogs) {
-        final String msg = String.format("%s %s KILLPOS", counterForLogs, marketService.getName());
+        final String msg = String.format("%s %s KILLPOS", counterForLogs, marketService.getNameWithType());
         log.error(msg);
         warningLogger.error(msg);
         marketService.getTradeLogger().info(msg);

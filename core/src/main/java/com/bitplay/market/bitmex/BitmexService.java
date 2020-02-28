@@ -194,8 +194,6 @@ public class BitmexService extends MarketServicePreliq {
     private BitmexBalanceService bitmexBalanceService = new BitmexBalanceService();
 
     @Autowired
-    private BitmexTradeLogger tradeLogger;
-    @Autowired
     private DefaultLogService defaultLogger;
 
     @Autowired
@@ -242,7 +240,7 @@ public class BitmexService extends MarketServicePreliq {
     private volatile AtomicInteger reconnectCount = new AtomicInteger(0);
     private volatile AtomicInteger orderBookErrors = new AtomicInteger(0);
     private volatile BigDecimal cm = null; // correlation multiplier
-    public static final BigDecimal DEFAULT_CM = BigDecimal.valueOf(100);
+    public static final BigDecimal DEFAULT_BTM_CM = BigDecimal.valueOf(100);
 
 
     public Date getOrderBookLastTimestamp() {
@@ -287,11 +285,6 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public LogService getTradeLogger() {
-        return tradeLogger;
-    }
-
-    @Override
     public LogService getLogger() {
         return defaultLogger;
     }
@@ -313,7 +306,7 @@ public class BitmexService extends MarketServicePreliq {
 
     public BigDecimal getCm() {
         if (cm == null) {
-            return DEFAULT_CM;
+            return DEFAULT_BTM_CM;
         }
         return cm;
     }

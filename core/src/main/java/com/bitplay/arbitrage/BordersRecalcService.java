@@ -130,7 +130,7 @@ public class BordersRecalcService {
         if (b_add_delta.signum() == 0 && ok_add_delta.signum() == 0) {
             return;
         }
-        final BigDecimal mid_delta = arbitrageService.getLeftMarketService().getContractType().isEth()
+        final BigDecimal mid_delta = arbitrageService.isEth()
                 ? ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 1, RoundingMode.HALF_UP)
                 : ((b_delta.abs()).add(o_delta.abs())).divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP);
 

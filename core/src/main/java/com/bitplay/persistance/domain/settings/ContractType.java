@@ -16,4 +16,6 @@ public interface ContractType {
     String toString();
 
     String getMarketName();
+
+    String getName();
 }

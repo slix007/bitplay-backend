@@ -1,6 +1,7 @@
 package com.bitplay.metrics;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.external.HostResolver;
 import com.bitplay.market.bitmex.BitmexService;
 import io.micrometer.core.instrument.Counter;
@@ -259,10 +260,10 @@ public class MetricsDictionary {
         okexMovingWhole.record(ms, TimeUnit.MILLISECONDS);
     }
 
-    public void startRecalcAfterUpdate(String name) {
+    public void startRecalcAfterUpdate(ArbType arbType) {
         if (meterRegistry != null) {
             Timer.Sample sample = Timer.start(meterRegistry);
-            if (name.equals(BitmexService.NAME)) {
+            if (arbType == ArbType.LEFT) {
                 bitmexRecalcAfterUpdateSample = sample;
             } else {
                 okexRecalcAfterUpdateSample = sample;
@@ -270,9 +271,9 @@ public class MetricsDictionary {
         }
     }
 
-    public void stopRecalcAfterUpdate(String name) {
+    public void stopRecalcAfterUpdate(ArbType arbType) {
         if (meterRegistry != null) {
-            if (name.equals(BitmexService.NAME)) {
+            if (arbType == ArbType.LEFT) {
                 if (bitmexRecalcAfterUpdateSample != null) {
                     bitmexRecalcAfterUpdateSample.stop(bitmexRecalcAfterUpdate);
                 }

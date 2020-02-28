@@ -8,7 +8,6 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.SignalTypeEx;
-import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketServicePreliq;
@@ -456,14 +455,14 @@ public class PosDiffService {
 
     @SuppressWarnings("Duplicates")
     private boolean marketsReadyForAdj() {
-        final MarketServicePreliq bitmexService = arbitrageService.getLeftMarketService();
-        final boolean btmReady = bitmexService.getMarketState() == MarketState.READY;
-        final boolean btmSo = bitmexService.getMarketState() == MarketState.SYSTEM_OVERLOADED;
-        final boolean btmSoReady = btmSo && adjOnOkex();
-        final boolean btmReadyForAdj = !bitmexService.hasOpenOrders() && (btmReady || btmSoReady);
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final boolean leftReady = left.getMarketState() == MarketState.READY;
+        final boolean leftSo = left.getMarketState() == MarketState.SYSTEM_OVERLOADED;
+        final boolean leftSoReady = leftSo && adjOnRight();
+        final boolean leftReadyForAdj = !left.hasOpenOrders() && (leftReady || leftSoReady);
 
         return !okexSettlementService.isSettlementMode()
-                && btmReadyForAdj
+                && leftReadyForAdj
                 && arbitrageService.getRightMarketService().isReadyForArbitrage()
                 && !arbitrageService.getDqlStateService().isPreliq()
                 && fullBalanceIsValid();
@@ -475,7 +474,7 @@ public class PosDiffService {
         return firstFullBalance.isValid() && secondFullBalance.isValid();
     }
 
-    private boolean adjOnOkex() {
+    private boolean adjOnRight() {
         final BigDecimal bP = arbitrageService.getLeftMarketService().getPosVal();
         final Pos secondPos = arbitrageService.getRightMarketService().getPos();
         final BigDecimal oPL = secondPos.getPositionLong();
@@ -489,7 +488,7 @@ public class PosDiffService {
 
         fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, false);
 
-        if (corrObj.marketService != null && corrObj.marketService.getName().equals(OkCoinService.NAME)) {
+        if (corrObj.marketService != null && corrObj.marketService.getArbType() == ArbType.RIGHT) {
             return true;
         }
 
@@ -849,11 +848,12 @@ public class PosDiffService {
 
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         boolean leftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
-        BigDecimal bP = left.getPosVal();
+        final BigDecimal leftPosVal = left.getPosVal();
         final MarketServicePreliq right = arbitrageService.getRightMarketService();
         final Pos secondPos = right.getPos();
-        BigDecimal oPL = secondPos.getPositionLong();
-        BigDecimal oPS = secondPos.getPositionShort();
+        final BigDecimal oPL = secondPos.getPositionLong();
+        final BigDecimal oPS = secondPos.getPositionShort();
+        final BigDecimal rightPosVal = oPL.subtract(oPS);
 
         if (!left.isStarted() || marketsStopped()) {
             return;
@@ -889,7 +889,7 @@ public class PosDiffService {
 
         } else if (baseSignalType == SignalType.ADJ) {
 
-            fillCorrObjForAdj(corrObj, hedgeAmount, bP, oPL, oPS, cm, isEth, dc, true);
+            fillCorrObjForAdj(corrObj, hedgeAmount, leftPosVal, oPL, oPS, cm, isEth, dc, true);
             final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
@@ -913,7 +913,7 @@ public class PosDiffService {
                 // no check okexAmountIsZero(corrObj, dc, isEth)
                 adaptCorrByPosOnBtmSo(corrObj, oPL, oPS, dc, isEth);
             } else {
-                adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+                adaptCorrAdjByPos(corrObj, leftPosVal, oPL, oPS, hedgeAmount, dc, cm, isEth);
             }
             final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
@@ -921,7 +921,7 @@ public class PosDiffService {
 
         } // end corr
 
-        defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
+        defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
 
         // ------
 
@@ -1004,7 +1004,7 @@ public class PosDiffService {
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
                 if (signalType.isMainSet() && tradeResponse.errorInsufficientFunds()) {
                     // switch the market
-                    final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getName());
+                    final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getNameWithType());
                     warningLogger.warn(switchMsg);
                     corrObj.marketService.getTradeLogger().info(switchMsg);
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
@@ -1015,7 +1015,7 @@ public class PosDiffService {
                     final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
                     switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
-                    defineSignalTypeToIncrease(corrObj, bP, oPL, oPS);
+                    defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
                     PlacingType pl = placingType.isTaker() ? PlacingType.TAKER : placingType;
                     PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
                             .orderType(corrObj.orderType)
@@ -1094,7 +1094,7 @@ public class PosDiffService {
     }
 
     private void maxVolCorrAdapt(CorrObj corrObj, BigDecimal bMax, BigDecimal okMax) {
-        if (corrObj.marketService.getName().equals(OkCoinService.NAME)) {
+        if (corrObj.marketService.getArbType() == ArbType.RIGHT) {
             if (corrObj.correctAmount.compareTo(okMax) > 0) {
                 corrObj.correctAmount = okMax;
             }
@@ -1131,7 +1131,7 @@ public class PosDiffService {
                     corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
                 } else {
                     final String switchMsg =
-                            String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getName());
+                            String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getNameWithType());
                     log.warn(switchMsg);
                     warningLogger.warn(switchMsg);
                     slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
@@ -1155,20 +1155,19 @@ public class PosDiffService {
         maxVolCorrAdapt(corrObj, bMax, okMax);
     }
 
-    void defineSignalTypeToIncrease(CorrObj corrObj, BigDecimal bP, BigDecimal oPL, BigDecimal oPS) {
-        if (corrObj.marketService.getName().equals(BitmexService.NAME)) {
-            if (bP.signum() == 0
-                    || (bP.signum() > 0 && corrObj.orderType == OrderType.BID)
-                    || (bP.signum() < 0 && corrObj.orderType == OrderType.ASK)) { //increase
+    void defineSignalTypeToIncrease(CorrObj corrObj, BigDecimal leftPosVal, BigDecimal rightPosVal) {
+        if (corrObj.marketService.getArbType() == ArbType.LEFT) {
+            if (leftPosVal.signum() == 0
+                    || (leftPosVal.signum() > 0 && (corrObj.orderType == OrderType.BID || corrObj.orderType == OrderType.EXIT_ASK))
+                    || (leftPosVal.signum() < 0 && (corrObj.orderType == OrderType.ASK || corrObj.orderType == OrderType.EXIT_BID))) { //increase
                 corrObj.signalType = corrObj.signalType.toIncrease(true);
             } else {
                 corrObj.signalType = corrObj.signalType.toDecrease(true);
             }
         } else { //OKEX
-            final BigDecimal oPos = oPL.subtract(oPS);
-            if (oPos.signum() == 0
-                    || (oPos.signum() > 0 && (corrObj.orderType == OrderType.BID || corrObj.orderType == OrderType.EXIT_ASK))
-                    || (oPos.signum() < 0 && (corrObj.orderType == OrderType.ASK || corrObj.orderType == OrderType.EXIT_BID))) { //increase
+            if (rightPosVal.signum() == 0
+                    || (rightPosVal.signum() > 0 && (corrObj.orderType == OrderType.BID || corrObj.orderType == OrderType.EXIT_ASK))
+                    || (rightPosVal.signum() < 0 && (corrObj.orderType == OrderType.ASK || corrObj.orderType == OrderType.EXIT_BID))) { //increase
                 corrObj.signalType = corrObj.signalType.toIncrease(false);
             } else {
                 corrObj.signalType = corrObj.signalType.toDecrease(false);

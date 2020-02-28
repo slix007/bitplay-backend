@@ -121,7 +121,7 @@ public class PreliqService {
                 }
 
                 // ex: 2:o_preliq* - the counter of the possible preliq
-                final String nameSymbol = marketService.getName().substring(0, 1).toUpperCase();
+                final String nameSymbol = marketService.getArbType().s();
 
                 // killpos timer
                 final Integer delaySecKillpos = persistenceService.getSettingsRepositoryService().getSettings().getPosAdjustment().getKillposDelaySec();
@@ -255,14 +255,7 @@ public class PreliqService {
 
 
     private boolean posZeroViolation(Pos pos) {
-        String name = marketService.getName();
-        if (name.equals(BitmexService.NAME)) {
-            return pos.getPositionLong().signum() == 0; // no preliq
-        }
-        if (name.equals(OkCoinService.NAME)) {
-            return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
-        }
-        return false;
+        return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
     }
 
     private void printPreliqStarting(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName) {

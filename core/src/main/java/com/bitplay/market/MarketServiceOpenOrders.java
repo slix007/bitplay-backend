@@ -28,13 +28,17 @@ import java.util.stream.Collectors;
 public abstract class MarketServiceOpenOrders {
 
     protected Logger log = LoggerFactory.getLogger(MarketService.class);
+    protected LogService tradeLogger = new DefaultLogService();
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
-//    private final Object ooLock = new Object();
+    //    private final Object ooLock = new Object();
     private volatile CopyOnWriteArrayList<FplayOrder> openOrders = new CopyOnWriteArrayList<>();
     protected Map<String, BestQuotes> orderIdToSignalInfo = new HashMap<>();
 
-    public abstract LogService getTradeLogger();
+    public LogService getTradeLogger() {
+        return tradeLogger;
+    }
+
     public abstract LogService getLogger();
 
     protected abstract void setFree(Long tradeId, String... flags);

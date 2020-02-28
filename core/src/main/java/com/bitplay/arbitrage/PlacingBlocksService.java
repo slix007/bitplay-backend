@@ -4,14 +4,15 @@ import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 12/29/17.
@@ -53,7 +54,7 @@ public class PlacingBlocksService {
     }
 
     public PlBlocks getDynamicBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-            BigDecimal bBorder, BigDecimal bMaxBlock, BigDecimal cm) {
+                                            BigDecimal bBorder, BigDecimal bMaxBlock, BigDecimal cm) {
         // b_bid - o_ask
         final List<LimitOrder> bids = bitmexOrderBook.getBids();
         final List<LimitOrder> asks = okexOrderBook.getAsks();
@@ -65,7 +66,7 @@ public class PlacingBlocksService {
     }
 
     public PlBlocks getDynamicBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook,
-            BigDecimal oBorder, BigDecimal bMaxBlock, BigDecimal cm) {
+                                            BigDecimal oBorder, BigDecimal bMaxBlock, BigDecimal cm) {
         // o_bid - b_ask
         final List<LimitOrder> bids = okexOrderBook.getBids();
         final List<LimitOrder> asks = bitmexOrderBook.getAsks();
