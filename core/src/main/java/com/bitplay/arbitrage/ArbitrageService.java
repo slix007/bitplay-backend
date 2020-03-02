@@ -1543,11 +1543,16 @@ public class ArbitrageService {
             traderPermissionsService.checkEBestMin();
 
             // calc auto hedge
-            if (leftMarketService.getContractType().isEth()) {
-                BigDecimal he_usd = oEbestWithColdStorageEth.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
-                hedgeService.setHedgeEth(he_usd);
-                BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
-                hedgeService.setHedgeBtc(hb_usd);
+            if (isEth()) {
+                if (leftMarketService.isBtm()) {
+                    BigDecimal he_usd = oEbestWithColdStorageEth.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    hedgeService.setHedgeEth(he_usd);
+                    BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    hedgeService.setHedgeBtc(hb_usd);
+                } else {
+                    hedgeService.setHedgeBtc(BigDecimal.ZERO);
+                    hedgeService.setHedgeEth(sumEBestUsdCurr);
+                }
             } else {
                 hedgeService.setHedgeBtc(sumEBestUsdCurr);
                 hedgeService.setHedgeEth(BigDecimal.ZERO);
