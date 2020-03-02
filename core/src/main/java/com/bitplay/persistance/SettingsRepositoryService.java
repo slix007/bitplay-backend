@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -103,5 +104,20 @@ public class SettingsRepositoryService {
         this.settings = fetchSettings();
         return this.settings;
     }
+
+    public Settings updateHedge(BigDecimal btcHedge, BigDecimal ethHedge) {
+        Query query = new Query().addCriteria(Criteria.where("_id").exists(true).andOperator(Criteria.where("_id").is(1L)));
+        Update update = new Update();
+        if (btcHedge != null) {
+            update.set("hedgeBtc", btcHedge);
+        }
+        if (ethHedge != null) {
+            update.set("hedgeEth", ethHedge);
+        }
+        final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
+        this.settings = fetchSettings();
+        return this.settings;
+    }
+
 
 }

@@ -3,10 +3,11 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.Settings;
-import java.math.BigDecimal;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 @Service
 @Setter
@@ -28,7 +29,7 @@ public class HedgeService {
         if (settings.getHedgeAuto() && hedgeBtc == null) {
             throw new NotYetInitializedException();
         }
-        return settings.getHedgeAuto() ? hedgeBtc.negate() : settings.getHedgeBtc();
+        return settings.getHedgeAuto() ? hedgeBtc : settings.getHedgeBtc();
     }
 
     public BigDecimal getHedgeEth() {
@@ -36,6 +37,24 @@ public class HedgeService {
         if (settings.getHedgeAuto() && hedgeBtc == null) {
             throw new NotYetInitializedException();
         }
-        return settings.getHedgeAuto() ? hedgeEth.negate() : settings.getHedgeEth();
+        return settings.getHedgeAuto() ? hedgeEth : settings.getHedgeEth();
+    }
+
+    public void setHedgeBtc(BigDecimal hedge) {
+        this.hedgeBtc = hedge.negate();
+        final Settings settings = settingsRepositoryService.getSettings();
+        if (settings.getHedgeAuto() && this.hedgeBtc != null) {
+            // save settings
+            settingsRepositoryService.updateHedge(this.hedgeBtc, null);
+        }
+    }
+
+    public void setHedgeEth(BigDecimal hedge) {
+        this.hedgeEth = hedge.negate();
+        final Settings settings = settingsRepositoryService.getSettings();
+        if (settings.getHedgeAuto() && this.hedgeEth != null) {
+            // save settings
+            settingsRepositoryService.updateHedge(null, hedgeEth);
+        }
     }
 }
