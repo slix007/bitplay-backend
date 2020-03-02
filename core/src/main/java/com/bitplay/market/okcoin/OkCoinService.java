@@ -769,7 +769,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private Pos setPosLeverage(Pos p) {
-        final BigDecimal lv = p.getLeverage().signum() != 0 ? p.getLeverage() : this.leverage;
+        final BigDecimal lv = p.getLeverage() != null && p.getLeverage().signum() != 0 ? p.getLeverage() : this.leverage;
         return new Pos(
                 p.getPositionLong(),
                 p.getPositionShort(),
