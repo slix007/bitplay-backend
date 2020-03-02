@@ -1451,23 +1451,26 @@ public class ArbitrageService {
         }
 
         lastCalcSumBal = Instant.now();
-        final AccountBalance firstAccount = leftMarketService.getFullBalance().getAccountBalance();
+        final AccountBalance leftAccount = leftMarketService.getFullBalance().getAccountBalance();
         final AccountBalance secondAccount = rightMarketService.getFullBalance().getAccountBalance();
-        if (firstAccount != null && secondAccount != null) {
-            final BigDecimal bW = firstAccount.getWallet();
-            final BigDecimal bEMark = firstAccount.getEMark() != null ? firstAccount.getEMark() : BigDecimal.ZERO;
-            bEbest = firstAccount.getEBest() != null ? firstAccount.getEBest() : BigDecimal.ZERO;
-            final BigDecimal bEAvg = firstAccount.getEAvg() != null ? firstAccount.getEAvg() : BigDecimal.ZERO;
-            final BigDecimal bU = firstAccount.getUpl();
-            final BigDecimal bM = firstAccount.getMargin();
-            final BigDecimal bA = firstAccount.getAvailable();
+        if (leftAccount != null && secondAccount != null) {
+            BigDecimal bW = leftAccount.getWallet();
+            //noinspection UnnecessaryLocalVariable
+            final BigDecimal bEMark = leftAccount.getEMark() != null ? leftAccount.getEMark() : BigDecimal.ZERO;
+            BigDecimal bELast = bEMark;
+            bEbest = leftAccount.getEBest() != null ? leftAccount.getEBest() : BigDecimal.ZERO;
+            BigDecimal bEAvg = leftAccount.getEAvg() != null ? leftAccount.getEAvg() : BigDecimal.ZERO;
+            BigDecimal bU = leftAccount.getUpl();
+            BigDecimal bM = leftAccount.getMargin();
+            BigDecimal bA = leftAccount.getAvailable();
+            BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
 
             BigDecimal oW = secondAccount.getWallet();
             BigDecimal oELast = secondAccount.getELast() != null ? secondAccount.getELast() : BigDecimal.ZERO;
             oEbest = secondAccount.getEBest() != null ? secondAccount.getEBest() : BigDecimal.ZERO;
             BigDecimal oEAvg = secondAccount.getEAvg() != null ? secondAccount.getEAvg() : BigDecimal.ZERO;
-            BigDecimal oM = secondAccount.getMargin();
             BigDecimal oU = secondAccount.getUpl();
+            BigDecimal oM = secondAccount.getMargin();
             BigDecimal oA = secondAccount.getAvailable();
 
             if (bW == null || oW == null) {
@@ -1494,11 +1497,24 @@ public class ArbitrageService {
                 oM = oM.multiply(ethBtcBid1);
                 oU = oU.multiply(ethBtcBid1);
                 oA = oA.multiply(ethBtcBid1);
+
+                // left okex: convert eth to btc
+                if (!leftMarketService.isBtm()) {
+                    BigDecimal ethBtcBid2 = leftMarketService.getEthBtcTicker().getBid();
+                    bW = bW.multiply(ethBtcBid2);
+                    bELast = leftAccount.getELast() != null ? leftAccount.getELast() : BigDecimal.ZERO;
+                    bELast = bELast.multiply(ethBtcBid2);
+                    bEbest = bEbest.multiply(ethBtcBid2);
+                    bEAvg = bEAvg.multiply(ethBtcBid2);
+                    bM = bM.multiply(ethBtcBid2);
+                    bU = bU.multiply(ethBtcBid2);
+                    bA = bA.multiply(ethBtcBid2);
+                    coldStorageBtc = BigDecimal.ZERO;
+                }
             }
 
-            final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
-            final BigDecimal sumE = bEMark.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+            final BigDecimal sumE = bELast.add(oELast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEBest = bEbest.add(oEbestWithColdStorageEth).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumEAvg = bEAvg.add(oEAvg).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
             final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1509,7 +1525,7 @@ public class ArbitrageService {
 
             final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            final BigDecimal btmQu = isEth
+            final BigDecimal btmQu = isEth && leftMarketService.isBtm()
                     ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
                     : Utils.calcQuAvg(leftMarketService.getOrderBook());
             sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -1576,16 +1592,19 @@ public class ArbitrageService {
             }
         }
         try {
-            final AccountBalance firstAccount = leftMarketService.getFullBalance().getAccountBalance();
+            final AccountBalance leftAccount = leftMarketService.getFullBalance().getAccountBalance();
             final AccountBalance secondAccount = rightMarketService.getFullBalance().getAccountBalance();
-            if (firstAccount != null && secondAccount != null) {
-                final BigDecimal bW = firstAccount.getWallet();
-                final BigDecimal bEmark = firstAccount.getEMark() != null ? firstAccount.getEMark() : BigDecimal.ZERO;
-                bEbest = firstAccount.getEBest() != null ? firstAccount.getEBest() : BigDecimal.ZERO;
-                final BigDecimal bEavg = firstAccount.getEAvg() != null ? firstAccount.getEAvg() : BigDecimal.ZERO;
-                final BigDecimal bU = firstAccount.getUpl();
-                final BigDecimal bM = firstAccount.getMargin();
-                final BigDecimal bA = firstAccount.getAvailable();
+            if (leftAccount != null && secondAccount != null) {
+                BigDecimal bW = leftAccount.getWallet();
+                final BigDecimal bEmark = leftAccount.getEMark() != null ? leftAccount.getEMark() : BigDecimal.ZERO;
+                BigDecimal bELast = bEmark;
+                bEbest = leftAccount.getEBest() != null ? leftAccount.getEBest() : BigDecimal.ZERO;
+                BigDecimal bEavg = leftAccount.getEAvg() != null ? leftAccount.getEAvg() : BigDecimal.ZERO;
+                BigDecimal bU = leftAccount.getUpl();
+                BigDecimal bM = leftAccount.getMargin();
+                BigDecimal bA = leftAccount.getAvailable();
+                BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+
                 final BigDecimal bP = leftMarketService.getPosVal();
                 final BigDecimal bLv = leftMarketService.getPos().getLeverage();
                 final BigDecimal bAL = leftMarketService.getAffordable().getForLong();
@@ -1643,6 +1662,20 @@ public class ArbitrageService {
                     oM = oM.multiply(ethBtcBid1);
                     oU = oU.multiply(ethBtcBid1);
                     oA = oA.multiply(ethBtcBid1);
+
+                    // left okex: convert eth to btc
+                    if (!leftMarketService.isBtm()) {
+                        BigDecimal ethBtcBid2 = leftMarketService.getEthBtcTicker().getBid();
+                        bW = bW.multiply(ethBtcBid2);
+                        bELast = leftAccount.getELast() != null ? leftAccount.getELast() : BigDecimal.ZERO;
+                        bELast = bELast.multiply(ethBtcBid2);
+                        bEbest = bEbest.multiply(ethBtcBid2);
+                        bEavg = bEavg.multiply(ethBtcBid2);
+                        bM = bM.multiply(ethBtcBid2);
+                        bU = bU.multiply(ethBtcBid2);
+                        bA = bA.multiply(ethBtcBid2);
+                        coldStorageBtc = BigDecimal.ZERO;
+                    }
                 }
                 final BigDecimal oPL = rightMarketService.getPos().getPositionLong();
                 final BigDecimal oPS = rightMarketService.getPos().getPositionShort();
@@ -1676,9 +1709,8 @@ public class ArbitrageService {
                         usdQuote.toPlainString()
                 ));
 
-                final BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
                 final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
-                final BigDecimal sumE = bEmark.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
+                final BigDecimal sumE = bELast.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumEBest = bEbest.add(oEbestWithColdStorageEth).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumEavg = bEavg.add(oEavg).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumUpl = bU.add(oU).setScale(8, BigDecimal.ROUND_HALF_UP);
