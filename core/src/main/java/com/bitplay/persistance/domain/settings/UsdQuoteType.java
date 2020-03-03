@@ -11,9 +11,9 @@ public enum UsdQuoteType {
     //3) Курс AVG: Среднее арифметическое между 1) и 2)
     //4) Курс Index Bitmex: Значение Index price у Bitmex
     //5) Курс Index Okex: Значение Index price у Okex
-    BITMEX,
-    OKEX,
+    LEFT,
+    RIGHT,
     AVG,
-    INDEX_BITMEX,
-    INDEX_OKEX,
+    INDEX_LEFT,
+    INDEX_RIGHT,
 }

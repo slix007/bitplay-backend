@@ -1724,7 +1724,9 @@ public class ArbitrageService {
 
                 final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                final BigDecimal btmQu = Utils.calcQuAvg(leftMarketService.getOrderBook());
+                final BigDecimal btmQu = isEth
+                        ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
+                        : Utils.calcQuAvg(leftMarketService.getOrderBook());
                 sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
                 final String sBalStr = String.format("#%s s_bal=w%s_%s, s_e%s_%s, s_e_best%s_%s, s_e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, usd_qu%s",
@@ -1768,24 +1770,24 @@ public class ArbitrageService {
         UsdQuoteType usdQuoteType = persistenceService.getSettingsRepositoryService().getSettings().getUsdQuoteType();
         BigDecimal usdQuote;
         switch (usdQuoteType) {
-            case BITMEX:
+            case LEFT:
                 if (leftMarketService == null || !leftMarketService.isStarted()) {
                     usdQuote = BigDecimal.ZERO;
                 } else {
                     usdQuote = Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD());
                 }
                 break;
-            case OKEX:
+            case RIGHT:
                 if (rightMarketService == null || !rightMarketService.isStarted()) {
                     usdQuote = BigDecimal.ZERO;
                 } else {
                     usdQuote = Utils.calcQuAvg(rightMarketService.getOrderBookXBTUSD());
                 }
                 break;
-            case INDEX_BITMEX:
+            case INDEX_LEFT:
                 usdQuote = getOneMarketUsdQuote(leftMarketService);
                 break;
-            case INDEX_OKEX:
+            case INDEX_RIGHT:
                 usdQuote = getOneMarketUsdQuote(rightMarketService);
                 break;
             case AVG:
