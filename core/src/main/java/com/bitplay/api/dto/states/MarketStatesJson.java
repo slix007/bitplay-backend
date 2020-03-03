@@ -39,6 +39,7 @@ public class MarketStatesJson {
     DqlState dqlState;
     SebestStatus sebestStatus;
     OkexFtpdJson okexFtpdJson;
+    String twoMarketsIndexDiff;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

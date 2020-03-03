@@ -125,7 +125,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
             return getFutureIndexBitmex(businessService);
         }
         if (businessService.getMarketStaticData() == MarketStaticData.OKEX) {
-            getFutureIndexOkex(businessService);
+            return getFutureIndexOkex(businessService);
         }
         return FutureIndexJson.empty();
     }
@@ -214,14 +214,6 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
                 : "";
 
-        // Index diff = b_index (n) - o_index (k) = x,
-        final BigDecimal okexIndex = right.getContractIndex().getIndexPrice();
-        final String twoMarketsIndexDiff = String.format("Index diff = l_index (%s) - r_index (%s) = %s",
-                indexPrice.toPlainString(),
-                okexIndex.toPlainString(),
-                indexPrice.subtract(okexIndex).toPlainString()
-        );
-
         return new FutureIndexJson(
                 indexString,
                 indexPrice.toPlainString(),
@@ -235,8 +227,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 timeCompareString,
                 String.valueOf(timeCompareUpdating),
                 limitsJson,
-                bxbtBal,
-                twoMarketsIndexDiff);
+                bxbtBal);
     }
 
 

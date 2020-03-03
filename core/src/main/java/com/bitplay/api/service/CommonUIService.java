@@ -34,7 +34,6 @@ import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.model.ArbState;
@@ -385,7 +384,20 @@ public class CommonUIService {
                 LocalTime.now().toString(),
                 dqlState,
                 traderPermissionsService.getSebestStatus(),
-                okexFtpdJson
+                okexFtpdJson,
+                getTwoMarketsIndexDiff()
+        );
+    }
+
+    private String getTwoMarketsIndexDiff() {
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        final BigDecimal leftIndex = left.getContractIndex().getIndexPrice();
+        final BigDecimal rightIndex = right.getContractIndex().getIndexPrice();
+        return String.format("Index diff = L_index (%s) - R_index (%s) = %s",
+                leftIndex.toPlainString(),
+                rightIndex.toPlainString(),
+                leftIndex.subtract(rightIndex).toPlainString()
         );
     }
 
