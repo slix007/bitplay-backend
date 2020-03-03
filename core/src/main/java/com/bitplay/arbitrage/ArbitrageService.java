@@ -1525,7 +1525,7 @@ public class ArbitrageService {
 
             final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-            final BigDecimal btmQu = isEth && leftMarketService.isBtm()
+            final BigDecimal btmQu = isEth
                     ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
                     : Utils.calcQuAvg(leftMarketService.getOrderBook());
             sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
