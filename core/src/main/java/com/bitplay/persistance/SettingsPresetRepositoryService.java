@@ -10,6 +10,7 @@ import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.settings.AllFtpd;
 import com.bitplay.persistance.domain.settings.AllPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsPreset;
@@ -183,7 +184,7 @@ public class SettingsPresetRepositoryService {
 //        s.setEBestMin(); - excluded
         s.setUsdQuoteType(p.getUsdQuoteType());
 //        s.setOkexFakeTakerDev(p.getOkexFakeTakerDev());
-        s.setOkexFtpd(p.getOkexFtpd());
+        s.setAllFtpd(p.getAllFtpd() != null ? p.getAllFtpd() : AllFtpd.createDefaults());
         s.setAdjustByNtUsd(p.getAdjustByNtUsdRaw());
         s.setNtUsdMultiplicityOkex(p.getNtUsdMultiplicityOkex());
         s.setAmountTypeBitmex(p.getAmountTypeBitmex());

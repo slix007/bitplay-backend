@@ -22,5 +22,4 @@ public class OkexFtpd {
         return o;
     }
 
-    public enum OkexFtpdType {PTS, PERCENT}
 }

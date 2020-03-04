@@ -183,7 +183,7 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile List<InstrumentDto> instrDtos = new ArrayList<>();
     private volatile BigDecimal leverage;
     private volatile boolean started = false;
-    private final OkexFtpdService okexFtpdService;
+    private OkexFtpdService okexFtpdService = new OkexFtpdService(this);
 
     private static final MarketStaticData MARKET_STATIC_DATA = MarketStaticData.OKEX;
     public static final String NAME = MARKET_STATIC_DATA.getName();
@@ -2029,7 +2029,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     protected BigDecimal createBestTakerPrice(OrderType orderType, OrderBook orderBook, ContractType contractType) {
         final Settings settings = settingsRepositoryService.getSettings();
-        final OkexFtpd okexFtpd = settings.getOkexFtpd();
+        final OkexFtpd okexFtpd = settings.getAllFtpd().get(getArbType());
         final BigDecimal priceForTaker = okexFtpdService.createPriceForTaker(orderType, priceRange, okexFtpd);
         final BigDecimal thePrice = priceForTaker.setScale(contractType.getScale(), RoundingMode.HALF_UP); // .00 -> .000 for eth
         final String ftpdDetails = String.format("FTP=%s; %s; %s",
@@ -2892,7 +2892,7 @@ public class OkCoinService extends MarketServicePreliq {
         //TODO use https://www.okex.com/docs/en/#futures-close_all
         if (amount.signum() != 0) {
 
-            final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
+            final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getAllFtpd().get(getArbType());
             final BigDecimal thePrice = okexFtpdService.createPriceForTaker(orderType, priceRange, okexFtpd);
             final String ftpdDetails = String.format("FTP=%s; %s; %s",
                     thePrice.toPlainString(), okexFtpdService.getFtpdDetails(okexFtpd), priceRange);
@@ -2988,5 +2988,9 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         return orders;
+    }
+
+    public OkexFtpdService getOkexFtpdService() {
+        return okexFtpdService;
     }
 }

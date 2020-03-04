@@ -26,6 +26,7 @@ import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.DqlStateService;
@@ -145,9 +146,6 @@ public class CommonUIService {
 
     @Autowired
     private NtUsdRecoveryService ntUsdRecoveryService;
-
-    @Autowired
-    private OkexFtpdService okexFtpdService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -358,15 +356,25 @@ public class CommonUIService {
         final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(left.getPortionsProgressForUi(), right.getPortionsProgressForUi());
 
         final DqlState dqlState = dqlStateService.getCommonDqlState();
-        final OkexFtpd okexFtpd = settingsRepositoryService.getSettings().getOkexFtpd();
-        final OkexFtpdJson okexFtpdJson = new OkexFtpdJson(okexFtpd.getOkexFtpdBod(), okexFtpdService.getBodMax(), okexFtpdService.getBodMin());
+        final Settings settings = settingsRepositoryService.getSettings();
+        final OkexFtpd leftFtpd = settings.getAllFtpd().get(ArbType.LEFT);
+        final OkexFtpd rightFtpd = settings.getAllFtpd().get(ArbType.RIGHT);
+        final OkexFtpdJson leftFtpdJson;
+        if (left.isBtm()) {
+            leftFtpdJson = new OkexFtpdJson(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        } else {
+            final OkexFtpdService leftFtpdService = ((OkCoinService) left).getOkexFtpdService();
+            leftFtpdJson = new OkexFtpdJson(leftFtpd.getOkexFtpdBod(), leftFtpdService.getBodMax(), leftFtpdService.getBodMin());
+        }
+        final OkexFtpdService rightFtpdService = ((OkCoinService) right).getOkexFtpdService();
+        final OkexFtpdJson rightFtpdJson = new OkexFtpdJson(rightFtpd.getOkexFtpdBod(), rightFtpdService.getBodMax(), rightFtpdService.getBodMin());
 
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
                 left.getTimeToReset(),
                 right.getTimeToReset(),
-                String.valueOf(settingsRepositoryService.getSettings().getSignalDelayMs()),
+                String.valueOf(settings.getSignalDelayMs()),
                 timeToSignal,
                 tradingModeService.secToReset(),
                 volatileModeSwitcherService.timeToVolatileMode(),
@@ -384,7 +392,8 @@ public class CommonUIService {
                 LocalTime.now().toString(),
                 dqlState,
                 traderPermissionsService.getSebestStatus(),
-                okexFtpdJson,
+                leftFtpdJson,
+                rightFtpdJson,
                 getTwoMarketsIndexDiff()
         );
     }

@@ -3,23 +3,23 @@ package com.bitplay.market.okcoin;
 import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
+import com.bitplay.persistance.domain.settings.OkexFtpdType;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-@Service
 @RequiredArgsConstructor
 @Slf4j
 @Getter
 public class OkexFtpdService {
 
     private ThrottledWarn throttledLog = new ThrottledWarn(log, 30);
+    private final OkCoinService okCoinService;
 
     private volatile BigDecimal bodMax;
     private volatile BigDecimal bodMin;
@@ -48,7 +48,7 @@ public class OkexFtpdService {
         if (bodMax.compareTo(bod) < 0 || bodMin.compareTo(bod) < 0) {
             log.warn(String.format("ftpd=0 because bod_max=(%s)<bod(%s) or bod_min(%s)<bod(%s)", bodMax, bod, bodMin, bod));
             ftpd = BigDecimal.ZERO;
-        } else if (okexFtpd.getOkexFtpdType() == OkexFtpd.OkexFtpdType.PTS) {
+        } else if (okexFtpd.getOkexFtpdType() == OkexFtpdType.PTS) {
             ftpd = okexFtpd.getOkexFtpd();
         } else {
             //else PERCENT
@@ -85,7 +85,7 @@ public class OkexFtpdService {
 
 
     public String getFtpdDetails(OkexFtpd okexFtpd) {
-        if (okexFtpd.getOkexFtpdType() == OkexFtpd.OkexFtpdType.PTS) {
+        if (okexFtpd.getOkexFtpdType() == OkexFtpdType.PTS) {
             return "FTPD(usd)=" + okexFtpd.getOkexFtpd();
         }
         return String.format("FTPD(percent)=%s, bod=%s, bod_max=%s, bod_min=%s", okexFtpd.getOkexFtpd(), okexFtpd.getOkexFtpdBod(),

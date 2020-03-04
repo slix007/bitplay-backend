@@ -27,6 +27,13 @@ public class DtoHelpter {
     }
 
     public static void updateNotNullFieldsWithNested(Object inObj, Object toUpdate) {
+        updateNotNullFieldsWithNested(inObj, toUpdate, 0);
+    }
+
+    public static void updateNotNullFieldsWithNested(Object inObj, Object toUpdate, int lvl) {
+        int maxLvl = 3;
+        lvl++;
+
         try {
             for (Field f : inObj.getClass().getDeclaredFields()) {
                 f.setAccessible(true);
@@ -35,9 +42,11 @@ public class DtoHelpter {
                     final String name = f.getName();
                     final Field toUpdateF = toUpdate.getClass().getDeclaredField(name);
                     toUpdateF.setAccessible(true);
-                    if (f.getType().getTypeName().startsWith("com.bitplay.persistance.domain")) {
+                    if (toUpdateF.getType().isEnum()) {
+                        toUpdateF.set(toUpdate, inObjFieldValue);
+                    } else if (f.getType().getTypeName().startsWith("com.bitplay.persistance.domain") && lvl <= maxLvl) {
                         Object toUpdateObjFieldValue = toUpdateF.get(toUpdate);
-                        updateNotNullFieldsWithNested(inObjFieldValue, toUpdateObjFieldValue);
+                        updateNotNullFieldsWithNested(inObjFieldValue, toUpdateObjFieldValue, lvl);
                     } else {
                         toUpdateF.set(toUpdate, inObjFieldValue);
                     }

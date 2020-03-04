@@ -332,8 +332,8 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
             resetPreset = false;
         }
-        if (settingsUpdate.getOkexFtpd() != null) {
-            DtoHelpter.updateNotNullFields(settingsUpdate.getOkexFtpd(), settings.getOkexFtpd());
+        if (settingsUpdate.getAllFtpd() != null) {
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getAllFtpd(), settings.getAllFtpd());
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getAdjustByNtUsd() != null) {
