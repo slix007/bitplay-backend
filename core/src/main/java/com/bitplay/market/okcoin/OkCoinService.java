@@ -1631,9 +1631,9 @@ public class OkCoinService extends MarketServicePreliq {
 
             String obTimestamp = " ";
             int attempt = 0;
-            int maxAttempts = settingsRepositoryService.getSettings().getOkexPostOnlyArgs().getPostOnlyAttempts();
+            final OkexPostOnlyArgs poArgs = settingsRepositoryService.getSettings().getAllPostOnlyArgs().get(getArbType());
+            int maxAttempts = poArgs.getPostOnlyAttempts();
             while (attempt++ < maxAttempts) {
-                final OkexPostOnlyArgs poArgs = settingsRepositoryService.getSettings().getOkexPostOnlyArgs();
                 maxAttempts = poArgs.getPostOnlyAttempts();
                 if (attempt > 1 && poArgs.getPostOnlyBetweenAttemptsMs() > 0) {
                     Thread.sleep(poArgs.getPostOnlyBetweenAttemptsMs());

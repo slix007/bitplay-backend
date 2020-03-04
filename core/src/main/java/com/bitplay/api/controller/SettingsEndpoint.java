@@ -19,7 +19,6 @@ import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.ManageType;
-import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.RestartSettings;
@@ -207,21 +206,8 @@ public class SettingsEndpoint {
 
             settingsRepositoryService.saveSettings(settings);
         }
-        if (settingsUpdate.getOkexPostOnlyArgs() != null) {
-            final OkexPostOnlyArgs ref = settings.getOkexPostOnlyArgs();
-            final OkexPostOnlyArgs uRef = settingsUpdate.getOkexPostOnlyArgs();
-            if (uRef.getPostOnlyEnabled() != null) {
-                ref.setPostOnlyEnabled(uRef.getPostOnlyEnabled());
-            }
-            if (uRef.getPostOnlyWithoutLast() != null) {
-                ref.setPostOnlyWithoutLast(uRef.getPostOnlyWithoutLast());
-            }
-            if (uRef.getPostOnlyAttempts() != null) {
-                ref.setPostOnlyAttempts(uRef.getPostOnlyAttempts());
-            }
-            if (uRef.getPostOnlyBetweenAttemptsMs() != null) {
-                ref.setPostOnlyBetweenAttemptsMs(uRef.getPostOnlyBetweenAttemptsMs());
-            }
+        if (settingsUpdate.getAllPostOnlyArgs() != null) {
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getAllPostOnlyArgs(), settings.getAllPostOnlyArgs());
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getBitmexPrice() != null) {

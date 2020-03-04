@@ -10,7 +10,7 @@ import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
+import com.bitplay.persistance.domain.settings.AllPostOnlyArgs;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsPreset;
 import com.bitplay.persistance.repository.SettingsPresetRepository;
@@ -167,7 +167,7 @@ public class SettingsPresetRepositoryService {
         s.setArbScheme(p.getArbSchemeRaw());
         s.setBitmexSysOverloadArgs(p.getBitmexSysOverloadArgs());
         s.setOkexSysOverloadArgs(p.getOkexSysOverloadArgs());
-        s.setOkexPostOnlyArgs(p.getOkexPostOnlyArgs() != null ? p.getOkexPostOnlyArgs() : OkexPostOnlyArgs.defaults());
+        s.setAllPostOnlyArgs(p.getAllPostOnlyArgs() != null ? p.getAllPostOnlyArgs() : AllPostOnlyArgs.defaults());
         s.setBitmexPlacingType(p.getBitmexPlacingTypeRaw());
         s.setOkexPlacingType(p.getOkexPlacingTypeRaw());
 //        s.setBitmexPrice(); - excluded
