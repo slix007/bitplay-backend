@@ -121,8 +121,13 @@ public class SettingsEndpoint {
         }
         settings.setBitmexObTypeCurrent(bitmexObTypeCurrent);
 
+        if (!left.isBtm()) {
+            BigDecimal okexLeverage = ((OkCoinService) left).getLeverage();
+            settings.getSettingsTransient().setLeftOkexLeverage(okexLeverage);
+
+        }
         BigDecimal okexLeverage = ((OkCoinService) right).getLeverage();
-        settings.getSettingsTransient().setOkexLeverage(okexLeverage);
+        settings.getSettingsTransient().setRightOkexLeverage(okexLeverage);
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

@@ -4,26 +4,20 @@ import com.bitplay.api.dto.LeverageRequest;
 import com.bitplay.api.dto.ResultJson;
 import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
-import com.bitplay.api.dto.ob.FutureIndexJson;
-import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.market.LimitsService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -92,8 +86,10 @@ public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<MarketServi
         return new TradeResponseJson(orderId, details);
     }
 
-    public ResultJson changeLeverage(LeverageRequest leverageRequest) {
-        final OkCoinService service = (OkCoinService) arbitrageService.getRightMarketService();
+    public ResultJson changeLeverage(LeverageRequest leverageRequest, ArbType arbType) {
+        final OkCoinService service = arbType == ArbType.LEFT
+                ? (OkCoinService) arbitrageService.getLeftMarketService()
+                : (OkCoinService) arbitrageService.getRightMarketService();
         final String resDescr = service.changeOkexLeverage(leverageRequest.getLeverage());
         return new ResultJson("", resDescr);
     }

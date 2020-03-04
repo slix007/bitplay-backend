@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 public class SettingsTransient {
 
-    private BigDecimal okexLeverage;
+    private BigDecimal leftOkexLeverage;
+    private BigDecimal rightOkexLeverage;
 
 }
