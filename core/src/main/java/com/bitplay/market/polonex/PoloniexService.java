@@ -119,11 +119,6 @@ public class PoloniexService extends MarketService {
     }
 
     @Override
-    public LogService getLogger() {
-        return null;
-    }
-
-    @Override
     public String fetchPosition() {
         return null;
     }

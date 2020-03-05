@@ -146,6 +146,7 @@ public abstract class MarketService extends MarketServiceWithState {
         final String s = getNameWithType();
         log = LoggerFactory.getLogger(s);
         tradeLogger = new TradeLogger(contractType, arbType);
+        defaultLogger = new DefaultLogService(log);
         scheduler = Executors.newScheduledThreadPool(3, new NamedThreadFactory(s + "-overload-scheduler"));
         ooSingleExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-oo-executor"));
         freeOoCheckerScheduler = Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-free-oo-checker")));
@@ -943,7 +944,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
         final String orderId = fplayOrder.getOrderId();
         final String counterForLogs = fplayOrder.getTradeId() + ":" + getCounterName(fplayOrder.getTradeId());
-        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", getLogger());
+        final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "updateOOStatus:", defaultLogger);
 
         if (!orderInfoAttempts.isPresent()) {
             throw new Exception("Failed to updateOOStatus id=" + orderId);

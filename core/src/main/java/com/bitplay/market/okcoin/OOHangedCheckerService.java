@@ -1,16 +1,15 @@
 package com.bitplay.market.okcoin;
 
+import com.bitplay.arbitrage.dto.ArbType;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
 public class OOHangedCheckerService {
@@ -18,11 +17,17 @@ public class OOHangedCheckerService {
     private static final Logger logger = LoggerFactory.getLogger(OOHangedCheckerService.class);
     private final OkCoinService okCoinService;
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("oo-hanged-checker-%d").build()
     );
     private volatile ScheduledFuture<?> future;
     private volatile int runCounter = 0;
+
+    public void restartScheduler(ArbType arbType) {
+        scheduler.shutdown();
+        scheduler = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat(arbType.s() + "_oo-hanged-checker-%d").build());
+    }
 
     public String getStatus() {
         String statusString = "stopped";

@@ -85,37 +85,37 @@ public class PosDiffPortionsService {
 
         final ConBoPortions conBoPortions = settingsRepositoryService.getSettings().getConBoPortions();
         final StringBuilder logString = new StringBuilder();
-        final BigDecimal btmFilledUsd;
+        final BigDecimal leftFilledUsd;
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         final boolean isBtmReady = left.getMarketState() == MarketState.READY && !left.hasOpenOrders();
         if (isBtmReady) {
-            btmFilledUsd = getUsdBlockByBtmFilled(currArgs, logString);
-            currArgs = resetFullAmount(currArgs, btmFilledUsd);
+            leftFilledUsd = getUsdBlockByLeftFilled(currArgs, logString);
+            currArgs = resetFullAmount(currArgs, leftFilledUsd);
             if (currArgs == null) { // how we end then?
                 return;
             }
         } else {
-            btmFilledUsd = getBlockByNtUsd(currArgs, conBoPortions, logString);
+            leftFilledUsd = getBlockByNtUsd(currArgs, conBoPortions, logString);
         }
 
-        if (btmFilledUsd == null) {
+        if (leftFilledUsd == null) {
             return; // waiting for nt_usd while Bitmex is not READY
         }
         final BigDecimal maxPortionUsd = conBoPortions.getMaxPortionUsdOkex();
-        final BigDecimal finalUsdBlock = useMaxBlockUsd(btmFilledUsd, maxPortionUsd);
+        final BigDecimal finalUsdBlock = useMaxBlockUsd(leftFilledUsd, maxPortionUsd);
         BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isEth());
         final BigDecimal argsAmount = currArgs.getAmount();
         block = argsAmount.compareTo(block) > 0 ? block : argsAmount;
         final PlaceOrderArgs placeArgs = currArgs.cloneAsPortion(block);
         final String nextPortion = placeArgs.getCounterNameWithPortion();
-        final String ntUsdString = String.format("#%s %s, btmFilledUsd(%s). Okex: maxPortionUsd(%s),  amountLeftCont(%s) => portion_block(%s)",
+        final String ntUsdString = String.format("#%s %s, leftFilledUsd(%s). Right: maxPortionUsd(%s),  amountLeftCont(%s) => portion_block(%s)",
                 nextPortion,
-                logString, btmFilledUsd,
+                logString, leftFilledUsd,
                 maxPortionUsd, argsAmount, block);
         log.info(ntUsdString);
         okCoinService.getTradeLogger().info(ntUsdString);
         if (block.signum() == 0) {
-            resetIfBtmReady(btmFilledUsd, isBtmReady);
+            resetIfBtmReady(leftFilledUsd, isBtmReady);
             return;
         }
 
@@ -135,11 +135,13 @@ public class PosDiffPortionsService {
         return filledUsdBlock.compareTo(maxBlockUsd) <= 0 ? filledUsdBlock : maxBlockUsd;
     }
 
-    private BigDecimal getUsdBlockByBtmFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
+    private BigDecimal getUsdBlockByLeftFilled(PlaceOrderArgs currArgs, StringBuilder logString) {
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-        final BigDecimal btmFilled = left.getLeftFilledAndUpdateBPriceFact(currArgs, true);
+        final BigDecimal leftFilled = left.getLeftFilledAndUpdateBPriceFact(currArgs, true);
         final BigDecimal cm = arbitrageService.getCm();
-        BigDecimal filledUsd = PlacingBlocks.bitmexContToUsd(btmFilled, left.getContractType().isEth(), cm);
+        final BigDecimal filledUsd = left.isBtm()
+                ? PlacingBlocks.bitmexContToUsd(leftFilled, left.getContractType().isEth(), cm)
+                : PlacingBlocks.okexContToUsd(leftFilled, left.getContractType().isEth());
         logString.append(left.getNameWithType()).append(" READY.");
         return filledUsd;
     }

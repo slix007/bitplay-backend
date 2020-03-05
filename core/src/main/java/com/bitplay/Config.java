@@ -18,9 +18,9 @@ public class Config {
     @Value("${market.bitmex.secret}")
     private String bitmexMarketSecret;
 
-    @Value("${market.okex.key}")
+    @Value("${market.okex.key:DEFAULT}")
     private String okexMarketKey;
-    @Value("${market.okex.secret}")
+    @Value("${market.okex.secret:DEFAULT}")
     private String okexMarketSecret;
 
     @Value("${market.okex.ex.key:DEFAULT}")

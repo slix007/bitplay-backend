@@ -60,11 +60,6 @@ public class QuoineService extends MarketService {
     }
 
     @Override
-    public LogService getLogger() {
-        return null;
-    }
-
-    @Override
     protected Exchange getExchange() {
         return null;
     }

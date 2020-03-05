@@ -13,8 +13,6 @@ import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
-import com.bitplay.market.DefaultLogService;
-import com.bitplay.market.LogService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
@@ -152,7 +150,6 @@ public class OkCoinService extends MarketServicePreliq {
     private final OkexSettlementService okexSettlementService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final DealPricesRepositoryService dealPricesRepositoryService;
-    private final DefaultLogService defaultLogger;
     private final MonitoringDataService monitoringDataService;
     public final OOHangedCheckerService ooHangedCheckerService = new OOHangedCheckerService(this);
 
@@ -305,6 +302,7 @@ public class OkCoinService extends MarketServicePreliq {
 //        logger.info("BITPLAY_OKEX_EXCHANGE: first instrument: " + instrument);
         started = true;
         initPreliqScheduler();
+        ooHangedCheckerService.restartScheduler(getArbType());
     }
 
     @Scheduled(initialDelay = 120 * 1000, fixedDelay = 60 * 1000)
@@ -343,10 +341,14 @@ public class OkCoinService extends MarketServicePreliq {
         return cred;
     }
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+    private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryBuilder().setNameFormat("okex-preliq-thread-%d").build());
 
     public void initPreliqScheduler() {
+        scheduler.shutdown();
+        scheduler = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat(getArbType().s() + "_okex-preliq-thread-%d").build());
+
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 preliqService.checkForPreliq(okexSettlementService.isSettlementMode());
@@ -526,11 +528,6 @@ public class OkCoinService extends MarketServicePreliq {
             return this.getOrderBook();
         }
         return this.orderBookXBTUSDShort;
-    }
-
-    @Override
-    public LogService getLogger() {
-        return defaultLogger;
     }
 
     @PreDestroy
@@ -2872,7 +2869,7 @@ public class OkCoinService extends MarketServicePreliq {
         // update order info with correct counterName
         final String orderId = tradeResponse.getOrderId();
         if (orderId != null) {
-            final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "closeAllPos:updateOrderStatus", getLogger());
+            final Optional<Order> orderInfoAttempts = getOrderInfo(orderId, counterForLogs, 1, "closeAllPos:updateOrderStatus", defaultLogger);
             if (orderInfoAttempts.isPresent()) {
                 Order orderInfo = orderInfoAttempts.get();
                 final LimitOrder limitOrder = (LimitOrder) orderInfo;

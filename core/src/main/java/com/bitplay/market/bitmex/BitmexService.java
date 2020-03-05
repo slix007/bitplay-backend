@@ -14,9 +14,7 @@ import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
-import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.ExtrastopService;
-import com.bitplay.market.LogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
@@ -194,9 +192,6 @@ public class BitmexService extends MarketServicePreliq {
     private BitmexBalanceService bitmexBalanceService = new BitmexBalanceService();
 
     @Autowired
-    private DefaultLogService defaultLogger;
-
-    @Autowired
     private com.bitplay.persistance.TradeService fplayTradeService;
 
     @Autowired
@@ -282,11 +277,6 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public MarketStaticData getMarketStaticData() {
         return MARKET_STATIC_DATA;
-    }
-
-    @Override
-    public LogService getLogger() {
-        return defaultLogger;
     }
 
     @Override

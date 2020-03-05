@@ -29,6 +29,7 @@ public abstract class MarketServiceOpenOrders {
 
     protected Logger log = LoggerFactory.getLogger(MarketService.class);
     protected LogService tradeLogger = new DefaultLogService();
+    protected LogService defaultLogger = new DefaultLogService(log);
     protected static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     //    private final Object ooLock = new Object();
@@ -39,7 +40,9 @@ public abstract class MarketServiceOpenOrders {
         return tradeLogger;
     }
 
-    public abstract LogService getLogger();
+    public LogService getLogger() {
+        return defaultLogger;
+    }
 
     protected abstract void setFree(Long tradeId, String... flags);
 

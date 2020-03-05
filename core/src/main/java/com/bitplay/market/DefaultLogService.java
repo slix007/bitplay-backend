@@ -2,12 +2,19 @@ package com.bitplay.market;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
-@Service
 public class DefaultLogService implements LogService {
 
-    private static final Logger tradeLogger = LoggerFactory.getLogger(MarketService.class);
+    private final Logger tradeLogger;
+
+    public DefaultLogService() {
+        tradeLogger = LoggerFactory.getLogger(MarketService.class);
+    }
+
+    public DefaultLogService(Logger tradeLogger) {
+        this.tradeLogger = tradeLogger;
+    }
+
 
     public void warn(String s, String... args) {
         tradeLogger.warn(s);

@@ -6,7 +6,6 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.DefaultLogService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -71,7 +70,6 @@ public class TwoMarketStarter {
     private final OkexSettlementService okexSettlementService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final DealPricesRepositoryService dealPricesRepositoryService;
-    private final DefaultLogService defaultLogger;
     private final MonitoringDataService monitoringDataService;
 
 
