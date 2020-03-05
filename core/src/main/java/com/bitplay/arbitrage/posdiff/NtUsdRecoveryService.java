@@ -348,13 +348,22 @@ public class NtUsdRecoveryService {
     private void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
                                    final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean btmSo, String predefinedMarketNameWithType) {
 
+        boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
                 : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
 
-        final BigDecimal bitmexUsd = isEth
-                ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
-                : bP;
+        final BigDecimal bitmexUsd;
+        if (leftIsBtm) {
+            bitmexUsd = isEth
+                    ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
+                    : bP;
+        } else {
+            bitmexUsd = isEth
+                    ? (bP).multiply(BigDecimal.valueOf(10))
+                    : (bP).multiply(BigDecimal.valueOf(100));
+        }
+
 
         //noinspection UnnecessaryLocalVariable
         final BigDecimal okEquiv = okexUsd;
@@ -368,7 +377,7 @@ public class NtUsdRecoveryService {
                     : isFirstMarketByPos;
             if (isFirstMarket) {
                 // bitmex buy
-                posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 if (bP.signum() >= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
@@ -398,7 +407,7 @@ public class NtUsdRecoveryService {
                 corrObj.marketService = arbitrageService.getRightMarketService();
             } else {
                 // bitmex sell
-                posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 if (bP.signum() <= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;

@@ -45,11 +45,11 @@ public class Corr extends CountedWithExtra {
         this.maxTotalCount = corr.maxTotalCount;
     }
 
-    public Integer getMaxVolCorrBitmex(boolean leftOkex) {
+    public Integer getMaxVolCorrBitmex(boolean isLeftOkex) {
         if (isEth == null || cm == null) {
             return 0;
         }
-        return PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxVolCorrUsd), isEth, cm, leftOkex).intValue();
+        return PlacingBlocks.toBitmexContPure(BigDecimal.valueOf(maxVolCorrUsd), isEth, cm, isLeftOkex).intValue();
     }
 
     public Integer getMaxVolCorrOkex() {

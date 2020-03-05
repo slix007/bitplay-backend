@@ -847,7 +847,7 @@ public class PosDiffService {
         }
 
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-        boolean leftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
+        boolean isLeftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
         final BigDecimal leftPosVal = left.getPosVal();
         final MarketServicePreliq right = arbitrageService.getRightMarketService();
         final Pos secondPos = right.getPos();
@@ -883,14 +883,14 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(leftOkex));
+            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             fillCorrObjForAdj(corrObj, hedgeAmount, leftPosVal, oPL, oPS, cm, isEth, dc, true);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
@@ -901,21 +901,21 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(leftOkex));
+            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else { // corr
-            maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(leftOkex);
+            maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex);
             maxOkex = corrParams.getCorr().getMaxVolCorrOkex();
 
             if (left.getMarketState() == MarketState.SYSTEM_OVERLOADED) {
                 // no check okexAmountIsZero(corrObj, dc, isEth)
                 adaptCorrByPosOnBtmSo(corrObj, oPL, oPS, dc, isEth);
             } else {
-                adaptCorrAdjByPos(corrObj, leftPosVal, oPL, oPS, hedgeAmount, dc, cm, isEth);
+                adaptCorrAdjByPos(corrObj, leftPosVal, oPL, oPS, hedgeAmount, dc, cm, isEth, !isLeftOkex);
             }
-            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
             adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
@@ -1012,7 +1012,7 @@ public class PosDiffService {
                     final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
                             ? right
                             : left;
-                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(leftOkex));
+                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
                     final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
                     switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
                     defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
@@ -1076,7 +1076,7 @@ public class PosDiffService {
         if (minBorders != null) {
             adaptAdjByPos(corrObj, bP, oPL, oPS, dc, cm, isEth, minBorders, withLogs);
         } else {
-            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth);
+            adaptCorrAdjByPos(corrObj, bP, oPL, oPS, hedgeAmount, dc, cm, isEth, arbitrageService.getLeftMarketService().isBtm());
         }
     }
 
@@ -1145,8 +1145,9 @@ public class PosDiffService {
                                MarketServicePreliq theOtherService) {
         corrObj.marketService = theOtherService;
         corrObj.signalType = corrObj.signalType.switchMarket();
-        if (theOtherService.getName().equals(BitmexService.NAME)) {
-            defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+        if (theOtherService.getArbType() == ArbType.LEFT) {
+            boolean leftIsBtm = theOtherService.isBtm();
+            defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
         } else {
             // no check okexAmountIsZero(corrObj, dc, isEth)
             defineCorrectAmountOkex(corrObj, dc, isEth);
@@ -1202,15 +1203,22 @@ public class PosDiffService {
      */
     @SuppressWarnings("Duplicates")
     void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
-                           final BigDecimal dc, final BigDecimal cm, final boolean isEth) {
+                           final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean leftIsBtm) {
 
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
                 : (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(100));
 
-        final BigDecimal bitmexUsd = isEth
-                ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
-                : bP;
+        final BigDecimal bitmexUsd;
+        if (leftIsBtm) {
+            bitmexUsd = isEth
+                    ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
+                    : bP;
+        } else {
+            bitmexUsd = isEth
+                    ? (bP).multiply(BigDecimal.valueOf(10))
+                    : (bP).multiply(BigDecimal.valueOf(100));
+        }
 
         //noinspection UnnecessaryLocalVariable
         final BigDecimal okEquiv = okexUsd;
@@ -1220,7 +1228,7 @@ public class PosDiffService {
             corrObj.orderType = Order.OrderType.BID;
             if (bEquiv.compareTo(okEquiv) < 0 || okexAmountIsZero(corrObj, dc, isEth)) {
                 // bitmex buy
-                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 if (corrObj.signalType == SignalType.CORR) {
                     if (bP.signum() >= 0) {
@@ -1281,7 +1289,7 @@ public class PosDiffService {
                 corrObj.marketService = arbitrageService.getRightMarketService();
             } else {
                 // bitmex sell
-                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 if (corrObj.signalType == SignalType.CORR) {
                     if (bP.signum() <= 0) {
@@ -1346,6 +1354,7 @@ public class PosDiffService {
 
         assert corrObj.signalType == SignalType.B_ADJ;
 
+        boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
         final OrderBook btmOb = arbitrageService.getLeftMarketService().getOrderBook();
         final OrderBook okOb = arbitrageService.getRightMarketService().getOrderBook();
         final BigDecimal btmAvg = Utils.calcQuAvg(btmOb, 3);
@@ -1391,7 +1400,7 @@ public class PosDiffService {
                 // bitmex sell
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 corrObj.orderType = OrderType.ASK;
-                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 if (bP.signum() <= 0) {
                     corrObj.signalType = SignalType.B_ADJ_INCREASE_POS;
                 } else {
@@ -1413,7 +1422,7 @@ public class PosDiffService {
                 // bitmex buy
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 corrObj.orderType = OrderType.BID;
-                defineCorrectAmountBitmex(corrObj, dc, cm, isEth);
+                defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 if (bP.signum() >= 0) {
                     corrObj.signalType = SignalType.B_ADJ_INCREASE_POS;
                 } else {
@@ -1513,16 +1522,22 @@ public class PosDiffService {
         }
     }
 
-    void defineCorrectAmountBitmex(CorrObj corrObj, BigDecimal dc, final BigDecimal cm, final boolean isEth) {
+    void defineCorrectAmountBitmex(CorrObj corrObj, BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean leftIsBtm) {
         if (isEth) {
 //            adj/corr_cont_bitmex = abs(dc) / (10 / CM); // если делаем на Bitmex - usd to cont
             BigDecimal btmCm = BigDecimal.valueOf(10).divide(cm, 4, RoundingMode.HALF_UP);
             corrObj.correctAmount = dc.abs().divide(btmCm, 0, RoundingMode.HALF_UP);
         } else {
+            final BigDecimal dcCont;
+            if (leftIsBtm) {
+                dcCont = dc;
+            } else { //left okex
+                dcCont = dc.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            }
             if (corrObj.signalType.isAdj() || corrObj.signalType.isRecoveryNtUsd()) {
-                corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.HALF_UP);
+                corrObj.correctAmount = dcCont.abs().setScale(0, RoundingMode.HALF_UP);
             } else {
-                corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
+                corrObj.correctAmount = dcCont.abs().setScale(0, RoundingMode.DOWN);
             }
         }
     }
