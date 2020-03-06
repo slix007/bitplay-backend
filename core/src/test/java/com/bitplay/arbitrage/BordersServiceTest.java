@@ -168,7 +168,7 @@ public class BordersServiceTest {
     public void test_Fixed_okMode() {
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.FIXED);
         settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(200 * 100));
 
@@ -196,7 +196,7 @@ public class BordersServiceTest {
     public void test_Fixed_okMode_several_steps() {
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.FIXED);
         settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(700 * 100)); // max 2000, but we can do only 600.
 
@@ -220,7 +220,7 @@ public class BordersServiceTest {
     public void test_Dynamic_b_br_close() {
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
@@ -276,7 +276,7 @@ public class BordersServiceTest {
 
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
@@ -334,7 +334,7 @@ public class BordersServiceTest {
 
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
@@ -392,7 +392,7 @@ public class BordersServiceTest {
 
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20 * 100));
 
@@ -442,7 +442,7 @@ public class BordersServiceTest {
     @Ignore
     @Test
     public void test_Example1() {
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(2000 * 100));
 
@@ -513,7 +513,7 @@ public class BordersServiceTest {
         borderParams = createDefaultBorders_dynAffordable();
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
         settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
 //        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
@@ -543,7 +543,7 @@ public class BordersServiceTest {
         borderParams = createDefaultBorders_dynAffordable();
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
 //        settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
 //        settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(20)); // btm 5 cont, okex 2 cont
         settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
@@ -573,7 +573,7 @@ public class BordersServiceTest {
         borderParams = createDefaultBorders_dynAffordable();
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
         settings.getPlacingBlocks().setFixedBlockUsd(BigDecimal.valueOf(70)); // okex 7 cont when pos -3, borderItem(id=3, pSL=10)
 //        settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
@@ -604,7 +604,7 @@ public class BordersServiceTest {
         borderParams = createDefaultBorders_dynAffordable();
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(70));
         settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
@@ -633,7 +633,7 @@ public class BordersServiceTest {
         borderParams = createDefaultBorders_dynAffordable();
         when(persistenceService.fetchBorders()).thenReturn(borderParams);
         when(persistenceService.getSettingsRepositoryService()).thenReturn(settingsRepositoryService);
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(70));
         settings.getPlacingBlocks().setCm(BigDecimal.valueOf(2.42));
@@ -660,7 +660,7 @@ public class BordersServiceTest {
 
     @Test
     public void check_MaxBorder() {
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
 //        settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
 //        settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(20000 * 100));
         settings.getPlacingBlocks().setActiveVersion(Ver.FIXED);
@@ -723,7 +723,7 @@ public class BordersServiceTest {
 
 //        B_delta: +52
 //        O_delta: -54
-        borderParams.setPosMode(BorderParams.PosMode.OK_MODE);
+        borderParams.setPosMode(BorderParams.PosMode.RIGHT_MODE);
         settings.getPlacingBlocks().setActiveVersion(PlacingBlocks.Ver.DYNAMIC);
         settings.getPlacingBlocks().setDynMaxBlockUsd(BigDecimal.valueOf(40 * 100));
         settings.getPlacingBlocks().setCm(BigDecimal.valueOf(8.21));

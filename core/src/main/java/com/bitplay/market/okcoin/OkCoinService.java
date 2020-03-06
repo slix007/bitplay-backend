@@ -2462,17 +2462,17 @@ public class OkCoinService extends MarketServicePreliq {
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
         final BigDecimal oDQLCloseMin;
         final BigDecimal oDQLOpenMin;
-        final BigDecimal okexDqlKillPos;
+        final BigDecimal rightDqlKillPos;
         if (getArbType() == ArbType.LEFT) {
-            oDQLCloseMin = dql.getBDQLCloseMin();
-            oDQLOpenMin = dql.getBDQLOpenMin();
-            okexDqlKillPos = dql.getBtmDqlKillPos();
+            oDQLCloseMin = dql.getLeftDqlCloseMin();
+            oDQLOpenMin = dql.getLeftDqlOpenMin();
+            rightDqlKillPos = dql.getLeftDqlKillPos();
         } else {
-            oDQLCloseMin = dql.getODQLCloseMin();
-            oDQLOpenMin = dql.getODQLOpenMin();
-            okexDqlKillPos = dql.getOkexDqlKillPos();
+            oDQLCloseMin = dql.getRightDqlCloseMin();
+            oDQLOpenMin = dql.getRightDqlOpenMin();
+            rightDqlKillPos = dql.getRightDqlKillPos();
         }
-        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), rightDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
     }
 
     /**

@@ -84,7 +84,7 @@ public class BitplayUIServiceBitmex extends AbstractBitplayUIService<MarketServi
         final Long tradeId = arbitrageService.getLastInProgressTradeId();
         final String toolName = tradeRequestJson.getToolName();
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-        if (left.getMarketStaticData() == MarketStaticData.BITMEX && toolName != null && toolName.equals("XBTUSD")) {
+        if (left.isBtm() && toolName != null && toolName.equals("XBTUSD")) {
             final String counterName = left.getCounterName(signalType, tradeId);
             final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
                     .orderType(orderType)

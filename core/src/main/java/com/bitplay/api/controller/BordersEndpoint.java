@@ -114,7 +114,7 @@ public class BordersEndpoint {
         bordersV2.setMaxLvl(7);
         bordersV2.setAutoBaseLvl(false);
         bordersV2.setBaseLvlCnt(4);
-        bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
+        bordersV2.setBaseLvlType(BordersV2.BaseLvlType.LEFT_OPEN);
         bordersV2.setStep(BigDecimal.valueOf(20));
         bordersV2.setGapStep(BigDecimal.valueOf(20));
         bordersV2.setbAddDelta(BigDecimal.valueOf(20));

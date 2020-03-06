@@ -2725,18 +2725,18 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public DqlState updateDqlState() {
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        final BigDecimal bDQLOpenMin = dql.getBDQLOpenMin();
-        final BigDecimal bDQLCloseMin = dql.getBDQLCloseMin();
-        final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
+        final BigDecimal bDQLOpenMin = dql.getLeftDqlOpenMin();
+        final BigDecimal bDQLCloseMin = dql.getLeftDqlCloseMin();
+        final BigDecimal leftDqlKillPos = dql.getLeftDqlKillPos();
         final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
-        return arbitrageService.getDqlStateService().updateLeftDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        return arbitrageService.getDqlStateService().updateLeftDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
     }
 
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        final BigDecimal bDQLOpenMin = dql.getBDQLOpenMin();
-        final BigDecimal bDQLCloseMin = dql.getBDQLCloseMin();
+        final BigDecimal bDQLOpenMin = dql.getLeftDqlOpenMin();
+        final BigDecimal bDQLCloseMin = dql.getLeftDqlCloseMin();
         final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
         final Pos position = getPos();
 
@@ -2761,8 +2761,8 @@ public class BitmexService extends MarketServicePreliq {
             }
         }
 
-        final BigDecimal btmDqlKillPos = dql.getBtmDqlKillPos();
-        arbitrageService.getDqlStateService().updateLeftDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        final BigDecimal leftDqlKillPos = dql.getLeftDqlKillPos();
+        arbitrageService.getDqlStateService().updateLeftDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
 
         return isOk;
     }

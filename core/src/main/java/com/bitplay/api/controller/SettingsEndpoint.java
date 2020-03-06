@@ -266,17 +266,17 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getFeeSettings() != null) {
-            if (settingsUpdate.getFeeSettings().getbMakerComRate() != null) {
-                settings.getFeeSettings().setbMakerComRate(settingsUpdate.getFeeSettings().getbMakerComRate());
+            if (settingsUpdate.getFeeSettings().getLeftMakerComRate() != null) {
+                settings.getFeeSettings().setLeftMakerComRate(settingsUpdate.getFeeSettings().getLeftMakerComRate());
             }
-            if (settingsUpdate.getFeeSettings().getbTakerComRate() != null) {
-                settings.getFeeSettings().setbTakerComRate(settingsUpdate.getFeeSettings().getbTakerComRate());
+            if (settingsUpdate.getFeeSettings().getLeftTakerComRate() != null) {
+                settings.getFeeSettings().setLeftTakerComRate(settingsUpdate.getFeeSettings().getLeftTakerComRate());
             }
-            if (settingsUpdate.getFeeSettings().getoMakerComRate() != null) {
-                settings.getFeeSettings().setoMakerComRate(settingsUpdate.getFeeSettings().getoMakerComRate());
+            if (settingsUpdate.getFeeSettings().getRightMakerComRate() != null) {
+                settings.getFeeSettings().setRightMakerComRate(settingsUpdate.getFeeSettings().getRightMakerComRate());
             }
-            if (settingsUpdate.getFeeSettings().getoTakerComRate() != null) {
-                settings.getFeeSettings().setoTakerComRate(settingsUpdate.getFeeSettings().getoTakerComRate());
+            if (settingsUpdate.getFeeSettings().getRightTakerComRate() != null) {
+                settings.getFeeSettings().setRightTakerComRate(settingsUpdate.getFeeSettings().getRightTakerComRate());
             }
             settingsRepositoryService.saveSettings(settings);
         }
@@ -399,24 +399,24 @@ public class SettingsEndpoint {
             if (input.getOMrLiq() != null) {
                 settings.getDql().setOMrLiq(input.getOMrLiq());
             }
-            if (input.getBDQLOpenMin() != null) {
-                settings.getDql().setBDQLOpenMin(input.getBDQLOpenMin());
+            if (input.getLeftDqlOpenMin() != null) {
+                settings.getDql().setLeftDqlOpenMin(input.getLeftDqlOpenMin());
             }
-            if (input.getODQLOpenMin() != null) {
-                settings.getDql().setODQLOpenMin(input.getODQLOpenMin());
+            if (input.getRightDqlOpenMin() != null) {
+                settings.getDql().setRightDqlOpenMin(input.getRightDqlOpenMin());
             }
-            if (input.getBDQLCloseMin() != null) {
-                settings.getDql().setBDQLCloseMin(input.getBDQLCloseMin());
+            if (input.getLeftDqlCloseMin() != null) {
+                settings.getDql().setLeftDqlCloseMin(input.getLeftDqlCloseMin());
             }
-            if (input.getODQLCloseMin() != null) {
-                settings.getDql().setODQLCloseMin(input.getODQLCloseMin());
+            if (input.getRightDqlCloseMin() != null) {
+                settings.getDql().setRightDqlCloseMin(input.getRightDqlCloseMin());
             }
 
-            if (input.getBtmDqlKillPos() != null) {
-                settings.getDql().setBtmDqlKillPos(input.getBtmDqlKillPos());
+            if (input.getLeftDqlKillPos() != null) {
+                settings.getDql().setLeftDqlKillPos(input.getLeftDqlKillPos());
             }
-            if (input.getOkexDqlKillPos() != null) {
-                settings.getDql().setOkexDqlKillPos(input.getOkexDqlKillPos());
+            if (input.getRightDqlKillPos() != null) {
+                settings.getDql().setRightDqlKillPos(input.getRightDqlKillPos());
             }
             if (input.getDqlLevel() != null) {
                 settings.getDql().setDqlLevel(input.getDqlLevel());

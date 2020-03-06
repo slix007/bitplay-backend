@@ -30,12 +30,13 @@ public class BorderParams extends AbstractDocument {
     public BorderParams(Ver activeVersion, BordersV1 bordersV1, BordersV2 bordersV2) {
         this.setId(1L);
         this.activeVersion = activeVersion;
-        this.posMode = PosMode.OK_MODE;
+        this.posMode = PosMode.RIGHT_MODE;
         this.bordersV1 = bordersV1;
         this.bordersV2 = bordersV2;
     }
 
     public enum Ver {V1, V2, OFF}
 
-    public enum PosMode {BTM_MODE, OK_MODE}
+    //TODO remove old
+    public enum PosMode {BTM_MODE, OK_MODE, LEFT_MODE, RIGHT_MODE}
 }

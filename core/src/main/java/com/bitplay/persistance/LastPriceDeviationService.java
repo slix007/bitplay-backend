@@ -70,8 +70,8 @@ public class LastPriceDeviationService {
 
         setCurrLastPrice(lastPriceDeviation);
 
-        lastPriceDeviation.setBitmexMain(lastPriceDeviation.getBitmexMainCurr());
-        lastPriceDeviation.setOkexMain(lastPriceDeviation.getOkexMainCurr());
+        lastPriceDeviation.setLeftMain(lastPriceDeviation.getLeftMainCurr());
+        lastPriceDeviation.setRightMain(lastPriceDeviation.getRightMainCurr());
 
         saveLastPriceDeviation(lastPriceDeviation);
     }
@@ -87,27 +87,27 @@ public class LastPriceDeviationService {
 
         setCurrLastPrice(dev);
 
-        if (dev.getBitmexMainExceed()) {
+        if (dev.getLeftMainExceed()) {
             String msg = String.format("bitmex last price deviation(curr=%s, base=%s) exceeded $%s ",
-                    dev.getBitmexMainCurr(),
-                    dev.getBitmexMain(),
+                    dev.getLeftMainCurr(),
+                    dev.getLeftMain(),
                     dev.getMaxDevUsd()
             );
             slackNotifications.sendNotify(NotifyType.LAST_PRICE_DEVIATION, msg);
             warningLogger.info(msg);
             log.info(msg);
-            dev.setBitmexMain(dev.getBitmexMainCurr());
+            dev.setLeftMain(dev.getLeftMainCurr());
         }
-        if (dev.getOkexMainExceed()) {
+        if (dev.getRightMainExceed()) {
             String msg = String.format("okex last price deviation(curr=%s, base=%s) exceeded $%s",
-                    dev.getOkexMainCurr(),
-                    dev.getOkexMain(),
+                    dev.getRightMainCurr(),
+                    dev.getRightMain(),
                     dev.getMaxDevUsd()
             );
             slackNotifications.sendNotify(NotifyType.LAST_PRICE_DEVIATION, msg);
             warningLogger.info(msg);
             log.info(msg);
-            dev.setOkexMain(dev.getOkexMainCurr());
+            dev.setRightMain(dev.getRightMainCurr());
         }
 
         saveLastPriceDeviation(dev);
@@ -132,16 +132,16 @@ public class LastPriceDeviationService {
     private void setCurrLastPrice(LastPriceDeviation dev) {
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         if (left != null) {
-            Ticker bTiker = left.getTicker();
-            if (bTiker != null && bTiker.getLast() != null) {
-                dev.setBitmexMainCurr(bTiker.getLast());
+            Ticker leftTiker = left.getTicker();
+            if (leftTiker != null && leftTiker.getLast() != null) {
+                dev.setLeftMainCurr(leftTiker.getLast());
             }
         }
         final MarketServicePreliq right = arbitrageService.getRightMarketService();
         if (right != null) {
             Ticker oTicker = right.getTicker();
             if (oTicker != null && oTicker.getLast() != null) {
-                dev.setOkexMainCurr(oTicker.getLast());
+                dev.setRightMainCurr(oTicker.getLast());
             }
         }
     }

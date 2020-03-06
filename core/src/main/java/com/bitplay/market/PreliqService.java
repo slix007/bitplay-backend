@@ -207,7 +207,7 @@ public class PreliqService {
     private BigDecimal getDqlKillPos() {
         final PersistenceService persistenceService = marketService.getPersistenceService();
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        return marketService.getArbType() == ArbType.LEFT ? dql.getBtmDqlKillPos() : dql.getOkexDqlKillPos();
+        return marketService.getArbType() == ArbType.LEFT ? dql.getLeftDqlKillPos() : dql.getRightDqlKillPos();
     }
 
     private String getName() {
@@ -428,18 +428,18 @@ public class PreliqService {
         ArbType arbType = marketService.getArbType();
         final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
         if (arbType == ArbType.LEFT) {
-            return dql.getBDQLCloseMin();
+            return dql.getLeftDqlCloseMin();
         }
-        return dql.getODQLCloseMin();
+        return dql.getRightDqlCloseMin();
     }
 
     public BigDecimal getDqlOpenMin() {
         final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
         ArbType arbType = marketService.getArbType();
         if (arbType == ArbType.LEFT) {
-            return dql.getBDQLOpenMin();
+            return dql.getLeftDqlOpenMin();
         }
-        return dql.getODQLOpenMin();
+        return dql.getRightDqlOpenMin();
     }
 
     private PreliqBlocks getPreliqBlocks(DeltaName deltaName, Pos posObj) {

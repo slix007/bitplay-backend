@@ -2,7 +2,6 @@ package com.bitplay.arbitrage;
 
 import static com.bitplay.arbitrage.DeltasCalcService.NONE_VALUE;
 
-import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -150,7 +149,7 @@ public class BordersRecalcService {
                 mid_delta, b_baseVal, ok_baseVal, b_add_delta, ok_add_delta, base_lvl);
         logger.debug(debugStr);
 
-        if (base_lvl_type == BordersV2.BaseLvlType.B_OPEN) {
+        if (base_lvl_type == BordersV2.BaseLvlType.LEFT_OPEN) {
             bordersV2.getBorderTableByName("b_br_open")
                     .ifPresent(borderTable -> {
                         final List<BorderItem> items = borderTable.getBorderItemList();
@@ -285,17 +284,17 @@ public class BordersRecalcService {
 
         final BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        if (borderParams.getPosMode() == BorderParams.PosMode.OK_MODE) {
+        if (borderParams.getPosMode() == BorderParams.PosMode.RIGHT_MODE) {
             if (ok_pos.signum() > 0) {
-                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.LEFT_OPEN);
             } else { // if (ok_pos <= 0)
-                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.OK_OPEN);
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.RIGHT_OPEN);
             }
         } else { //BorderParams.PosMode.BTM_MODE
             if (b_pos.signum() > 0) {
-                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.OK_OPEN);
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.RIGHT_OPEN);
             } else { // if (b_pos <= 0)
-                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.B_OPEN);
+                bordersV2.setBaseLvlType(BordersV2.BaseLvlType.LEFT_OPEN);
             }
         }
     }
@@ -314,7 +313,7 @@ public class BordersRecalcService {
 
         int base_lvl_cnt = borderParams.getBordersV2().getBaseLvlCnt();
 
-        if (borderParams.getPosMode() == BorderParams.PosMode.OK_MODE) {
+        if (borderParams.getPosMode() == BorderParams.PosMode.RIGHT_MODE) {
             if (ok_pos.signum() > 0) {
                 for (BorderItem borderItem : b_br_open.getBorderItemList()) {
                     int posLongLimit = bordersService.usdToCont(borderItem.getPosLongLimit());

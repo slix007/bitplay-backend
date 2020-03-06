@@ -46,9 +46,9 @@ public class DqlStateService {
         }
     }
 
-    public DqlState updateLeftDqlState(BigDecimal btmDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateLeftDqlState(BigDecimal leftDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
         DqlState currState = this.leftState;
-        DqlState resState = defineDqlState(btmDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        DqlState resState = defineDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
         if (currState != resState) {
             log.info(String.format("left DqlState %s => %s", currState, resState));
         }
@@ -64,9 +64,9 @@ public class DqlStateService {
         return leftState;
     }
 
-    public DqlState updateRightDqlState(BigDecimal okexDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateRightDqlState(BigDecimal rightDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
         DqlState currState = this.rightState;
-        DqlState resState = defineDqlState(okexDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
+        DqlState resState = defineDqlState(rightDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
         if (currState != resState) {
             log.info(String.format("right DqlState %s => %s", currState, resState));
         }

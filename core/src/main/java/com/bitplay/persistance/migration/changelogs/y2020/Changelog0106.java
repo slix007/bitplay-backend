@@ -18,8 +18,8 @@ public class Changelog0106 {
     public void change01(MongoTemplate mongoTemplate) {
         Query query = new Query();
         Update update = new Update();
-        update.set("dql.btmDqlKillPos", BigDecimal.ZERO);
-        update.set("dql.okexDqlKillPos", BigDecimal.ZERO);
+        update.set("dql.leftDqlKillPos", BigDecimal.ZERO);
+        update.set("dql.leftDqlKillPos", BigDecimal.ZERO);
         mongoTemplate.updateMulti(query, update, "settingsCollection");
     }
 

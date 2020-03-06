@@ -47,13 +47,13 @@ public class Changelog1120 {
 
         for (BorderTable borderTable : bordersV2.getBorderTableList()) {
             for (BorderItem borderItem : borderTable.getBorderItemList()) {
-                if (posMode == PosMode.OK_MODE) {
+                if (posMode == PosMode.RIGHT_MODE) {
                     int mlt = !isEth
                             ? 100 // set_bu: 100 USD = 1 Okex_cont.
                             : 10; // set_eu: 10 USD = 1 Okex_cont.
                     borderItem.setPosShortLimit(mlt * borderItem.getPosShortLimit());
                     borderItem.setPosLongLimit(mlt * borderItem.getPosLongLimit());
-                } else if (posMode == PosMode.BTM_MODE) {
+                } else if (posMode == PosMode.LEFT_MODE) {
                     double cm = 10; // just a guess.
                     double mlt = !isEth
                             ? 1 // set_bu: 1 USD = 1 Bitmex_cont.

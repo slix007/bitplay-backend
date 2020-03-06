@@ -59,7 +59,8 @@ public class BordersV2 implements Serializable {
         return Objects.hash(borderTableList) + Objects.hash(plm);
     }
 
-    public enum BaseLvlType {B_OPEN, OK_OPEN}
+    //TODO remove old
+    public enum BaseLvlType {B_OPEN, OK_OPEN, LEFT_OPEN, RIGHT_OPEN}
 
     public String toStringTables() {
         return borderTableList.stream()

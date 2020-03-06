@@ -19,24 +19,24 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder(toBuilder = true)
 public class LastPriceDeviation extends AbstractParams {
 
-    private BigDecimal bitmexMain;
-    private BigDecimal okexMain;
+    private BigDecimal leftMain;
+    private BigDecimal rightMain;
     private BigDecimal maxDevUsd;
     private Integer delaySec;
 
     @Transient
-    private BigDecimal bitmexMainCurr;
+    private BigDecimal leftMainCurr;
     @Transient
-    private BigDecimal okexMainCurr;
+    private BigDecimal rightMainCurr;
     @Transient
     private Integer toNextFix;
 
-    public boolean getBitmexMainExceed() {
-        return isExceed(bitmexMain, bitmexMainCurr);
+    public boolean getLeftMainExceed() {
+        return isExceed(leftMain, leftMainCurr);
     }
 
-    public boolean getOkexMainExceed() {
-        return isExceed(okexMain, okexMainCurr);
+    public boolean getRightMainExceed() {
+        return isExceed(rightMain, rightMainCurr);
     }
 
     private boolean isExceed(BigDecimal base, BigDecimal current) {
@@ -48,8 +48,8 @@ public class LastPriceDeviation extends AbstractParams {
     }
 
     public void setSettingsParts(LastPriceDeviation lpd) {
-        this.bitmexMain = lpd.bitmexMain;
-        this.okexMain = lpd.okexMain;
+        this.leftMain = lpd.leftMain;
+        this.rightMain = lpd.rightMain;
         this.maxDevUsd = lpd.maxDevUsd;
         this.delaySec = lpd.delaySec;
     }

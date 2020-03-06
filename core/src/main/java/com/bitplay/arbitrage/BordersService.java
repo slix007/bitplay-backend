@@ -48,7 +48,7 @@ public class BordersService {
     @Autowired
     private ArbitrageService arbitrageService;
 
-    private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.OK_MODE;
+    private volatile static BorderParams.PosMode theMode = BorderParams.PosMode.RIGHT_MODE;
 
     public BorderParams getBorderParams() {
         final BorderParams borderParams = persistenceService.fetchBorders();
@@ -129,7 +129,7 @@ public class BordersService {
 
 
     public static int usdToCont(int limInUsd, BorderParams.PosMode posMode, boolean isEth, BigDecimal cm) {
-        if (posMode == BorderParams.PosMode.BTM_MODE) {
+        if (posMode == BorderParams.PosMode.LEFT_MODE) {
             return PlacingBlocks.toBitmexCont(BigDecimal.valueOf(limInUsd), isEth, cm).intValue();
         }
         return PlacingBlocks.toOkexCont(BigDecimal.valueOf(limInUsd), isEth).intValue();
@@ -146,7 +146,7 @@ public class BordersService {
         }
 
         final BigDecimal cm = arbitrageService.getCm();
-        int block = tradingSignal.posMode == BorderParams.PosMode.OK_MODE ? okexBlock :
+        int block = tradingSignal.posMode == BorderParams.PosMode.RIGHT_MODE ? okexBlock :
                 (BigDecimal.valueOf(okexBlock).multiply(cm)).setScale(0, RoundingMode.HALF_UP).intValue();
         final List<BigDecimal> list = Collections
                 .unmodifiableList(tradingSignal.borderValueList != null ? tradingSignal.borderValueList : new ArrayList<>());
@@ -180,7 +180,7 @@ public class BordersService {
 
         final int block;
         final int pos;
-        if (theMode == BorderParams.PosMode.BTM_MODE) {
+        if (theMode == BorderParams.PosMode.LEFT_MODE) {
             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                 block = placingBlocks.getFixedBlockBitmex().intValueExact();
             } else if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.DYNAMIC) {
@@ -205,8 +205,8 @@ public class BordersService {
         if (placingBlocks.getActiveVersion() == Ver.DYNAMIC) {
             final PlBlocks btm = dynBlockMaxAffordable(DeltaName.B_DELTA, bitmexAffordable, okexAffordable);
             final PlBlocks ok = dynBlockMaxAffordable(DeltaName.O_DELTA, bitmexAffordable, okexAffordable);
-            bDeltaAffordable = theMode == BorderParams.PosMode.OK_MODE ? btm.getBlockOkex() : btm.getBlockBitmex();
-            oDeltaAffordable = theMode == BorderParams.PosMode.OK_MODE ? ok.getBlockOkex() : ok.getBlockBitmex();
+            bDeltaAffordable = theMode == BorderParams.PosMode.RIGHT_MODE ? btm.getBlockOkex() : btm.getBlockBitmex();
+            oDeltaAffordable = theMode == BorderParams.PosMode.RIGHT_MODE ? ok.getBlockOkex() : ok.getBlockBitmex();
         }
 
         TradingSignal signal = null;
@@ -256,7 +256,7 @@ public class BordersService {
             theMode = borderParams.getPosMode();
         }
 
-        final int pos = theMode == BorderParams.PosMode.BTM_MODE
+        final int pos = theMode == BorderParams.PosMode.LEFT_MODE
                 ? bP.intValueExact()
                 : oPL.intValueExact() - oPS.intValueExact();
 
@@ -273,7 +273,7 @@ public class BordersService {
                     final BorderItem borderItem = btm_br_close.get(i);
                     if (borderItem.getId() != 0) {
                         // value is decreasing
-                        if (theMode == BorderParams.PosMode.BTM_MODE) {
+                        if (theMode == BorderParams.PosMode.LEFT_MODE) {
                             int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                             if (pos > 0 && pos > posLongLimit) {
                                 int diff = pos - posLongLimit;
@@ -285,7 +285,7 @@ public class BordersService {
                                 break;
                             }
                         }
-                        if (theMode == BorderParams.PosMode.OK_MODE) {
+                        if (theMode == BorderParams.PosMode.RIGHT_MODE) {
                             int posShortLimit = usdToCont(borderItem.getPosShortLimit());
                             if (pos < 0 && -pos > posShortLimit) {
                                 int diff = (-pos) - posShortLimit;
@@ -310,14 +310,14 @@ public class BordersService {
                 BorderItem borderItem = btm_br_open.get(i);
                 if (borderItem.getId() != 0) {
                     // value is increasing
-                    if (theMode == BorderParams.PosMode.OK_MODE) {
+                    if (theMode == BorderParams.PosMode.RIGHT_MODE) {
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                         if (pos >= 0 && pos < posLongLimit) {
                             btmMinBorder = borderItem.getValue();
                             break;
                         }
                     }
-                    if (theMode == BorderParams.PosMode.BTM_MODE) {
+                    if (theMode == BorderParams.PosMode.LEFT_MODE) {
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
                         if (pos <= 0 && -pos < posShortLimit) {
                             btmMinBorder = borderItem.getValue();
@@ -338,7 +338,7 @@ public class BordersService {
                     final BorderItem borderItem = ok_br_close.get(i);
                     if (borderItem.getId() != 0) {
                         // value is decreasing
-                        if (theMode == BorderParams.PosMode.OK_MODE) {
+                        if (theMode == BorderParams.PosMode.RIGHT_MODE) {
                             int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                             if (pos > 0 && pos > posLongLimit) {
                                 int diff = pos - posLongLimit;
@@ -350,7 +350,7 @@ public class BordersService {
                                 break;
                             }
                         }
-                        if (theMode == BorderParams.PosMode.BTM_MODE) {
+                        if (theMode == BorderParams.PosMode.LEFT_MODE) {
                             int posShortLimit = usdToCont(borderItem.getPosShortLimit());
                             if (pos < 0 && -pos > posShortLimit) {
                                 int diff = (-pos) - posShortLimit;
@@ -375,14 +375,14 @@ public class BordersService {
                 BorderItem borderItem = ok_br_open.get(i);
                 if (borderItem.getId() != 0) {
                     // value is increasing
-                    if (theMode == BorderParams.PosMode.BTM_MODE) {
+                    if (theMode == BorderParams.PosMode.LEFT_MODE) {
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                         if (pos >= 0 && pos < posLongLimit) {
                             okMinBorder = borderItem.getValue();
                             break;
                         }
                     }
-                    if (theMode == BorderParams.PosMode.OK_MODE) {
+                    if (theMode == BorderParams.PosMode.RIGHT_MODE) {
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
                         if (pos <= 0 && -pos < posShortLimit) {
                             okMinBorder = borderItem.getValue();
@@ -427,7 +427,7 @@ public class BordersService {
                 if (borderItem.getId() != 0) {
                     if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
-                        if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.BTM_MODE) {
+                        if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.LEFT_MODE) {
 
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                                 if (pos - block < posLongLimit) {
@@ -470,7 +470,7 @@ public class BordersService {
                         }
 
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
-                        if (pos < 0 && -pos > posShortLimit && theMode == BorderParams.PosMode.OK_MODE) {
+                        if (pos < 0 && -pos > posShortLimit && theMode == BorderParams.PosMode.RIGHT_MODE) {
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                                 if (-pos - block < posShortLimit) {
                                     int block_once = -pos - posShortLimit;
@@ -566,7 +566,7 @@ public class BordersService {
                 if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
 
                     int posLongLimit = usdToCont(borderItem.getPosLongLimit());
-                    if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.OK_MODE) {
+                    if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.RIGHT_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                             if (pos + block > posLongLimit) {
                                 int block_once = posLongLimit - pos;
@@ -610,7 +610,7 @@ public class BordersService {
                     }
 
                     int posShortLimit = usdToCont(borderItem.getPosShortLimit());
-                    if (pos <= 0 && -pos < posShortLimit && theMode == BorderParams.PosMode.BTM_MODE) {
+                    if (pos <= 0 && -pos < posShortLimit && theMode == BorderParams.PosMode.LEFT_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                             if (-pos + block > posShortLimit) {
                                 int block_once = posShortLimit - (-pos);
@@ -669,11 +669,11 @@ public class BordersService {
     private int doubleCheckMaxBlock(PlacingBlocks placingBlocks, int btm_br_open_calc_block, StringBuilder blockOnceWarn, int pos) {
         int maxBlock;
         if (placingBlocks.getActiveVersion() == Ver.DYNAMIC) {
-            maxBlock = theMode == PosMode.BTM_MODE
+            maxBlock = theMode == PosMode.LEFT_MODE
                     ? placingBlocks.getDynMaxBlockBitmex().intValueExact()
                     : placingBlocks.getDynMaxBlockOkex().intValueExact();
         } else { // FIXED
-            maxBlock = theMode == PosMode.BTM_MODE
+            maxBlock = theMode == PosMode.LEFT_MODE
                     ? placingBlocks.getFixedBlockBitmex().intValueExact()
                     : placingBlocks.getFixedBlockOkex().intValueExact();
             if (btm_br_open_calc_block < maxBlock) {
@@ -687,7 +687,7 @@ public class BordersService {
     private int funcDynBlockByBDelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal value, BigDecimal cm) {
         final PlBlocks bDeltaBlocks = placingBlocksService.getDynamicBlockByBDelta(bitmexOrderBook, okexOrderBook,
                 value, null, cm);
-        return theMode == BorderParams.PosMode.BTM_MODE
+        return theMode == BorderParams.PosMode.LEFT_MODE
                 ? bDeltaBlocks.getBlockBitmex().intValueExact()
                 : bDeltaBlocks.getBlockOkex().intValueExact();
     }
@@ -695,7 +695,7 @@ public class BordersService {
     private int funcDynBlockByODelta(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal value, BigDecimal cm) {
         final PlBlocks bDeltaBlocks = placingBlocksService.getDynamicBlockByODelta(bitmexOrderBook, okexOrderBook,
                 value, null, cm);
-        return theMode == BorderParams.PosMode.BTM_MODE
+        return theMode == BorderParams.PosMode.LEFT_MODE
                 ? bDeltaBlocks.getBlockBitmex().intValueExact()
                 : bDeltaBlocks.getBlockOkex().intValueExact();
     }
@@ -733,7 +733,7 @@ public class BordersService {
                     if (o_delta.compareTo(borderItem.getValue()) >= 0) {
 
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
-                        if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.OK_MODE) {
+                        if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.RIGHT_MODE) {
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                                 if (pos - block < posLongLimit) {
                                     int block_once = pos - posLongLimit;
@@ -775,7 +775,7 @@ public class BordersService {
                         }
 
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
-                        if (pos < 0 && -pos > posShortLimit && theMode == BorderParams.PosMode.BTM_MODE) {
+                        if (pos < 0 && -pos > posShortLimit && theMode == BorderParams.PosMode.LEFT_MODE) {
                             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                                 if (-pos - block < posShortLimit) {
                                     int block_once = -pos - posShortLimit;
@@ -865,7 +865,7 @@ public class BordersService {
                 if (o_delta.compareTo(borderItem.getValue()) >= 0) {
 
                     int posLongLimit = usdToCont(borderItem.getPosLongLimit());
-                    if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.BTM_MODE) {
+                    if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.LEFT_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                             if (pos + block > posLongLimit) {
                                 int block_once = posLongLimit - pos;
@@ -908,7 +908,7 @@ public class BordersService {
                     }
 
                     int posShortLimit = usdToCont(borderItem.getPosShortLimit());
-                    if (pos <= 0 && -pos < posShortLimit && theMode == BorderParams.PosMode.OK_MODE) {
+                    if (pos <= 0 && -pos < posShortLimit && theMode == BorderParams.PosMode.RIGHT_MODE) {
                         if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                             if (-pos + block > posShortLimit) {
                                 int block_once = posShortLimit - (-pos);
@@ -1055,7 +1055,7 @@ public class BordersService {
                 String deltaVal,
                 Ver ver, BigDecimal cm, String blockOnceWarn) {
             this.tradeType = tradeType;
-            if (theMode == BorderParams.PosMode.BTM_MODE) { // usdInContract = 1; => min block is cm
+            if (theMode == BorderParams.PosMode.LEFT_MODE) { // usdInContract = 1; => min block is cm
                 bitmexBlock = block;
                 okexBlock = BigDecimal.valueOf(block).divide(cm, 0, RoundingMode.HALF_UP).intValue();
             } else { // usdInContract = cm; => min block is 1
@@ -1078,7 +1078,7 @@ public class BordersService {
                 String deltaVal,
                 Ver ver, PosMode theMode, BigDecimal cm) {
             this.tradeType = tradeType;
-            if (theMode == BorderParams.PosMode.BTM_MODE) { // usdInContract = 1; => min block is cm
+            if (theMode == BorderParams.PosMode.LEFT_MODE) { // usdInContract = 1; => min block is cm
                 bitmexBlock = block;
                 okexBlock = BigDecimal.valueOf(block).divide(cm, 0, RoundingMode.HALF_UP).intValue();
             } else { // usdInContract = cm; => min block is 1

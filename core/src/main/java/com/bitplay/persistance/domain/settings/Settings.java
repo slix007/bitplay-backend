@@ -134,20 +134,20 @@ public class Settings extends AbstractDocument {
         return settings;
     }
 
-    public BigDecimal getBFee(PlacingType placingType) {
+    public BigDecimal getLeftFee(PlacingType placingType) {
         final FeeSettings feeSettings = getFeeSettings();
         if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
-            return feeSettings.getbMakerComRate();
+            return feeSettings.getLeftMakerComRate();
         }
-        return feeSettings.getbTakerComRate();
+        return feeSettings.getLeftTakerComRate();
     }
 
     public BigDecimal getOFee(PlacingType placingType) {
         final FeeSettings feeSettings = getFeeSettings();
         if (placingType == PlacingType.MAKER || placingType == PlacingType.MAKER_TICK) {
-            return feeSettings.getoMakerComRate();
+            return feeSettings.getRightMakerComRate();
         }
-        return feeSettings.getoTakerComRate(); // TAKER, HYBRID
+        return feeSettings.getRightTakerComRate(); // TAKER, HYBRID
     }
 
     // only for UI

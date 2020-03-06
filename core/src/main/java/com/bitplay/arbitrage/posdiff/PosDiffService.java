@@ -1355,36 +1355,36 @@ public class PosDiffService {
         assert corrObj.signalType == SignalType.B_ADJ;
 
         boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
-        final OrderBook btmOb = arbitrageService.getLeftMarketService().getOrderBook();
-        final OrderBook okOb = arbitrageService.getRightMarketService().getOrderBook();
-        final BigDecimal btmAvg = Utils.calcQuAvg(btmOb, 3);
-        final BigDecimal okAvg = Utils.calcQuAvg(okOb, 3);
+        final OrderBook leftOb = arbitrageService.getLeftMarketService().getOrderBook();
+        final OrderBook rightOb = arbitrageService.getRightMarketService().getOrderBook();
+        final BigDecimal leftAvg = Utils.calcQuAvg(leftOb, 3);
+        final BigDecimal rightAvg = Utils.calcQuAvg(rightOb, 3);
 
         final Settings settings = settingsRepositoryService.getSettings();
         final PlacingType placingType = settings.getPosAdjustment().getPosAdjustmentPlacingType();
         // com_pts = com / 100 * b_best_sam
-        final BigDecimal b_com = (settings.getBFee(placingType)).multiply(btmAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
-        final BigDecimal o_com = (settings.getOFee(placingType)).multiply(okAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
+        final BigDecimal left_com = (settings.getLeftFee(placingType)).multiply(leftAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
+        final BigDecimal right_com = (settings.getOFee(placingType)).multiply(rightAvg).divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
         final BigDecimal ntUsd = dc.negate();
 
-        final BigDecimal b_border = minBorders.b_border;
-        final BigDecimal o_border = minBorders.o_border;
-        final BigDecimal b_delta = arbitrageService.getDelta1();
-        final BigDecimal o_delta = arbitrageService.getDelta2();
+        final BigDecimal l_border = minBorders.b_border;
+        final BigDecimal r_border = minBorders.o_border;
+        final BigDecimal l_delta = arbitrageService.getDelta1();
+        final BigDecimal r_delta = arbitrageService.getDelta2();
 
         String adjName = "";
         if (ntUsd.signum() < 0) {
             //if (nt_usd < 0) {
-            //if (b_border - (b_delta - b_com) >= o_border - (o_delta - o_com)
-            //adj = o_delta_adj;
+            //if (l_border - (l_delta - left_com) >= r_border - (r_delta - right_com)
+            //adj = R_delta_adj;
             //else
-            //adj = b_delta_adj;
+            //adj = L_delta_adj;
             //}
-            // b_delta_adj означает что подгонку делаем по b_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
-            // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
-            final boolean btmIsHigher = b_border.subtract(b_delta.subtract(b_com)).compareTo(o_border.subtract(o_delta.subtract(o_com))) >= 0;
+            // L_delta_adj означает что подгонку делаем по l_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
+            // R_delta_adj означает что подгонку делаем по r_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
+            final boolean btmIsHigher = l_border.subtract(l_delta.subtract(left_com)).compareTo(r_border.subtract(r_delta.subtract(right_com))) >= 0;
             if (btmIsHigher && !okexAmountIsZero(corrObj, dc, isEth)) {
-                adjName = "o_delta_adj";
+                adjName = "R_delta_adj";
                 // okex sell
                 corrObj.marketService = arbitrageService.getRightMarketService();
                 corrObj.orderType = OrderType.ASK;
@@ -1396,7 +1396,7 @@ public class PosDiffService {
                     corrObj.signalType = SignalType.O_ADJ;
                 }
             } else {
-                adjName = "b_delta_adj";
+                adjName = "L_delta_adj";
                 // bitmex sell
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 corrObj.orderType = OrderType.ASK;
@@ -1409,16 +1409,16 @@ public class PosDiffService {
             }
         } else if (ntUsd.signum() > 0) { //
             //if (nt_usd > 0) {
-            //if (b_border - (b_delta + o_com) >= o_border - (o_delta - b_com)
-            //adj = o_delta_adj;
+            //if (l_border - (l_delta + right_com) >= r_border - (r_delta - left_com)
+            //adj = R_delta_adj;
             //else
-            //adj = b_delta_adj;
+            //adj = L_delta_adj;
             //}
-            // b_delta_adj означает что подгонку делаем по b_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
-            // o_delta_adj означает что подгонку делаем по o_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
-            final boolean btmIsHigher = b_border.subtract(b_delta.subtract(o_com)).compareTo(o_border.subtract(o_delta.subtract(b_com))) >= 0;
+            // L_delta_adj означает что подгонку делаем по l_delta, то есть при nt_usd < 0 adj-сделку sell делаем на bitmex, при nt_usd > 0 adj-сделку buy делаем на okex.
+            // R_delta_adj означает что подгонку делаем по r_delta, то есть при nt_usd < 0 adj-сделку sell делаем на okex, при nt_usd > 0 adj-сделку buy делаем на bitmex.
+            final boolean btmIsHigher = l_border.subtract(l_delta.subtract(right_com)).compareTo(r_border.subtract(r_delta.subtract(left_com))) >= 0;
             if (btmIsHigher || okexAmountIsZero(corrObj, dc, isEth)) {
-                adjName = "o_delta_adj";
+                adjName = "R_delta_adj";
                 // bitmex buy
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 corrObj.orderType = OrderType.BID;
@@ -1429,7 +1429,7 @@ public class PosDiffService {
                     corrObj.signalType = SignalType.B_ADJ;
                 }
             } else {
-                adjName = "b_delta_adj";
+                adjName = "L_delta_adj";
                 // okcoin buy
                 corrObj.marketService = arbitrageService.getRightMarketService();
                 corrObj.orderType = OrderType.BID;
@@ -1445,25 +1445,25 @@ public class PosDiffService {
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
         if (withLogs) {
-            printLogsAdjByPos(corrObj, b_com, o_com, ntUsd, b_border, o_border, b_delta, o_delta, adjName);
+            printLogsAdjByPos(corrObj, left_com, right_com, ntUsd, l_border, r_border, l_delta, r_delta, adjName);
         }
     }
 
-    private void printLogsAdjByPos(CorrObj corrObj, BigDecimal b_com, BigDecimal o_com, BigDecimal ntUsd, BigDecimal b_border, BigDecimal o_border,
+    private void printLogsAdjByPos(CorrObj corrObj, BigDecimal left_com, BigDecimal right_com, BigDecimal ntUsd, BigDecimal l_border, BigDecimal r_border,
             BigDecimal b_delta, BigDecimal o_delta, String adjName) {
         //для nt_usd < 0:
-        //b_delta_adj, b_border - (b_delta + b_com), или
-        //o_delta_adj, o_border - (o_delta + o_com), или
+        //L_delta_adj, l_border - (b_delta + left_com), или
+        //R_delta_adj, r_border - (o_delta + right_com), или
         //для nt_usd > 0:
-        //b_delta_adj, b_border - (b_delta + o_com), или
-        //o_delta_adj, o_border - (o_delta + b_com),
+        //L_delta_adj, l_border - (b_delta + right_com), или
+        //R_delta_adj, r_border - (o_delta + left_com),
         // Example:
-        // b_delta_adj, 2 - (1.2 + (-0.030) = 0,83.
-        BigDecimal borderVal = adjName.equals("b_delta_adj") ? b_border : o_border;
-        BigDecimal deltaVal = adjName.equals("b_delta_adj") ? b_delta : o_delta;
+        // L_delta_adj, 2 - (1.2 + (-0.030) = 0,83.
+        BigDecimal borderVal = adjName.equals("L_delta_adj") ? l_border : r_border;
+        BigDecimal deltaVal = adjName.equals("L_delta_adj") ? b_delta : o_delta;
         BigDecimal comVal = ntUsd.signum() < 0
-                ? (adjName.equals("b_delta_adj") ? b_com : o_com)
-                : (adjName.equals("b_delta_adj") ? o_com : b_com);
+                ? (adjName.equals("L_delta_adj") ? left_com : right_com)
+                : (adjName.equals("L_delta_adj") ? right_com : left_com);
         if (corrObj.marketService != null) {
             final String counterName = corrObj.marketService.getCounterNameNext(corrObj.signalType);
             final String msg = String.format("#%s starting %s, %s - (%s - %s) = %s. %s",

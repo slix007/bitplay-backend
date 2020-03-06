@@ -1745,11 +1745,11 @@ public class ArbitrageService {
                 final String oDQLMin;
                 Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                    bDQLMin = String.format("L_DQL_close_min=%s", dql.getBDQLCloseMin());
-                    oDQLMin = String.format("R_DQL_close_min=%s", dql.getODQLCloseMin());
+                    bDQLMin = String.format("L_DQL_close_min=%s", dql.getLeftDqlCloseMin());
+                    oDQLMin = String.format("R_DQL_close_min=%s", dql.getRightDqlCloseMin());
                 } else {
-                    bDQLMin = String.format("L_DQL_open_min=%s", dql.getBDQLOpenMin());
-                    oDQLMin = String.format("R_DQL_open_min=%s", dql.getODQLOpenMin());
+                    bDQLMin = String.format("L_DQL_open_min=%s", dql.getLeftDqlOpenMin());
+                    oDQLMin = String.format("R_DQL_open_min=%s", dql.getRightDqlOpenMin());
                 }
 
                 fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));

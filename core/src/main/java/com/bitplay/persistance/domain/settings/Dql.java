@@ -11,12 +11,12 @@ public class Dql {
 
     private BigDecimal bMrLiq;
     private BigDecimal oMrLiq;
-    private BigDecimal bDQLOpenMin;
-    private BigDecimal oDQLOpenMin;
-    private BigDecimal bDQLCloseMin;
-    private BigDecimal oDQLCloseMin;
+    private BigDecimal leftDqlOpenMin;
+    private BigDecimal rightDqlOpenMin;
+    private BigDecimal leftDqlCloseMin;
+    private BigDecimal rightDqlCloseMin;
 
     private BigDecimal dqlLevel;
-    private BigDecimal btmDqlKillPos;
-    private BigDecimal okexDqlKillPos;
+    private BigDecimal leftDqlKillPos;
+    private BigDecimal rightDqlKillPos;
 }

@@ -61,7 +61,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createDefaultBorders();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -122,7 +122,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersBugOkOpenShort();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -185,7 +185,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersBugOkOpenShort1();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -247,7 +247,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersBugOkClose();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -275,7 +275,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersBugOkClose();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -349,7 +349,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersBugWamBr0();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -421,7 +421,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersDeltaPlanZero();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);
@@ -450,7 +450,7 @@ public class DiffFactBrComputerTest {
         BorderParams borderParams = createBordersDeltaPlanZero();
         BordersV2 bordersV2 = borderParams.getBordersV2();
 
-        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.OK_MODE, pos_bo, pos_ao,
+        DiffFactBrComputer diffFactBrComputer = new DiffFactBrComputer(PosMode.RIGHT_MODE, pos_bo, pos_ao,
                 b_delta_plan,
                 o_delta_plan,
                 deltaFact, bordersV2);

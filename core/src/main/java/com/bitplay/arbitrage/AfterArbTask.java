@@ -491,7 +491,7 @@ public class AfterArbTask implements Runnable {
     }
 
     private void setAndPrintCom(DealPrices dealPrices) {
-        final BigDecimal bFee = settings.getBFee(dealPrices.getBtmPlacingType());
+        final BigDecimal bFee = settings.getLeftFee(dealPrices.getBtmPlacingType());
         final BigDecimal oFee = settings.getOFee(dealPrices.getOkexPlacingType());
         final Integer modeScale = settings.getContractMode().getModeScale();
 

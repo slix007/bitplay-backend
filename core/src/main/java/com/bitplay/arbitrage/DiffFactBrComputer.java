@@ -1,7 +1,7 @@
 package com.bitplay.arbitrage;
 
-import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
-import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
+import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.LEFT_MODE;
+import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.RIGHT_MODE;
 
 import com.bitplay.arbitrage.dto.DiffFactBr;
 import com.bitplay.arbitrage.exceptions.ToWarningLogException;
@@ -222,21 +222,21 @@ public class DiffFactBrComputer {
 
         WamBr wamBr;
 
-        if (pos_mode == OK_MODE && pos_bo >= 0 && pos_ao > 0 && abs(pos_ao) > abs(pos_bo)) {
+        if (pos_mode == RIGHT_MODE && pos_bo >= 0 && pos_ao > 0 && abs(pos_ao) > abs(pos_bo)) {
             wamBr = comp_wam_br_for_ok_open_long();
-        } else if (pos_mode == OK_MODE && pos_bo <= 0 && pos_ao < 0 && abs(pos_ao) > abs(pos_bo)) {
+        } else if (pos_mode == RIGHT_MODE && pos_bo <= 0 && pos_ao < 0 && abs(pos_ao) > abs(pos_bo)) {
             wamBr = comp_wam_br_for_ok_open_short();
-        } else if (pos_mode == OK_MODE && pos_bo > 0 && abs(pos_ao) < abs(pos_bo)) {
+        } else if (pos_mode == RIGHT_MODE && pos_bo > 0 && abs(pos_ao) < abs(pos_bo)) {
             wamBr = comp_wam_br_for_ok_close_long();
-        } else if (pos_mode == OK_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
+        } else if (pos_mode == RIGHT_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
             wamBr = comp_wam_br_for_ok_close_short();
-        } else if (pos_mode == BTM_MODE && pos_bo >= 0 && pos_ao > 0 && abs(pos_ao) > abs(pos_bo)) {
+        } else if (pos_mode == LEFT_MODE && pos_bo >= 0 && pos_ao > 0 && abs(pos_ao) > abs(pos_bo)) {
             wamBr = comp_wam_br_for_b_open_long();
-        } else if (pos_mode == BTM_MODE && pos_bo <= 0 && pos_ao < 0 && abs(pos_ao) > abs(pos_bo)) {
+        } else if (pos_mode == LEFT_MODE && pos_bo <= 0 && pos_ao < 0 && abs(pos_ao) > abs(pos_bo)) {
             wamBr = comp_wam_br_for_b_open_short();
-        } else if (pos_mode == BTM_MODE && pos_bo > 0 && abs(pos_ao) < abs(pos_bo)) {
+        } else if (pos_mode == LEFT_MODE && pos_bo > 0 && abs(pos_ao) < abs(pos_bo)) {
             wamBr = comp_wam_br_for_b_close_long();
-        } else if (pos_mode == BTM_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
+        } else if (pos_mode == LEFT_MODE && pos_bo < 0 && abs(pos_ao) < abs(pos_bo)) {
             wamBr = comp_wam_br_for_b_close_short();
         } else {
             if (pos_bo == pos_ao) {

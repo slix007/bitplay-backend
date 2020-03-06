@@ -1,7 +1,7 @@
 package com.bitplay.persistance.domain.fluent.dealprices;
 
-import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.BTM_MODE;
-import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.OK_MODE;
+import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.LEFT_MODE;
+import static com.bitplay.persistance.domain.borders.BorderParams.PosMode.RIGHT_MODE;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.market.MarketStaticData;
@@ -152,13 +152,13 @@ public class DealPrices {
     public static int calcPlanAfterOrderPos(BigDecimal bBlock, BigDecimal oBlock, Integer pos_bo, PosMode posMode, DeltaName deltaName) {
         int pos_ao = pos_bo;
 //        final PosMode posMode = borderParamsOnStart.getPosMode();
-        if (posMode == BTM_MODE) {
+        if (posMode == LEFT_MODE) {
             if (deltaName == DeltaName.B_DELTA) {
                 pos_ao = pos_bo - bBlock.intValue();
             } else {
                 pos_ao = pos_bo + bBlock.intValue();
             }
-        } else if (posMode == OK_MODE) {
+        } else if (posMode == RIGHT_MODE) {
             if (deltaName == DeltaName.B_DELTA) {
                 pos_ao = pos_bo + oBlock.intValue();
             } else {
