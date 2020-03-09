@@ -1,6 +1,7 @@
 package com.bitplay.persistance.migration.changelogs.y2020;
 
 import com.bitplay.persistance.domain.borders.BorderParams;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.FeeSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.github.mongobee.changeset.ChangeLog;
@@ -48,5 +49,19 @@ public class Changelog0306 {
         mongoTemplate.updateMulti(query, update, "settingsCollection");
     }
 
+    @ChangeSet(order = "2020-03-09", id = "2020-03-09: arbScheme rename", author = "SergeiShurmin")
+    public void change04(MongoTemplate mongoTemplate) {
+        final Settings settings = mongoTemplate.findById(1L, Settings.class);
+        ArbScheme old = settings.getArbScheme();
+        if (old == ArbScheme.SIM) {
+            settings.setArbScheme(ArbScheme.L_with_R);
+        } else if (old == ArbScheme.CON_B_O) {
+            settings.setArbScheme(ArbScheme.R_wait_L);
+        } else {
+            settings.setArbScheme(ArbScheme.R_wait_L_portions);
+        }
+
+        mongoTemplate.save(settings);
+    }
 
 }

@@ -80,7 +80,7 @@ public class PosDiffPortionsStopListener {
             // no deferred order //TODO ask do we need it
             return;
         }
-        if (currArgs.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
+        if (currArgs.getArbScheme() != ArbScheme.R_wait_L_portions) {
             // not portions signal
             return;
         }

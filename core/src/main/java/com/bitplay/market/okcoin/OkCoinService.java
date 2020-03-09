@@ -1209,7 +1209,7 @@ public class OkCoinService extends MarketServicePreliq {
     public void tryPlaceDeferredOrder() {
 //        ooSingleExecutor - may read with arbStateLock
         final PlaceOrderArgs currArgs = placeOrderArgsRef.get();
-        if (currArgs != null && currArgs.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
+        if (currArgs != null && currArgs.getArbScheme() != ArbScheme.R_wait_L_portions) {
             addOoExecutorTask(this::tryPlaceDeferredOrderTask);
         } else {
             getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
@@ -1578,8 +1578,8 @@ public class OkCoinService extends MarketServicePreliq {
             tradeLogger.info(msgStart);
             log.info(msgStart);
             final Settings s = settingsRepositoryService.getSettings();
-            if (s.getArbScheme() == ArbScheme.CON_B_O_PORTIONS) {
-                final String msg = String.format("CON_B_O_PORTIONS: min to start nt_usd=%s, maxPortion=%s",
+            if (s.getArbScheme() == ArbScheme.R_wait_L_portions) {
+                final String msg = String.format("R_wait_L_portions: min to start nt_usd=%s, maxPortion=%s",
                         s.getConBoPortions().getMinNtUsdToStartOkex(),
                         s.getConBoPortions().getMaxPortionUsdOkex());
                 tradeLogger.info(msg);
@@ -2368,6 +2368,7 @@ public class OkCoinService extends MarketServicePreliq {
             final BigDecimal equity = accountInfoContracts.getELast();
             final BigDecimal margin = accountInfoContracts.getMargin();
             final BigDecimal m = markPrice;//ticker != null ? ticker.getLast() : null;
+            final String s = getArbType().s();
 
             if (equity != null && margin != null && oMrLiq != null
                     && position.getPriceAvgShort() != null
@@ -2378,41 +2379,41 @@ public class OkCoinService extends MarketServicePreliq {
                 if (pos.signum() > 0) {
                     if (margin.signum() > 0 && equity.signum() > 0) {
                         if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                            dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s, L=0)", pos, margin, equity);
+                            dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s, L=0)", s, s, pos, s, margin, s, equity);
                             dql = null;
                         } else {
                             final BigDecimal L = position.getLiquidationPrice();
                             dql = m.subtract(L);
-                            dqlString = String.format("o_DQL = m%s - L%s = %s", m, L, dql);
+                            dqlString = String.format("%s_DQL = m%s - L%s = %s", s, m, L, dql);
                         }
                     } else {
-                        dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
+                        dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s)", s, s, pos, s, margin, s, equity);
                         dql = null;
-                        warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
-                                pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
+                        warningLogger.info(String.format("Warning.All should be > 0: %s_pos=%s, %s_margin=%s, %s_equity=%s, qu_ent=%s/%s",
+                                s, pos.toPlainString(), s, margin.toPlainString(), s, equity.toPlainString(),
                                 position.getPriceAvgLong(), position.getPriceAvgShort()));
                     }
 
                 } else if (pos.signum() < 0) {
                     if (margin.signum() > 0 && equity.signum() > 0) {
                         if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                            dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s, L=0)", pos, margin, equity);
+                            dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s, L=0)", s, s, pos, s, margin, s, equity);
                             dql = null;
                         } else {
                             final BigDecimal L = position.getLiquidationPrice();
                             dql = L.subtract(m);
-                            dqlString = String.format("o_DQL = L%s - m%s = %s", L, m, dql);
+                            dqlString = String.format("%s_DQL = L%s - m%s = %s", s, L, m, dql);
                         }
                     } else {
-                        dqlString = String.format("o_DQL = na(o_pos=%s, o_margin=%s, o_equity=%s)", pos, margin, equity);
+                        dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s)", s, s, pos, s, margin, s, equity);
                         dql = null;
-                        warningLogger.info(String.format("Warning.All should be > 0: o_pos=%s, o_margin=%s, o_equity=%s, qu_ent=%s/%s",
-                                pos.toPlainString(), margin.toPlainString(), equity.toPlainString(),
+                        warningLogger.info(String.format("Warning.All should be > 0: %s_pos=%s, %s_margin=%s, %s_equity=%s, qu_ent=%s/%s",
+                                s, pos.toPlainString(), s, margin.toPlainString(), s, equity.toPlainString(),
                                 position.getPriceAvgLong(), position.getPriceAvgShort()));
                     }
 
                 } else {
-                    dqlString = "o_DQL = na(pos=0)";
+                    dqlString = s + "_DQL = na(pos=0)";
                 }
 
                 BigDecimal dmrl = null;
@@ -2421,9 +2422,9 @@ public class OkCoinService extends MarketServicePreliq {
                     final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
                             .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
                     dmrl = oMr.subtract(oMrLiq);
-                    dmrlString = String.format("o_DMRL = %s - %s = %s%%", oMr, oMrLiq, dmrl);
+                    dmrlString = String.format("%s_DMRL = %s - %s = %s%%", s, oMr, oMrLiq, dmrl);
                 } else {
-                    dmrlString = "o_DMRL = na";
+                    dmrlString = s + "_DMRL = na";
                 }
 
                 final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
@@ -2548,7 +2549,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected boolean onReadyState() {
-        if (settingsRepositoryService.getSettings().getArbScheme() == ArbScheme.CON_B_O_PORTIONS
+        if (settingsRepositoryService.getSettings().getArbScheme() == ArbScheme.R_wait_L_portions
                 && placeOrderArgsRef.get() != null) {
             log.warn("WAITING_ARB was reset by onReadyState");
             tradeLogger.warn("WAITING_ARB was reset by onReadyState");

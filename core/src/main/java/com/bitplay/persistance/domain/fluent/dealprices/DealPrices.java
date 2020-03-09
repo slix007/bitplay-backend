@@ -60,7 +60,7 @@ public class DealPrices {
     private BigDecimal delta2Plan;
     private BigDecimal bPricePlan;
     private BigDecimal oPricePlan;
-    private BigDecimal oPricePlanOnStart; // with CON_B_O, the plan and plan_start can be different.
+    private BigDecimal oPricePlanOnStart; // with R_wait_L, the plan and plan_start can be different.
     private FactPrice bPriceFact;
     private FactPrice oPriceFact; // = new AvgPrice("", BigDecimal.ZERO, "okex", 2);
     private DeltaName deltaName;

@@ -75,7 +75,7 @@ public class PosDiffPortionsService {
             // no deferred order
             return;
         }
-        if (currArgs.getArbScheme() != ArbScheme.CON_B_O_PORTIONS) {
+        if (currArgs.getArbScheme() != ArbScheme.R_wait_L_portions) {
             // not portions signal
             return;
         }

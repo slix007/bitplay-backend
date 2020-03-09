@@ -37,9 +37,9 @@ public class SigEvent {
         this.startTime = startTime;
     }
 
-    public SigEvent(SigType sigType, Instant startTime, boolean preSignalReChecked, DeltaName deltaName, TradingMode tradingMode,
+    public SigEvent(SigType sigType, ArbType arbType, Instant startTime, boolean preSignalReChecked, DeltaName deltaName, TradingMode tradingMode,
                     TradingSignal prevTradingSignal, OrderBook btmOrderBook, OrderBook okOrderBook) {
-        this.arbType = ArbType.LEFT;
+        this.arbType = arbType;
         this.sigType = sigType;
         this.startTime = startTime;
         this.preSignalReChecked = preSignalReChecked;

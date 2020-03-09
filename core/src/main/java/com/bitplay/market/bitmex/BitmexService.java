@@ -1836,7 +1836,7 @@ public class BitmexService extends MarketServicePreliq {
                     && !shouldStopPlacing) {
                 attemptCount++;
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
-                    // means: CON_B_O on signal. No repeats. Cancel okex deferred.
+                    // means: R_wait_L on signal. No repeats. Cancel okex deferred.
                     nextMarketState = MarketState.READY;
                     final String warnMsg = "NO_REPEATS_ATTEMPT on placing. restore marketState to READY and reset WAITING_ARB";
                     logger.info(warnMsg);
@@ -2656,9 +2656,9 @@ public class BitmexService extends MarketServicePreliq {
                 if (position.getPositionLong().signum() > 0) {
                     if (m.signum() > 0 && L.signum() > 0) {
                         dql = m.subtract(L);
-                        dqlString = String.format("b_DQL = m%s - L%s = %s", m, L, dql);
+                        dqlString = String.format("L_DQL = m%s - L%s = %s", m, L, dql);
                     } else {
-                        dqlString = "b_DQL = na";
+                        dqlString = "L_DQL = na";
                         dql = null;
 //                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
 //                                m.toPlainString(), L.toPlainString()));
@@ -2667,18 +2667,18 @@ public class BitmexService extends MarketServicePreliq {
                     if (m.signum() > 0 && L.signum() > 0) {
                         if (L.subtract(BigDecimal.valueOf(100000)).signum() < 0) {
                             dql = L.subtract(m);
-                            dqlString = String.format("b_DQL = L%s - m%s = %s", L, m, dql);
+                            dqlString = String.format("L_DQL = L%s - m%s = %s", L, m, dql);
                         } else {
-                            dqlString = "b_DQL = na";
+                            dqlString = "L_DQL = na";
                         }
                     } else {
-                        dqlString = "b_DQL = na";
+                        dqlString = "L_DQL = na";
                         dql = null;
 //                        warningLogger.info(String.format("Warning.All should be > 0: m=%s, L=%s",
 //                                m.toPlainString(), L.toPlainString()));
                     }
                 } else {
-                    dqlString = "b_DQL = na";
+                    dqlString = "L_DQL = na";
                 }
 
                 BigDecimal dmrl = null;
@@ -2687,9 +2687,9 @@ public class BitmexService extends MarketServicePreliq {
                     final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
                             .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
                     dmrl = bMr.subtract(bMrliq);
-                    dmrlString = String.format("b_DMRL = %s - %s = %s%%", bMr, bMrliq, dmrl);
+                    dmrlString = String.format("L_DMRL = %s - %s = %s%%", bMr, bMrliq, dmrl);
                 } else {
-                    dmrlString = "b_DMRL = na";
+                    dmrlString = "L_DMRL = na";
                 }
 
                 final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());

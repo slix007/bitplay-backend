@@ -1,10 +1,11 @@
 package com.bitplay.persistance.domain.settings;
 
+import lombok.Data;
+import org.springframework.data.annotation.Transient;
+
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
-import lombok.Data;
-import org.springframework.data.annotation.Transient;
 
 @Data
 public class SettingsVolatileMode {
@@ -53,18 +54,21 @@ public class SettingsVolatileMode {
         adjustByNtUsd,
         corr_adj,
         arb_scheme,
+        R_wait_L_portions_minNtUsdToStartOkex,
+        R_wait_L_portions_maxPortionUsdOkex,
+        /*deprecated*/
         conBoPortions_minNtUsdToStartOkex,
         conBoPortions_maxPortionUsdOkex
     }
 
     public ConBoPortions getConBoPortions(ConBoPortions mainMode) {
         final ConBoPortions res = new ConBoPortions();
-        if (getActiveFields().contains(Field.conBoPortions_maxPortionUsdOkex)) {
+        if (getActiveFields().contains(Field.R_wait_L_portions_maxPortionUsdOkex)) {
             res.setMaxPortionUsdOkex(this.conBoPortions.getMaxPortionUsdOkex());
         } else {
             res.setMaxPortionUsdOkex(mainMode.getMaxPortionUsdOkex());
         }
-        if (getActiveFields().contains(Field.conBoPortions_minNtUsdToStartOkex)) {
+        if (getActiveFields().contains(Field.R_wait_L_portions_minNtUsdToStartOkex)) {
             res.setMinNtUsdToStartOkex(this.conBoPortions.getMinNtUsdToStartOkex());
         } else {
             res.setMinNtUsdToStartOkex(mainMode.getMinNtUsdToStartOkex());

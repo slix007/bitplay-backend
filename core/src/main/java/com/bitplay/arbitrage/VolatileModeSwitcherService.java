@@ -143,7 +143,7 @@ public class VolatileModeSwitcherService {
             final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
             final Long tradeId = arbitrageService.getTradeId();
             if (fplayTradeService.isInProgress(tradeId)) {
-                if (arbScheme == ArbScheme.CON_B_O_PORTIONS) {
+                if (arbScheme == ArbScheme.R_wait_L_portions) {
                     // cancel bitmex, but replace okex
                     volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs, true);
                 } else {

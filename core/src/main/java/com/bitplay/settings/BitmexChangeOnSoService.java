@@ -101,7 +101,7 @@ public class BitmexChangeOnSoService {
         final BitmexChangeOnSo bitmexChangeOnSo = settingsRepositoryService.getSettings().getBitmexChangeOnSo();
         List<String> arr = new ArrayList<>();
         if (bitmexChangeOnSo.getToConBo()) {
-            arr.add("CON_B_O");
+            arr.add("R_wait_L_portions");
         }
         if (bitmexChangeOnSo.getAdjToTaker()) {
             arr.add("Adj_to_TAKER");

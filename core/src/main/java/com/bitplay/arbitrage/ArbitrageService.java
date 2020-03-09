@@ -413,7 +413,7 @@ public class ArbitrageService {
         }
         log.info(String.format("onArbDone(%s, %s) finished", doneTradeId, marketName));
         if (conBoTryDeferredOrder) {
-            ((OkCoinService) rightMarketService).tryPlaceDeferredOrder();// when CON_B_O
+            ((OkCoinService) rightMarketService).tryPlaceDeferredOrder();// when R_wait_L
         }
     }
 
@@ -1321,7 +1321,7 @@ public class ArbitrageService {
         } finally {
             final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
             applicationEventPublisher.publishEvent((new ObChangeEvent(
-                    new SigEvent(SigType.BTM, Instant.now(), true, deltaName, tradingMode, prevTradingSignal, btmOb, okOb)
+                    new SigEvent(SigType.BTM, ArbType.LEFT, Instant.now(), true, deltaName, tradingMode, prevTradingSignal, btmOb, okOb)
             )));
         }
 

@@ -7,6 +7,6 @@ import java.math.BigDecimal;
 @Data
 public class AbortSignal {
 
-    private Boolean abortSignalPtsEnabled; // only ArbScheme.CON_B_O_PORTIONS
+    private Boolean abortSignalPtsEnabled; // only ArbScheme.R_wait_L_portions
     private BigDecimal abortSignalPts;
 }

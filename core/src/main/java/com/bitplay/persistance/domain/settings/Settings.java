@@ -35,7 +35,7 @@ public class Settings extends AbstractDocument {
     private ManageType manageType;
     private EnumSet<ExtraFlag> extraFlags;
     private ArbScheme arbScheme;
-    private AbortSignal abortSignal; // only ArbScheme.CON_B_O_PORTIONS
+    private AbortSignal abortSignal; // only ArbScheme.R_wait_L_portions
     private SysOverloadArgs bitmexSysOverloadArgs;
     private SysOverloadArgs okexSysOverloadArgs;
     private AllPostOnlyArgs allPostOnlyArgs;
@@ -101,7 +101,7 @@ public class Settings extends AbstractDocument {
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.manageType = ManageType.AUTO;
-        settings.arbScheme = ArbScheme.SIM;
+        settings.arbScheme = ArbScheme.L_with_R;
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.allPostOnlyArgs = AllPostOnlyArgs.defaults();

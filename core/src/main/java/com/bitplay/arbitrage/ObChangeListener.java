@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
@@ -34,16 +35,13 @@ public class ObChangeListener {
 
         final SigEvent sigEvent = obChangeEvent.getSigEvent();
         final SigType sigType = sigEvent.getSigType();
+        final ArbType arbType = sigEvent.getArbType();
         try {
-            if (sigType == SigType.BTM) {
-                final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-                left.checkOpenOrdersForMoving(sigEvent.startTime());
-            }
-            if (sigType == SigType.OKEX) {
-                final MarketServicePreliq right = arbitrageService.getRightMarketService();
-                right.checkOpenOrdersForMoving(sigEvent.startTime());
-            }
+            final MarketServicePreliq market = arbType == ArbType.LEFT
+                    ? arbitrageService.getLeftMarketService()
+                    : arbitrageService.getRightMarketService();
 
+            market.checkOpenOrdersForMoving(sigEvent.startTime());
         } catch (NotYetInitializedException e) {
             // do nothing
         } catch (Exception e) {
