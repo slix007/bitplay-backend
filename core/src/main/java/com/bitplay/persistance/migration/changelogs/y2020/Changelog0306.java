@@ -34,12 +34,12 @@ public class Changelog0306 {
         mongoTemplate.save(settings);
     }
 
-    @ChangeSet(order = "2020-03-06", id = "2020-03-06: dql left-right.", author = "SergeiShurmin")
+    @ChangeSet(order = "2020-03-06", id = "2020-03-06: dql left-right..", author = "SergeiShurmin")
     public void change03(MongoTemplate mongoTemplate) {
         Query query = new Query();
         Update update = new Update();
-//        update.set("dql.bMrLiq", BigDecimal.valueOf(75));
-//        update.set("dql.oMrLiq", BigDecimal.valueOf(20));
+        update.set("dql.leftMrLiq", BigDecimal.valueOf(75));
+        update.set("dql.rightMrLiq", BigDecimal.valueOf(20));
         update.set("dql.leftDqlOpenMin", BigDecimal.valueOf(300));
         update.set("dql.rightDqlOpenMin", BigDecimal.valueOf(350));
         update.set("dql.leftDqlCloseMin", BigDecimal.valueOf(150));

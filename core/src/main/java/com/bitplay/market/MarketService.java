@@ -1381,7 +1381,7 @@ public abstract class MarketService extends MarketServiceWithState {
         final BigDecimal filledInitial = bPriceFact.getFilled();
         BigDecimal filled = bPriceFact.getFilled();
         if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
-            final String msg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+            final String msg = String.format("#%s tradeId=%s WAITING_ARB: left is not fully filled. %s of %s. Updating...",
                     counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
             );
             log.info(msg);
@@ -1401,7 +1401,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 } catch (InterruptedException e) {
                     log.error("sleep interrupted", e);
                 }
-                final String updMsg = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updating...",
+                final String updMsg = String.format("#%s tradeId=%s WAITING_ARB: left is not fully filled. %s of %s. Updating...",
                         counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
                 );
                 log.info(updMsg);
@@ -1409,11 +1409,11 @@ public abstract class MarketService extends MarketServiceWithState {
             }
             final String msg1;
             if (filled.compareTo(bPriceFact.getFullAmount()) < 0) {
-                msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is not fully filled. %s of %s. Updated.",
+                msg1 = String.format("#%s tradeId=%s WAITING_ARB: left is not fully filled. %s of %s. Updated.",
                         counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
                 );
             } else {
-                msg1 = String.format("#%s tradeId=%s WAITING_ARB: bitmex is filled FULLY. %s of %s. Updated.",
+                msg1 = String.format("#%s tradeId=%s WAITING_ARB: left is filled FULLY. %s of %s. Updated.",
                         counterForLogs, tradeId, filled, bPriceFact.getFullAmount()
                 );
 

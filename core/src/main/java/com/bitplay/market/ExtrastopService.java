@@ -208,11 +208,11 @@ public class ExtrastopService {
     private void printBest3Prices(OrderBook bOB, OrderBook oOB) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
         warningLogger.warn(String.format("now time is %s ", sdf.format(new Date())));
-        Utils.getBestBids(bOB, 3).forEach(item -> printItem("bitmex", item));
-        Utils.getBestAsks(bOB, 3).forEach(item -> printItem("bitmex", item));
+        Utils.getBestBids(bOB, 3).forEach(item -> printItem("left", item));
+        Utils.getBestAsks(bOB, 3).forEach(item -> printItem("left", item));
 
-        Utils.getBestBids(oOB, 3).forEach(item -> printItem("okex", item));
-        Utils.getBestAsks(oOB, 3).forEach(item -> printItem("okex", item));
+        Utils.getBestBids(oOB, 3).forEach(item -> printItem("right", item));
+        Utils.getBestAsks(oOB, 3).forEach(item -> printItem("right", item));
     }
 
     private void printItem(String market, LimitOrder item) {
@@ -238,7 +238,7 @@ public class ExtrastopService {
                 Utils.getBestAsks(orderBook, 3).stream())
                 .map(LimitOrder::getTimestamp)
                 .reduce((date, date2) -> date.after(date2) ? date : date2) // use the latest date
-                .orElseThrow(() -> new IllegalArgumentException("Can not get bitmex timestamp"));
+                .orElseThrow(() -> new IllegalArgumentException("Can not get left timestamp"));
     }
 
     private long getDiffSec(Date marketUpdateTime, String name) {

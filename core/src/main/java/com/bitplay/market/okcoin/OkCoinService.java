@@ -1281,7 +1281,7 @@ public class OkCoinService extends MarketServicePreliq {
         final DealPrices dealPrices = arbitrageService.getDealPrices(tradeId);
         if (dealPrices.getBPriceFact().isNotFinished()) {
             final String msg = String.format("#%s tradeId=%s "
-                            + "WAITING_ARB: bitmex is not fully filled. Try to update the filled amount for all orders.",
+                            + "WAITING_ARB: left is not fully filled. Try to update the filled amount for all orders.",
                     counterName,
                     tradeId
             );
@@ -1294,7 +1294,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             if (dealPrices.getBPriceFact().isNotFinished()) {
                 final String msg1 = String.format("#%s tradeId=%s "
-                                + "WAITING_ARB: bitmex is not fully filled. Set READY.",
+                                + "WAITING_ARB: left is not fully filled. Set READY.",
                         counterName,
                         tradeId
                 );
@@ -2362,7 +2362,9 @@ public class OkCoinService extends MarketServicePreliq {
                 return; // not yet initialized
             }
             final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
-            final BigDecimal oMrLiq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getOMrLiq();
+            final BigDecimal oMrLiq = getArbType() == ArbType.LEFT
+                    ? persistenceService.getSettingsRepositoryService().getSettings().getDql().getLeftMrLiq()
+                    : persistenceService.getSettingsRepositoryService().getSettings().getDql().getRightMrLiq();
 
             final AccountBalance accountInfoContracts = getAccount();
             final BigDecimal equity = accountInfoContracts.getELast();

@@ -393,11 +393,11 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getDql() != null) {
             final Dql input = settingsUpdate.getDql();
-            if (input.getBMrLiq() != null) {
-                settings.getDql().setBMrLiq(input.getBMrLiq());
+            if (input.getLeftMrLiq() != null) {
+                settings.getDql().setLeftMrLiq(input.getLeftMrLiq());
             }
-            if (input.getOMrLiq() != null) {
-                settings.getDql().setOMrLiq(input.getOMrLiq());
+            if (input.getRightMrLiq() != null) {
+                settings.getDql().setRightMrLiq(input.getRightMrLiq());
             }
             if (input.getLeftDqlOpenMin() != null) {
                 settings.getDql().setLeftDqlOpenMin(input.getLeftDqlOpenMin());

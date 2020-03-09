@@ -2634,7 +2634,7 @@ public class BitmexService extends MarketServicePreliq {
             final BigDecimal equity = account.getEMark();
             final BigDecimal margin = account.getMargin();
 
-            final BigDecimal bMrliq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getBMrLiq();
+            final BigDecimal bMrliq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getLeftMrLiq();
 
             if (!(contractIndex.get() instanceof BitmexContractIndex)) {
                 // bitmex contract index is not updated yet. Skip the re-calc.

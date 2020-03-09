@@ -88,7 +88,7 @@ public class LastPriceDeviationService {
         setCurrLastPrice(dev);
 
         if (dev.getLeftMainExceed()) {
-            String msg = String.format("bitmex last price deviation(curr=%s, base=%s) exceeded $%s ",
+            String msg = String.format("left last price deviation(curr=%s, base=%s) exceeded $%s ",
                     dev.getLeftMainCurr(),
                     dev.getLeftMain(),
                     dev.getMaxDevUsd()
@@ -99,7 +99,7 @@ public class LastPriceDeviationService {
             dev.setLeftMain(dev.getLeftMainCurr());
         }
         if (dev.getRightMainExceed()) {
-            String msg = String.format("okex last price deviation(curr=%s, base=%s) exceeded $%s",
+            String msg = String.format("right last price deviation(curr=%s, base=%s) exceeded $%s",
                     dev.getRightMainCurr(),
                     dev.getRightMain(),
                     dev.getMaxDevUsd()

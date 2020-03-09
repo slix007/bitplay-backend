@@ -283,8 +283,8 @@ public class PosDiffService {
                     final String pos1 = arbitrageService.getLeftMarketService().fetchPosition();
                     if (Thread.interrupted()) return;
                     final String pos2 = arbitrageService.getRightMarketService().fetchPosition();
-                    warningLogger.info(infoMsg + "bitmex " + pos1);
-                    warningLogger.info(infoMsg + "okex "+ pos2);
+                    warningLogger.info(infoMsg + "left " + pos1);
+                    warningLogger.info(infoMsg + "right "+ pos2);
 
                     if (arbitrageService.getLeftMarketService().getContractType().isEth()) {
                         final String infoMsgXBTUSD = String.format("Double check before timer-state-reset XBTUSD. %s fetchPosition:",
@@ -401,8 +401,8 @@ public class PosDiffService {
                 String infoMsg = String.format("Double check before %s. %s fetchPosition:", name, arbitrageService.getMainSetStr());
                 final String pos1 = arbitrageService.getLeftMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getRightMarketService().fetchPosition();
-                warningLogger.info(infoMsg + "bitmex " + pos1);
-                warningLogger.info(infoMsg + "okex " + pos2);
+                warningLogger.info(infoMsg + "left " + pos1);
+                warningLogger.info(infoMsg + "right " + pos2);
 
                 if (isNeededFunc.getAsBoolean()) {
                     final BigDecimal maxDiffCorr = arbitrageService.getParams().getMaxDiffCorr();
@@ -630,7 +630,7 @@ public class PosDiffService {
             if (Thread.interrupted()) {
                 return true;
             }
-            warningLogger.info(infoMsg + "bitmex " + pos1 + "; okex " + pos2);
+            warningLogger.info(infoMsg + "left " + pos1 + "; right " + pos2);
         } else {
             checkBitmexPosXBTUSD(infoMsg);
             if (Thread.interrupted()) {

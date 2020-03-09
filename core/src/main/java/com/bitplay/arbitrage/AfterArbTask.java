@@ -117,12 +117,12 @@ public class AfterArbTask implements Runnable {
     private void handleZeroOrders() {
         boolean hasZero = false;
         if (dealPrices.getBPriceFact().isZeroOrder()) {
-            deltaLogWriter.info("Bitmex plan order amount is 0.");
+            deltaLogWriter.info("Left plan order amount is 0.");
             deltaLogWriter.setBitmexStatus(TradeMStatus.NONE);
             hasZero = true;
         }
         if (dealPrices.getOPriceFact().isZeroOrder()) {
-            deltaLogWriter.info("Okex plan order amount is 0.");
+            deltaLogWriter.info("Right plan order amount is 0.");
             deltaLogWriter.setOkexStatus(TradeMStatus.NONE);
             hasZero = true;
         }
@@ -271,14 +271,14 @@ public class AfterArbTask implements Runnable {
                 if (attempt == maxAttempts) {
                     throw e;
                 }
-                final String logStr = "fetchBtmFactPrice: RoundIsNotDoneException: sleep before retry.";
+                final String logStr = "fetchLeftFactPrice: RoundIsNotDoneException: sleep before retry.";
                 deltaLogWriter.info(logStr);
                 left.sleepByXrateLimit(logStr);
             }
         }
 
         final Instant end = Instant.now();
-        log.info(String.format("#%s workaround: Bitmex updateAvgPrice. Attempt=%s. Time: %s",
+        log.info(String.format("#%s workaround: Left updateAvgPrice. Attempt=%s. Time: %s",
                 counterName, attempt, Duration.between(start, end).toString()));
 
         return b_price_fact;
@@ -355,7 +355,7 @@ public class AfterArbTask implements Runnable {
         cumService.getCumPersistenceService().addCumDiff2(dealPrices.getTradingMode(), diff2_pre, diff2_post);
 
         final CumParams totalCommon = cumService.getTotalCommon();
-        deltaLogWriter.info(String.format("#%s okex diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (plan_price=%s, place_order_price=%s);"
+        deltaLogWriter.info(String.format("#%s right diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (plan_price=%s, place_order_price=%s);"
                         + "cum_diff2_pre=%s, cum_diff2_post=%s",
                 counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getOPricePlan(), dealPrices.getOPricePlanOnStart(),
                 totalCommon.getCumDiff2Pre().toPlainString(),
@@ -552,8 +552,8 @@ public class AfterArbTask implements Runnable {
 
         // print total common
         final CumParams cumParams = cumService.getTotalCommon();
-        deltaLogWriter.info(String.format("#%s bitmex_m_com=%s; cum_bitmex_m_com=%s; " +
-                        "ast_bitmex_m_com=%s; cum_ast_Bitmex_m_com=%s",
+        deltaLogWriter.info(String.format("#%s left_m_com=%s; cum_left_m_com=%s; " +
+                        "ast_left_m_com=%s; cum_ast_left_m_com=%s",
                 counterName,
                 bitmexMCom.toPlainString(),
                 cumParams.getCumBitmexMCom().toPlainString(),

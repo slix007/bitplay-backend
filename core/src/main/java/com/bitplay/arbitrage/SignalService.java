@@ -112,7 +112,7 @@ public class SignalService {
 
             if (b_block.signum() <= 0) {
                 Thread.sleep(1000);
-                String warn = "WARNING: b_block=" + b_block + ". No order on signal";
+                String warn = "WARNING: L_block=" + b_block + ". No order on signal";
                 left.getTradeLogger().warn(warn);
                 log.warn(warn);
 

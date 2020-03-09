@@ -467,7 +467,7 @@ public class ArbitrageService {
                         // do nothing
 
                     } else if (leftMarketService.isBusy() || rightMarketService.isBusy()) {
-                        String logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). Checking bitmex openOrders...",
+                        String logString = String.format("#%s Warning: busy by isBusy for 6 min. left:%s(%s), right:%s(%s). Checking left openOrders...",
                                 getCounter(tradeId),
                                 leftMarketService.isBusy(),
                                 leftMarketService.getOnlyOpenOrders().size(),
@@ -478,7 +478,7 @@ public class ArbitrageService {
 
                         leftMarketService.isReadyForArbitrageWithOOFetch();
 
-                        logString = String.format("#%s Warning: busy by isBusy for 6 min. first:%s(%s), second:%s(%s). After check of bitmex openOrders.",
+                        logString = String.format("#%s Warning: busy by isBusy for 6 min. left:%s(%s), right:%s(%s). After check of left openOrders.",
                                 getCounter(tradeId),
                                 leftMarketService.isBusy(),
                                 leftMarketService.getOnlyOpenOrders().size(),
@@ -493,21 +493,21 @@ public class ArbitrageService {
                         boolean secondHanged = rightMarketService.isBusy() && !rightMarketService.hasOpenOrders();
                         boolean noOrders = !leftMarketService.hasOpenOrders() && !rightMarketService.hasOpenOrders();
                         if (firstHanged && noOrders) {
-                            fplayTradeService.warn(tradeId, counterName, "Warning: Free Bitmex");
-                            warningLogger.warn("Warning: Free Bitmex");
-                            log.warn("Warning: Free Bitmex");
+                            fplayTradeService.warn(tradeId, counterName, "Warning: Free Left");
+                            warningLogger.warn("Warning: Free Left");
+                            log.warn("Warning: Free Left");
                             leftMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, leftMarketService.tryFindLastTradeId()));
                         }
                         if (secondHanged && noOrders) {
-                            fplayTradeService.warn(tradeId, counterName, "Warning: Free Okcoin");
-                            warningLogger.warn("Warning: Free Okcoin");
-                            log.warn("Warning: Free Okcoin");
-                            ((OkCoinService) getRightMarketService()).resetWaitingArb("Warning: Free Okcoin");
+                            fplayTradeService.warn(tradeId, counterName, "Warning: Free Right");
+                            warningLogger.warn("Warning: Free Right");
+                            log.warn("Warning: Free Right");
+                            ((OkCoinService) getRightMarketService()).resetWaitingArb("Warning: Free Right");
                             rightMarketService.getEventBus().send(new BtsEventBox(BtsEvent.MARKET_FREE_FORCE_RESET, rightMarketService.tryFindLastTradeId()));
                         }
 
                     } else if (!leftMarketService.isReadyForArbitrageWithOOFetch() || !rightMarketService.isReadyForArbitrage()) {
-                        final String logString = String.format("#%s Warning: busy for 6 min. first:isReady=%s(Orders=%s), second:isReady=%s(Orders=%s)",
+                        final String logString = String.format("#%s Warning: busy for 6 min. left:isReady=%s(Orders=%s), right:isReady=%s(Orders=%s)",
                                 getCounter(tradeId),
                                 leftMarketService.isReadyForArbitrage(), leftMarketService.getOnlyOpenOrders().size(),
                                 rightMarketService.isReadyForArbitrage(), rightMarketService.getOnlyOpenOrders().size());
@@ -914,11 +914,11 @@ public class ArbitrageService {
 
     private String composeDynBlockLogs(String deltaNameForLogs, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
         final String bMsg = Utils.getTenAskBid(bitmexOrderBook, "",
-                "Bitmex OrderBook");
+                "Left OrderBook");
         final String oMsg = Utils.getTenAskBid(okCoinOrderBook, "",
-                "Okex OrderBook");
+                "Right OrderBook");
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
-        return String.format("%s: Dynamic: dynMaxBlockUsd=%s, isEth=%s, cm=%s, b_block=%s, o_block=%s\n%s\n%s. ",
+        return String.format("%s: Dynamic: dynMaxBlockUsd=%s, isEth=%s, cm=%s, L_block=%s, R_block=%s\n%s\n%s. ",
                 deltaNameForLogs,
                 placingBlocks.getDynMaxBlockUsd(),
                 placingBlocks.isEth(),
@@ -1364,7 +1364,7 @@ public class ArbitrageService {
                 o_block_input, deltaName,
                 counterName, tradingMode, delta1, delta2, tradingSignal.toBtmFokAutoArgs(), fplayTrade);
 
-        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(o_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
+        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(R_delta) L_block=%s R_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
@@ -1563,7 +1563,7 @@ public class ArbitrageService {
             if (oEbest.signum() != 0) {
                 BigDecimal divRes = bEbest.divide(oEbest, 2, RoundingMode.HALF_UP);
                 if (divRes.subtract(BigDecimal.valueOf(0.4)).signum() <= 0 || divRes.subtract(BigDecimal.valueOf(1)).signum() >= 0) {
-                    String divResStr = String.format("e_best_bitmex(%s)/e_best_okex(%s)=res(%s). Correct interval: 0.4 < res < 1",
+                    String divResStr = String.format("e_best_left(%s)/e_best_right(%s)=res(%s). Correct interval: 0.4 < res < 1",
                             bEbest, oEbest, divRes);
                     slackNotifications.sendNotify(NotifyType.E_BEST_VIOLATION, divResStr);
                 }
@@ -1948,7 +1948,7 @@ public class ArbitrageService {
         b1 = b1.setScale(0, RoundingMode.HALF_UP);
         b2 = b2.setScale(0, RoundingMode.HALF_UP);
 
-        String debugLog = String.format("dynBlockDecreaseByAffordable: %s, %s. bitmex %s, okex %s",
+        String debugLog = String.format("dynBlockDecreaseByAffordable: %s, %s. left %s, right %s",
                 b1, b2, firstAffordable, secondAffordable);
 
         return new PlBlocks(b1, b2, PlacingBlocks.Ver.DYNAMIC, debugLog);

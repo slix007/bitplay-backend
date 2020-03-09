@@ -9,8 +9,8 @@ import java.math.BigDecimal;
 @Setter
 public class Dql {
 
-    private BigDecimal bMrLiq;
-    private BigDecimal oMrLiq;
+    private BigDecimal leftMrLiq;
+    private BigDecimal rightMrLiq;
     private BigDecimal leftDqlOpenMin;
     private BigDecimal rightDqlOpenMin;
     private BigDecimal leftDqlCloseMin;
