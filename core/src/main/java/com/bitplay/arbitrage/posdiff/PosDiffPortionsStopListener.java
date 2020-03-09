@@ -138,7 +138,7 @@ public class PosDiffPortionsStopListener {
                                     BigDecimal btmFilled, boolean cntUpdated) {
         final String ds = deltaName.getDeltaSymbol();
         final String msg = String.format(
-                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) + abort_signal_pts(%s); btmFilled=%s; aborted_counter_updated=%s",
+                "#%s signal aborted %s_delta(%s)<%s_max_border(%s) + abort_signal_pts(%s); leftFilled=%s; aborted_counter_updated=%s",
                 currArgs.getCounterNameWithPortion(),
                 ds, delta,
                 ds, maxBorder,

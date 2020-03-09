@@ -241,7 +241,7 @@ public class VolatileModeAfterService {
 
     private void printSignalAborted(PlaceOrderArgs currArgs, String abortedOrUnstarted, BigDecimal btmFilled, boolean cntUpdated) {
         final String msg = String.format(
-                "#%s VolatileMode activated signal %s btmFilled=%s %s_counter_updated=%s",
+                "#%s VolatileMode activated signal %s leftFilled=%s %s_counter_updated=%s",
                 currArgs.getCounterNameWithPortion(),
                 abortedOrUnstarted,
                 btmFilled,
