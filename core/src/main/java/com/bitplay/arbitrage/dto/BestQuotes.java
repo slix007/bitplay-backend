@@ -71,7 +71,7 @@ public class BestQuotes implements Serializable {
 
     public String toStringEx() {
         // b_delta (xx) = bid[1] (xx) - ask[1] (xx), o_delta (xx) = bid[1] (xx) - ask[1] (xx);
-        return String.format("b_delta (%s) = bid[1] (%s) - ask[1] (%s), o_delta (%s) = bid[1] (%s) - ask[1] (%s);",
+        return String.format("L_delta (%s) = bid[1] (%s) - ask[1] (%s), R_delta (%s) = bid[1] (%s) - ask[1] (%s);",
                 bid1_p.subtract(ask1_o),
                 bid1_p, ask1_o,
                 bid1_o.subtract(ask1_p),

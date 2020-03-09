@@ -250,7 +250,7 @@ public class DiffFactBrComputer {
 
         if (diffFactBrString.isEmpty()) {
             throw new ToWarningLogException(String.format("Error: wam_br=0! pos_bo=%s, pos_ao=%s, pos_mode=%s, "
-                            + "b_delta_plan=%s, o_delta_plan=%s, bordersTable=%s",
+                            + "L_delta_plan=%s, R_delta_plan=%s, bordersTable=%s",
                     pos_bo, pos_ao, pos_mode,
                     b_delta_plan, o_delta_plan,
                     bordersV2.getBorderTableList().stream()

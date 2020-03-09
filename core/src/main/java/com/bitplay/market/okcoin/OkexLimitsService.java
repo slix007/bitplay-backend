@@ -197,7 +197,7 @@ public class OkexLimitsService implements LimitsService {
         //DELTA2_B_BUY_O_SELL
         if (deltaName == DeltaName.B_DELTA) {
             if (signalType == null || signalType == SignalType.AUTOMATIC) {
-                partName.append("b_delta");
+                partName.append("L_delta");
                 return insLimBtmDelta_Buy;
             } else if (signalType.isAdj()) {
                 partName.append("adj_buy");
@@ -208,7 +208,7 @@ public class OkexLimitsService implements LimitsService {
             }
         } else if (deltaName == DeltaName.O_DELTA) {
             if (signalType == null || signalType == SignalType.AUTOMATIC) {
-                partName.append("o_delta");
+                partName.append("R_delta");
                 return insLimOkDelta_Sell;
             } else if (signalType.isAdj()) {
                 partName.append("adj_sell");

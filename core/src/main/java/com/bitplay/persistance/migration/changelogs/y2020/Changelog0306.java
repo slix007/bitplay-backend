@@ -49,7 +49,7 @@ public class Changelog0306 {
         mongoTemplate.updateMulti(query, update, "settingsCollection");
     }
 
-    @ChangeSet(order = "2020-03-09", id = "2020-03-09: arbScheme rename", author = "SergeiShurmin")
+    @ChangeSet(order = "2020-03-09", id = "2020-03-09: arbScheme rename.", author = "SergeiShurmin")
     public void change04(MongoTemplate mongoTemplate) {
         final Settings settings = mongoTemplate.findById(1L, Settings.class);
         ArbScheme old = settings.getArbScheme();
@@ -61,6 +61,14 @@ public class Changelog0306 {
             settings.setArbScheme(ArbScheme.R_wait_L_portions);
         }
 
+        ArbScheme vOld = settings.getSettingsVolatileMode().getArbScheme();
+        if (vOld == ArbScheme.SIM) {
+            settings.getSettingsVolatileMode().setArbScheme(ArbScheme.L_with_R);
+        } else if (vOld == ArbScheme.CON_B_O) {
+            settings.getSettingsVolatileMode().setArbScheme(ArbScheme.R_wait_L);
+        } else {
+            settings.getSettingsVolatileMode().setArbScheme(ArbScheme.R_wait_L_portions);
+        }
         mongoTemplate.save(settings);
     }
 

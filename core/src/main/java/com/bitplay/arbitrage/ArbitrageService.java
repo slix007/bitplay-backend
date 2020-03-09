@@ -776,7 +776,7 @@ public class ArbitrageService {
                         final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                         final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
                         if (b_block.signum() > 0 && o_block.signum() > 0) {
-                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
+                            final String dynDeltaLogs = composeDynBlockLogs("L_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
 //                            Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
                             checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
@@ -809,7 +809,7 @@ public class ArbitrageService {
                         final BigDecimal b_block = BigDecimal.valueOf(ts.bitmexBlock);
                         final BigDecimal o_block = BigDecimal.valueOf(ts.okexBlock);
                         if (b_block.signum() > 0 && o_block.signum() > 0) {
-                            final String dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
+                            final String dynDeltaLogs = composeDynBlockLogs("R_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
                             checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
                                     tradingSignal, dynDeltaLogs, plBeforeBtm, oPL, oPS);
@@ -861,7 +861,7 @@ public class ArbitrageService {
             String dynDeltaLogs = null;
             if (plBlocks.isDynamic()) {
                 plBlocks = dynBlockDecreaseByAffordable(DeltaName.B_DELTA, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
-                dynDeltaLogs = composeDynBlockLogs("b_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
+                dynDeltaLogs = composeDynBlockLogs("L_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
                         + plBlocks.getDebugLog();
             }
 
@@ -893,7 +893,7 @@ public class ArbitrageService {
             String dynDeltaLogs = null;
             if (plBlocks.isDynamic()) {
                 plBlocks = dynBlockDecreaseByAffordable(DeltaName.O_DELTA, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex());
-                dynDeltaLogs = composeDynBlockLogs("o_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
+                dynDeltaLogs = composeDynBlockLogs("R_delta", bitmexOrderBook, okCoinOrderBook, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex())
                         + plBlocks.getDebugLog();
             }
             if (plBlocks.getBlockOkex().signum() > 0) {
@@ -912,14 +912,14 @@ public class ArbitrageService {
         return false;
     }
 
-    private String composeDynBlockLogs(String deltaName, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
+    private String composeDynBlockLogs(String deltaNameForLogs, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
         final String bMsg = Utils.getTenAskBid(bitmexOrderBook, "",
                 "Bitmex OrderBook");
         final String oMsg = Utils.getTenAskBid(okCoinOrderBook, "",
                 "Okex OrderBook");
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         return String.format("%s: Dynamic: dynMaxBlockUsd=%s, isEth=%s, cm=%s, b_block=%s, o_block=%s\n%s\n%s. ",
-                deltaName,
+                deltaNameForLogs,
                 placingBlocks.getDynMaxBlockUsd(),
                 placingBlocks.isEth(),
                 placingBlocks.getCm(),
@@ -1080,12 +1080,12 @@ public class ArbitrageService {
                     if (minBorder != null) {
                         if (prevTradingSignal.tradeType == TradeType.DELTA1_B_SELL_O_BUY) {
                             final BigDecimal bDelta = bestQuotes.getBDelta();
-                            msg += String.format("b_delta (%s) %s b_border (%s)", bDelta,
+                            msg += String.format("L_delta (%s) %s L_border (%s)", bDelta,
                                     bDelta.compareTo(minBorder) > 0 ? ">" : "<",
                                     minBorder);
                         } else {
                             final BigDecimal oDelta = bestQuotes.getODelta();
-                            msg += String.format("o_delta (%s) %s o_border (%s)", oDelta,
+                            msg += String.format("R_delta (%s) %s R_border (%s)", oDelta,
                                     oDelta.compareTo(minBorder) > 0 ? ">" : "<",
                                     minBorder);
                         }
@@ -1138,7 +1138,7 @@ public class ArbitrageService {
                 o_block_input, deltaName,
                 counterName, tradingMode, delta1, delta2, tradingSignal.toBtmFokAutoArgs(), fplayTrade);
 
-        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(b_delta) b_block=%s o_block=%s", counterName, b_block, o_block));
+        slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(L_delta) L_block=%s R_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
         final boolean isConBo = getIsConBo();
