@@ -1188,6 +1188,9 @@ public class BordersService {
     }
 
     private static String convertBorderName(String borderName) {
+        if (borderName == null) {
+            return null;
+        }
         // b_br_open, b_br_close, o_br_open, o_br_close
         // to
         // L_br_open, L_br_close, R_br_open, R_br_close
