@@ -88,4 +88,9 @@ public class Changelog0306 {
         mongoTemplate.updateMulti(query, update, "settingsCollection");
     }
 
+    @ChangeSet(order = "2020-03-06", id = "2020-03-06: clear presets", author = "SergeiShurmin")
+    public void change06(MongoTemplate mongoTemplate) {
+        mongoTemplate.dropCollection("settingsPresetCollection");
+        mongoTemplate.createCollection("settingsPresetCollection");
+    }
 }
