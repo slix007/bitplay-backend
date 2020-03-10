@@ -1195,8 +1195,11 @@ public class ArbitrageService {
 
         Integer bitmexScale = leftMarketService.getContractType().getScale();
         Integer okexScale = rightMarketService.getContractType().getScale();
-        FactPrice btmPriceFact = new FactPrice(MarketStaticData.BITMEX, b_block, bitmexScale);
-        FactPrice okPriceFact = new FactPrice(MarketStaticData.OKEX, o_block, okexScale);
+
+        final String leftNameWithType = leftMarketService.getNameWithType();
+        final String rightNameWithType = rightMarketService.getNameWithType();
+        FactPrice btmPriceFact = new FactPrice(leftNameWithType, b_block, bitmexScale);
+        FactPrice okPriceFact = new FactPrice(rightNameWithType, o_block, okexScale);
 
         Integer plan_pos_ao = DealPrices.calcPlanAfterOrderPos(b_block_input, o_block_input, pos_bo, borderParams.getPosMode(), deltaName);
         BigDecimal btmBlock = b_block;
@@ -1204,13 +1207,13 @@ public class ArbitrageService {
 
         if (b_block.signum() == 0) {
             btmBlock = b_block_input;
-            btmPriceFact = new FactPrice(MarketStaticData.BITMEX, b_block, bitmexScale);
+            btmPriceFact = new FactPrice(leftNameWithType, b_block, bitmexScale);
             btmPriceFact.setOpenPrice(bPricePlan);
             btmPriceFact.setFakeOrder(b_block_input, bPricePlan);
         }
         if (o_block.signum() == 0) {
             okBlock = o_block_input;
-            okPriceFact = new FactPrice(MarketStaticData.OKEX, o_block, okexScale);
+            okPriceFact = new FactPrice(rightNameWithType, o_block, okexScale);
             okPriceFact.setOpenPrice(oPricePlan);
             okPriceFact.setFakeOrder(o_block_input, oPricePlan);
         }
@@ -1635,7 +1638,7 @@ public class ArbitrageService {
                         ? ("p" + Utils.withSign(bP))
                         : String.format("p+%s-%s", leftMarketService.getPos().getPositionLong(), leftMarketService.getPos().getPositionShort());
                 fplayTradeService.info(tradeId, counterName, String.format(
-                        "#%s b_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, %s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
+                        "#%s L_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, %s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         bW.toPlainString(), bW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bEmark.toPlainString(), bEmark.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1707,7 +1710,7 @@ public class ArbitrageService {
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
 
                 fplayTradeService.info(tradeId, counterName, String.format(
-                        "#%s o_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, lgMkt%s, stMkt%s, ask[1]%s, bid[1]%s, usd_qu%s",
+                        "#%s R_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, lgMkt%s, stMkt%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         oW.toPlainString(), oW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oElast.toPlainString(), oElast.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),

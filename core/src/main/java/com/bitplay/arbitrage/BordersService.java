@@ -403,7 +403,7 @@ public class BordersService {
         final String borderName = "b_br_close";
         final Optional<BorderTable> b_br_close = bordersV2.getBorderTableByName(borderName);
         if (!b_br_close.isPresent()) {
-            writeLogs(withLogs, String.format("No %s is present", borderName));
+            writeLogs(withLogs, String.format("No %s is present", convertBorderName(borderName)));
             return TradingSignal.none();
         }
         final List<BorderItem> btm_br_close = b_br_close.get().getBorderItemList();
@@ -541,7 +541,7 @@ public class BordersService {
         final String borderName = "b_br_open";
         final Optional<BorderTable> b_br_open = bordersV2.getBorderTableByName(borderName);
         if (!b_br_open.isPresent()) {
-            writeLogs(withLogs, String.format("No %s is present", borderName));
+            writeLogs(withLogs, String.format("No %s is present", convertBorderName(borderName)));
             return TradingSignal.none();
         }
         final List<BorderItem> btm_br_open = b_br_open.get().getBorderItemList();
@@ -707,7 +707,7 @@ public class BordersService {
         final String borderName = "o_br_close";
         final Optional<BorderTable> o_br_close = bordersV2.getBorderTableByName(borderName);
         if (!o_br_close.isPresent()) {
-            writeLogs(withLogs, String.format("No %s is present", borderName));
+            writeLogs(withLogs, String.format("No %s is present", convertBorderName(borderName)));
             return TradingSignal.none();
         }
         final List<BorderItem> ok_br_close = o_br_close.get().getBorderItemList();
@@ -839,7 +839,7 @@ public class BordersService {
         final String borderName = "o_br_open";
         final Optional<BorderTable> o_br_open = bordersV2.getBorderTableByName(borderName);
         if (!o_br_open.isPresent()) {
-            writeLogs(withLogs, String.format("No %s is present", borderName));
+            writeLogs(withLogs, String.format("No %s is present", convertBorderName(borderName)));
             return TradingSignal.none();
         }
         final List<BorderItem> ok_br_open = o_br_open.get().getBorderItemList();
@@ -1142,12 +1142,12 @@ public class BordersService {
                 return "TradingSignal{" +
                         "borderVer =" + borderVer +
                         ", tradeType=" + tradeType +
-                        ", bitmexBlock=" + bitmexBlock +
-                        ", okexBlock=" + okexBlock +
+                        ", L_block=" + bitmexBlock +
+                        ", R_block=" + okexBlock +
                         ", cm=" + cm +
                         ", ver=" + ver +
                         ", posMode=" + posMode +
-                        ", borderName='" + borderName + '\'' +
+                        ", borderName='" + convertBorderName(borderName) + '\'' +
                         ", borderValue='" + borderValue + '\'' +
                         ", deltaVal='" + deltaVal + '\'' +
                         ", borderValueList='" + (borderValueList != null ? Arrays.toString(borderValueList.toArray()) : "null") + '\'' +
@@ -1158,8 +1158,8 @@ public class BordersService {
                 return "TradingSignal{" +
                         "borderVer =" + borderVer +
                         ", tradeType=" + tradeType +
-                        ", bitmexBlock=" + bitmexBlock +
-                        ", okexBlock=" + okexBlock +
+                        ", L_block=" + bitmexBlock +
+                        ", R_Block=" + okexBlock +
                         ", ver=" + ver +
                         blockOnceLine +
                         '}';
@@ -1185,6 +1185,15 @@ public class BordersService {
             return new BtmFokAutoArgs(delta, maxBorder, this.borderValue);
         }
 
+    }
+
+    private static String convertBorderName(String borderName) {
+        // b_br_open, b_br_close, o_br_open, o_br_close
+        // to
+        // L_br_open, L_br_close, R_br_open, R_br_close
+        return borderName.startsWith("b")
+                ? "L" + borderName.substring(1)
+                : "R" + borderName.substring(1);
     }
 
 }

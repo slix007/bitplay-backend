@@ -2,7 +2,10 @@ package com.bitplay.persistance.domain.fluent.dealprices;
 
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.RoundIsNotDoneException;
-import com.bitplay.market.MarketStaticData;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderStatus;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
@@ -10,9 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.dto.Order.OrderStatus;
 
 @Slf4j
 @Getter
@@ -20,12 +20,12 @@ public class FactPrice {
 
     public final static String FAKE_ORDER_ID = "-1";
 
+    private final String marketNameWithType;
     private final BigDecimal fullAmount;
-    private final MarketStaticData marketStaticData;
     private final int scale;
 
-    public FactPrice(MarketStaticData marketStaticData, BigDecimal fullAmount, int scale) {
-        this.marketStaticData = marketStaticData;
+    public FactPrice(String marketNameWithType, BigDecimal fullAmount, int scale) {
+        this.marketNameWithType = marketNameWithType;
         this.fullAmount = fullAmount;
         this.scale = scale;
     }
@@ -81,7 +81,6 @@ public class FactPrice {
     }
 
     public BigDecimal getAvg(boolean withLogs, String counterName, StringBuilder logBuilder) throws RoundIsNotDoneException {
-        String marketName = marketStaticData.getName();
         BigDecimal avgPrice;
         List<AvgPriceItem> notNullItems = pItems.values().stream()
                 .filter(Objects::nonNull)
@@ -90,14 +89,14 @@ public class FactPrice {
 
         if (notNullItems.isEmpty()) {
             if (withLogs) {
-                String msg = String.format("#%s %s WARNING: this is only openPrice. %s", counterName, marketName, this);
+                String msg = String.format("#%s %s WARNING: this is only openPrice. %s", counterName, marketNameWithType, this);
                 throw new RoundIsNotDoneException(msg);
             }
             return openPrice; // may be null
         }
 
         if (withLogs && logBuilder != null) {
-            logBuilder.append(String.format("#%s %s %s", counterName, marketName, this));
+            logBuilder.append(String.format("#%s %s %s", counterName, marketNameWithType, this));
         }
 
         final StringBuilder sb = new StringBuilder();
@@ -114,7 +113,7 @@ public class FactPrice {
 
         if (fullAmount.compareTo(sumDenominator) != 0) {
             if (withLogs) {
-                String msg = String.format("#%s %s WARNING avg price calc: %s NiceFormat: %s", counterName, marketName, this, sb.toString());
+                String msg = String.format("#%s %s WARNING avg price calc: %s NiceFormat: %s", counterName, marketNameWithType, this, sb.toString());
                 log.warn(msg);
                 throw new RoundIsNotDoneException(msg);
             }
@@ -132,7 +131,7 @@ public class FactPrice {
         avgPrice = sumDenominator.signum() == 0 ? BigDecimal.ZERO : sumNumerator.divide(sumDenominator, scale, RoundingMode.HALF_UP);
 
         if (withLogs) {
-            deltaLogTmp = String.format("#%s %sAvgPrice: %s = %s", counterName, marketName, sb.toString(), avgPrice);
+            deltaLogTmp = String.format("#%s %sAvgPrice: %s = %s", counterName, marketNameWithType, sb.toString(), avgPrice);
         }
 
         return avgPrice;
@@ -144,7 +143,7 @@ public class FactPrice {
                 "pItems=" + pItems +
                 ", fullAmount=" + fullAmount +
                 ", openPrice=" + openPrice +
-                ", marketName=" + marketStaticData.getName() +
+                ", marketNameWithType=" + marketNameWithType +
                 ", scale=" + scale +
                 '}';
     }

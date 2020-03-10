@@ -140,7 +140,7 @@ public class AfterArbTask implements Runnable {
         final BigDecimal ok_bid = dealPrices.getBestQuotes().getBid1_o();
         final BigDecimal ok_ask = dealPrices.getBestQuotes().getAsk1_o();
 
-        deltaLogWriter.info(String.format("#%s Params for calc: con=%s, b_bid=%s, b_ask=%s, ok_bid=%s, ok_ask=%s, b_price_fact=%s, ok_price_fact=%s",
+        deltaLogWriter.info(String.format("#%s Params for calc: con=%s, L_bid=%s, L_ask=%s, R_bid=%s, R_ask=%s, L_price_fact=%s, R_price_fact=%s",
                 counterName, con, b_bid, b_ask, ok_bid, ok_ask, b_price_fact, ok_price_fact));
 
         final TradingMode mode = dealPrices.getTradingMode();
@@ -328,7 +328,7 @@ public class AfterArbTask implements Runnable {
 
     private void validateAvgPrice(FactPrice avgPrice) throws RoundIsNotDoneException {
         if (avgPrice.isItemsEmpty()) {
-            throw new RoundIsNotDoneException(avgPrice.getMarketStaticData().getName() + " has no orders");
+            throw new RoundIsNotDoneException(avgPrice.getMarketNameWithType() + " has no orders");
         }
     }
 
@@ -355,7 +355,7 @@ public class AfterArbTask implements Runnable {
         cumService.getCumPersistenceService().addCumDiff2(dealPrices.getTradingMode(), diff2_pre, diff2_post);
 
         final CumParams totalCommon = cumService.getTotalCommon();
-        deltaLogWriter.info(String.format("#%s right diff2_pre=%s, diff2_post=%s, diff2_con_bo=%s; (plan_price=%s, place_order_price=%s);"
+        deltaLogWriter.info(String.format("#%s right diff2_pre=%s, diff2_post=%s, diff2_R_wait_L=%s; (plan_price=%s, place_order_price=%s);"
                         + "cum_diff2_pre=%s, cum_diff2_post=%s",
                 counterName, diff2_pre, diff2_post, diff2_con_bo, dealPrices.getOPricePlan(), dealPrices.getOPricePlanOnStart(),
                 totalCommon.getCumDiff2Pre().toPlainString(),
