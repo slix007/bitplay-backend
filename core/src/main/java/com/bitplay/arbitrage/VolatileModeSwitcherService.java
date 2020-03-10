@@ -139,15 +139,15 @@ public class VolatileModeSwitcherService {
             log.info("Set TradingMode.VOLATILE automatically");
 
             // if we replace-limit-orders then fix commissions for current signal.
-            final PlacingType okexPlacingType = settings.getOkexPlacingType();
-            final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
+            final PlacingType rightPlacingType = settings.getRightPlacingType();
+            final PlacingType leftPlacingType = bitmexChangeOnSoService.getLeftPlacingType();
             final Long tradeId = arbitrageService.getTradeId();
             if (fplayTradeService.isInProgress(tradeId)) {
                 if (arbScheme == ArbScheme.R_wait_L_portions) {
                     // cancel bitmex, but replace okex
                     volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs, true);
                 } else {
-                    dealPricesRepositoryService.justSetVolatileMode(tradeId, btmPlacingType, okexPlacingType);
+                    dealPricesRepositoryService.justSetVolatileMode(tradeId, leftPlacingType, rightPlacingType);
                     // replace-limit-orders. it may set CURRENT_VOLATILE
                     volatileModeAfterService.justSetVolatileMode(tradeId, this.lastBtmFokAutoArgs, false);
                 }

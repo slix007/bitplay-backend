@@ -169,8 +169,8 @@ public class SettingsPresetRepositoryService {
         s.setBitmexSysOverloadArgs(p.getBitmexSysOverloadArgs());
         s.setOkexSysOverloadArgs(p.getOkexSysOverloadArgs());
         s.setAllPostOnlyArgs(p.getAllPostOnlyArgs() != null ? p.getAllPostOnlyArgs() : AllPostOnlyArgs.defaults());
-        s.setBitmexPlacingType(p.getBitmexPlacingTypeRaw());
-        s.setOkexPlacingType(p.getOkexPlacingTypeRaw());
+        s.setLeftPlacingType(p.getLeftPlacingTypeRaw());
+        s.setRightPlacingType(p.getRightPlacingTypeRaw());
 //        s.setBitmexPrice(); - excluded
         s.setPlacingBlocks(p.getPlacingBlocksRaw());
         s.setPosAdjustment(p.getPosAdjustmentRaw());

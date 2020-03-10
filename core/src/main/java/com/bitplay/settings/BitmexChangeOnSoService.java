@@ -59,13 +59,13 @@ public class BitmexChangeOnSoService {
         return null;
     }
 
-    public PlacingType getPlacingType(SignalType signalType) {
+    public PlacingType getLeftPlacingType(SignalType signalType) {
         final PlacingType placingTypeToChange = getPlacingTypeToChange(signalType);
-        return placingTypeToChange != null ? placingTypeToChange : settingsRepositoryService.getSettings().getBitmexPlacingType();
+        return placingTypeToChange != null ? placingTypeToChange : settingsRepositoryService.getSettings().getLeftPlacingType();
     }
 
-    public PlacingType getPlacingType() {
-        return getPlacingType(SignalType.AUTOMATIC);
+    public PlacingType getLeftPlacingType() {
+        return getLeftPlacingType(SignalType.AUTOMATIC);
     }
 
     public boolean toConBoActive() {

@@ -23,8 +23,8 @@ public class Changelog1217 {
         settings.setTradingModeState(new TradingModeState(TradingMode.CURRENT));
 
         final SettingsVolatileMode vm = new SettingsVolatileMode();
-        vm.setBitmexPlacingType(PlacingType.TAKER);
-        vm.setOkexPlacingType(PlacingType.TAKER);
+        vm.setLeftPlacingType(PlacingType.TAKER);
+        vm.setRightPlacingType(PlacingType.TAKER);
         vm.setSignalDelayMs(settings.getSignalDelayMs());
         vm.setPlacingBlocks(settings.getPlacingBlocks());
         vm.setBAddBorder(BigDecimal.ZERO);

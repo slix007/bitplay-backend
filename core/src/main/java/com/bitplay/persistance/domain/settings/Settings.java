@@ -39,8 +39,8 @@ public class Settings extends AbstractDocument {
     private SysOverloadArgs bitmexSysOverloadArgs;
     private SysOverloadArgs okexSysOverloadArgs;
     private AllPostOnlyArgs allPostOnlyArgs;
-    private PlacingType bitmexPlacingType;
-    private PlacingType okexPlacingType;
+    private PlacingType leftPlacingType;
+    private PlacingType rightPlacingType;
     private BigDecimal bitmexPrice;
     private PlacingBlocks placingBlocks;
     private PosAdjustment posAdjustment;
@@ -105,7 +105,7 @@ public class Settings extends AbstractDocument {
         settings.bitmexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.okexSysOverloadArgs = SysOverloadArgs.defaults();
         settings.allPostOnlyArgs = AllPostOnlyArgs.defaults();
-        settings.okexPlacingType = PlacingType.TAKER;
+        settings.rightPlacingType = PlacingType.TAKER;
         settings.placingBlocks = PlacingBlocks.createDefault();
         settings.posAdjustment = PosAdjustment.createDefault();
         settings.feeSettings = FeeSettings.createDefault();
@@ -156,20 +156,20 @@ public class Settings extends AbstractDocument {
     }
 
     // Volatile mode
-    public PlacingType getBitmexPlacingType() {
+    public PlacingType getLeftPlacingType() {
         return tradingModeState != null && settingsVolatileMode != null
                 && tradingModeState.getTradingMode() == TradingMode.VOLATILE
-                && settingsVolatileMode.getActiveFields().contains(Field.bitmexPlacingType)
-                ? settingsVolatileMode.getBitmexPlacingType()
-                : bitmexPlacingType;
+                && settingsVolatileMode.getActiveFields().contains(Field.leftPlacingType)
+                ? settingsVolatileMode.getLeftPlacingType()
+                : leftPlacingType;
     }
 
-    public PlacingType getOkexPlacingType() {
+    public PlacingType getRightPlacingType() {
         return tradingModeState != null && settingsVolatileMode != null
                 && tradingModeState.getTradingMode() == TradingMode.VOLATILE
-                && settingsVolatileMode.getActiveFields().contains(Field.okexPlacingType)
-                ? settingsVolatileMode.getOkexPlacingType()
-                : okexPlacingType;
+                && settingsVolatileMode.getActiveFields().contains(Field.rightPlacingType)
+                ? settingsVolatileMode.getRightPlacingType()
+                : rightPlacingType;
     }
 
     public Integer getSignalDelayMs() {
@@ -230,12 +230,12 @@ public class Settings extends AbstractDocument {
 
     }
 
-    public PlacingType getBitmexPlacingTypeRaw() {
-        return bitmexPlacingType;
+    public PlacingType getLeftPlacingTypeRaw() {
+        return leftPlacingType;
     }
 
-    public PlacingType getOkexPlacingTypeRaw() {
-        return okexPlacingType;
+    public PlacingType getRightPlacingTypeRaw() {
+        return rightPlacingType;
     }
 
     public Integer getSignalDelayMsRaw() {

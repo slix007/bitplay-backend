@@ -148,12 +148,12 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
-        if (settingsUpdate.getBitmexPlacingType() != null) {
-            settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
+        if (settingsUpdate.getLeftPlacingType() != null) {
+            settings.setLeftPlacingType(settingsUpdate.getLeftPlacingType());
             settingsRepositoryService.saveSettings(settings);
         }
-        if (settingsUpdate.getOkexPlacingType() != null) {
-            settings.setOkexPlacingType(settingsUpdate.getOkexPlacingType());
+        if (settingsUpdate.getRightPlacingType() != null) {
+            settings.setRightPlacingType(settingsUpdate.getRightPlacingType());
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getManageType() != null) {
@@ -522,12 +522,12 @@ public class SettingsEndpoint {
         }
 
 
-        if (settingsUpdate.getBitmexPlacingType() != null) {
-            settings.setBitmexPlacingType(settingsUpdate.getBitmexPlacingType());
+        if (settingsUpdate.getLeftPlacingType() != null) {
+            settings.setLeftPlacingType(settingsUpdate.getLeftPlacingType());
             settingsRepositoryService.saveSettings(mainSettings);
         }
-        if (settingsUpdate.getOkexPlacingType() != null) {
-            settings.setOkexPlacingType(settingsUpdate.getOkexPlacingType());
+        if (settingsUpdate.getRightPlacingType() != null) {
+            settings.setRightPlacingType(settingsUpdate.getRightPlacingType());
             settingsRepositoryService.saveSettings(mainSettings);
         }
         if (settingsUpdate.getSignalDelayMs() != null) {

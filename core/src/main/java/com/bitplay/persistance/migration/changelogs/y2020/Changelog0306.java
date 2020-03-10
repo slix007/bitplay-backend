@@ -3,6 +3,7 @@ package com.bitplay.persistance.migration.changelogs.y2020;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.FeeSettings;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.github.mongobee.changeset.ChangeLog;
 import com.github.mongobee.changeset.ChangeSet;
@@ -70,6 +71,21 @@ public class Changelog0306 {
             settings.getSettingsVolatileMode().setArbScheme(ArbScheme.R_wait_L_portions);
         }
         mongoTemplate.save(settings);
+    }
+
+    @ChangeSet(order = "2020-03-10", id = "2020-03-10: placing type left-right", author = "SergeiShurmin")
+    public void change05(MongoTemplate mongoTemplate) {
+        Query query = new Query();
+        Update update = new Update();
+        update.unset("bitmexPlacingType");
+        update.unset("okexPlacingType");
+        update.unset("settingsVolatileMode.bitmexPlacingType");
+        update.unset("settingsVolatileMode.okexPlacingType");
+        update.set("leftPlacingType", PlacingType.MAKER);
+        update.set("rightPlacingType", PlacingType.MAKER);
+        update.set("settingsVolatileMode.leftPlacingType", PlacingType.MAKER);
+        update.set("settingsVolatileMode.rightPlacingType", PlacingType.MAKER);
+        mongoTemplate.updateMulti(query, update, "settingsCollection");
     }
 
 }

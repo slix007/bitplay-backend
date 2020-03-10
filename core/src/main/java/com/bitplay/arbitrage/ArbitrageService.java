@@ -965,14 +965,20 @@ public class ArbitrageService {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
-        final OkexLimitsService okLimits = (OkexLimitsService) rightLimitService;
-        final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
-        final boolean okexOutsideLimits = okLimits.outsideLimitsOnSignal(DeltaName.B_DELTA, okexPlacingType);
-        //noinspection Duplicates
+        boolean leftOutsideLimits = false;
+        if (!leftMarketService.isBtm()) {
+            final OkexLimitsService leftLimits = (OkexLimitsService) leftLimitService;
+            final PlacingType leftPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getLeftPlacingType();
+            leftOutsideLimits = leftLimits.outsideLimitsOnSignal(DeltaName.B_DELTA, leftPlacingType);
+
+        }
+        final OkexLimitsService rightLimits = (OkexLimitsService) rightLimitService;
+        final PlacingType rightPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getRightPlacingType();
+        final boolean rightOutsideLimits = rightLimits.outsideLimitsOnSignal(DeltaName.B_DELTA, rightPlacingType);
         if (leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage()
                 && posDiffService.checkIsPositionsEqual()
                 && !leftMarketService.isMarketStopped()
-                && !rightMarketService.isMarketStopped() && !okexOutsideLimits
+                && !rightMarketService.isMarketStopped() && !leftOutsideLimits && !rightOutsideLimits
                 && leftMarketService.checkLiquidationEdge(OrderType.ASK)
                 && rightMarketService.checkLiquidationEdge(OrderType.BID)
         ) {
@@ -1184,8 +1190,8 @@ public class ArbitrageService {
         final BigDecimal border2 = params.getBorder2();
 
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final PlacingType okexPlacingType = settings.getOkexPlacingType();
-        final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
+        final PlacingType rightPlacingType = settings.getRightPlacingType();
+        final PlacingType leftPlacingType = bitmexChangeOnSoService.getLeftPlacingType();
 
         Integer bitmexScale = leftMarketService.getContractType().getScale();
         Integer okexScale = rightMarketService.getContractType().getScale();
@@ -1213,8 +1219,8 @@ public class ArbitrageService {
                 ? MarketStaticData.LEFT_OKEX
                 : leftMarketService.getMarketStaticData();
         final DealPrices dealPrices = DealPrices.builder()
-                .btmPlacingType(btmPlacingType)
-                .okexPlacingType(okexPlacingType)
+                .btmPlacingType(leftPlacingType)
+                .okexPlacingType(rightPlacingType)
                 .border1(border1)
                 .border2(border2)
                 .bBlock(btmBlock)
@@ -1259,14 +1265,21 @@ public class ArbitrageService {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
-        final OkexLimitsService okLimits = (OkexLimitsService) rightLimitService;
-        final PlacingType okexPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
-        final boolean okexOutsideLimits = okLimits.outsideLimitsOnSignal(DeltaName.O_DELTA, okexPlacingType);
-        //noinspection Duplicates
+        boolean leftOutsideLimits = false;
+        if (!leftMarketService.isBtm()) {
+            final OkexLimitsService leftLimits = (OkexLimitsService) leftLimitService;
+            final PlacingType leftPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getLeftPlacingType();
+            leftOutsideLimits = leftLimits.outsideLimitsOnSignal(DeltaName.O_DELTA, leftPlacingType);
+
+        }
+        final OkexLimitsService rightLimits = (OkexLimitsService) rightLimitService;
+        final PlacingType rightPlacingType = persistenceService.getSettingsRepositoryService().getSettings().getRightPlacingType();
+        final boolean rightOutsideLimits = rightLimits.outsideLimitsOnSignal(DeltaName.O_DELTA, rightPlacingType);
+
         if (leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage()
                 && posDiffService.checkIsPositionsEqual()
                 && !leftMarketService.isMarketStopped()
-                && !rightMarketService.isMarketStopped() && !okexOutsideLimits
+                && !rightMarketService.isMarketStopped() && !leftOutsideLimits && !rightOutsideLimits
                 && leftMarketService.checkLiquidationEdge(OrderType.BID)
                 && rightMarketService.checkLiquidationEdge(OrderType.ASK)
         ) {

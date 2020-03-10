@@ -65,7 +65,7 @@ public class VolatileModeAfterService {
 //             OK while VolatileMode has no 'Arbitrage version'
 //        }
 
-        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
+        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getRightPlacingType();
         final PlaceOrderArgs updateArgs;
         if (right.getMarketStaticData() == MarketStaticData.OKEX) {
             final OkCoinService okexService = (OkCoinService) right;
@@ -101,9 +101,9 @@ public class VolatileModeAfterService {
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         if (bitmexSleepWhileSo(left)) return;
 
-        final PlacingType btmPlacingType = bitmexChangeOnSoService.getPlacingType();
+        final PlacingType leftPlacingType = bitmexChangeOnSoService.getLeftPlacingType();
 
-        replaceLimitOrders(left, btmPlacingType, bitmexOO, tradeId, btmFokAutoArgs);
+        replaceLimitOrders(left, leftPlacingType, bitmexOO, tradeId, btmFokAutoArgs);
     }
 
     private boolean bitmexSleepWhileSo(MarketServicePreliq left) {
@@ -125,7 +125,7 @@ public class VolatileModeAfterService {
     }
 
     private void replaceLimitOrdersRight(List<FplayOrder> okexOO, Long tradeId) {
-        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getOkexPlacingType();
+        final PlacingType okexPlacingType = settingsRepositoryService.getSettings().getRightPlacingType();
         replaceLimitOrders(arbitrageService.getRightMarketService(), okexPlacingType, okexOO, tradeId, null);
     }
 

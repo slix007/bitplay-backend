@@ -84,7 +84,7 @@ public class OkexLimitsService implements LimitsService {
         // insideLimits: Limit Ask < Max price && Limit bid > Min price
 //        final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
         final Settings settings = settingsRepositoryService.getSettings();
-        final PlacingType placingType = settings.getOkexPlacingType();
+        final PlacingType placingType = settings.getRightPlacingType();
         final PlacingType adjPlacingType = settings.getPosAdjustment().getPosAdjustmentPlacingType().isTaker() ? PlacingType.TAKER
                 : settings.getPosAdjustment().getPosAdjustmentPlacingType();
 

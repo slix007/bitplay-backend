@@ -1347,7 +1347,9 @@ public class OkCoinService extends MarketServicePreliq {
         if (placingType == null) {
             tradeLogger.warn("WARNING: placingType is null. " + placeOrderArgs);
             final Settings settings = settingsRepositoryService.getSettings();
-            placingType = settings.getOkexPlacingType();
+            placingType = getArbType() == ArbType.LEFT
+                    ? settings.getLeftPlacingType()
+                    : settings.getRightPlacingType();
         }
         final String counterName = placeOrderArgs.getCounterName();
         final String counterNameWithPortion = placeOrderArgs.getCounterNameWithPortion();
@@ -2056,7 +2058,9 @@ public class OkCoinService extends MarketServicePreliq {
 
                 PlacingType okexPlacingType = placingType;
                 if (okexPlacingType == null) {
-                    placingType = persistenceService.getSettingsRepositoryService().getSettings().getOkexPlacingType();
+                    placingType = getArbType() == ArbType.LEFT
+                            ? persistenceService.getSettingsRepositoryService().getSettings().getLeftPlacingType()
+                            : persistenceService.getSettingsRepositoryService().getSettings().getRightPlacingType();
                 }
 
                 if (placingType != PlacingType.TAKER) {

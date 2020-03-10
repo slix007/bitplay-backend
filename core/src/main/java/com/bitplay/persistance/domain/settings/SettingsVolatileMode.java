@@ -16,8 +16,8 @@ public class SettingsVolatileMode {
     @Transient
     private Field fieldToAdd;
 
-    private PlacingType bitmexPlacingType;
-    private PlacingType okexPlacingType;
+    private PlacingType leftPlacingType;
+    private PlacingType rightPlacingType;
     private Integer signalDelayMs;
     private PlacingBlocks placingBlocks;
     private PosAdjustment posAdjustment; // - posAdjMin, posAdjMax - установка соответствубщих значений;
@@ -46,8 +46,10 @@ public class SettingsVolatileMode {
     //TODO corr max total, corr max adj: общее количество коррекций/подгонок (0=off);
 
     public enum Field {
-        bitmexPlacingType,
-        okexPlacingType,
+        bitmexPlacingType, //deprecated
+        okexPlacingType,//deprecated
+        leftPlacingType,
+        rightPlacingType,
         signalDelayMs,
         placingBlocks,
         posAdjustment,
