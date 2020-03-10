@@ -153,7 +153,8 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
 
         final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
         final SwapSettlement swapSettlement = service.getSwapSettlement();
-        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice, swapSettlement);
+        return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice, swapSettlement,
+                service.getArbType());
 
     }
 

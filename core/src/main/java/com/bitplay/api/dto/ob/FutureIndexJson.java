@@ -1,5 +1,6 @@
 package com.bitplay.api.dto.ob;
 
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.model.SwapSettlement;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,16 +27,18 @@ public class FutureIndexJson {
     private String timeCompareString;
     private String timeCompareUpdating;
     // okex only
-    private String okexEstimatedDeliveryPrice;
-    private SwapSettlement okexSwapSettlement;
+    private String leftEstimatedDeliveryPrice;
+    private String rightEstimatedDeliveryPrice;
+    private SwapSettlement leftSwapSettlement;
+    private SwapSettlement rightSwapSettlement;
 
     public static FutureIndexJson empty() {
-        return new FutureIndexJson("", "", "", new LimitsJson(), null, null, null);
+        return new FutureIndexJson("", "", "", new LimitsJson(), null, null, null, null);
     }
 
     // okex
     public FutureIndexJson(String index, String indexVal, String timestamp, LimitsJson limits, String ethBtcBal,
-                           String okexEstimatedDeliveryPrice, SwapSettlement okexSwapSettlement) {
+                           String okexEstimatedDeliveryPrice, SwapSettlement okexSwapSettlement, ArbType arbType) {
         this.index = index;
         this.indexVal = indexVal;
         this.timestamp = timestamp;
@@ -43,8 +46,16 @@ public class FutureIndexJson {
         this.contractExtraJson.setEthBtcBal(ethBtcBal);
 
         // okex specific
-        this.okexEstimatedDeliveryPrice = okexEstimatedDeliveryPrice;
-        this.okexSwapSettlement = okexSwapSettlement;
+
+        if (arbType != null) {
+            if (arbType == ArbType.LEFT) {
+                this.leftEstimatedDeliveryPrice = okexEstimatedDeliveryPrice;
+                this.leftSwapSettlement = okexSwapSettlement;
+            } else {
+                this.rightEstimatedDeliveryPrice = okexEstimatedDeliveryPrice;
+                this.rightSwapSettlement = okexSwapSettlement;
+            }
+        }
     }
 
     // bitmex
