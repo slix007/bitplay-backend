@@ -55,6 +55,7 @@ public class Settings extends AbstractDocument {
     private UsdQuoteType usdQuoteType;
     private AllFtpd allFtpd;
     private Boolean adjustByNtUsd;
+    private BigDecimal ntUsdMultiplicityOkexLeft;
     private BigDecimal ntUsdMultiplicityOkex;
     private AmountType amountTypeBitmex;
     private AmountType amountTypeOkex;

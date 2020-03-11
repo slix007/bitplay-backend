@@ -43,22 +43,22 @@ public class MonitoringEndpoint {
         );
     }
 
-    @RequestMapping(value = "/calc-delta/list/bitmex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/calc-delta/list/left", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<Instant, BigDecimal> getBtmDeltaListForCalc() {
         return deltasCalcService.getCurrBtmDeltasInCalc();
     }
 
-    @RequestMapping(value = "/calc-delta/list/okex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/calc-delta/list/right", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<Instant, BigDecimal> getOkDeltaListForCalc() {
         return deltasCalcService.getCurrOkDeltasInCalc();
     }
 
-    @RequestMapping(value = "/calc-delta/list/bitmex-all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/calc-delta/list/left-all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<Instant, BigDecimal> getBtmDeltaList() {
         return deltasCalcService.getCurrBtmDeltas();
     }
 
-    @RequestMapping(value = "/calc-delta/list/okex-all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/calc-delta/list/right-all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<Instant, BigDecimal> getOkDeltaList() {
         return deltasCalcService.getCurrOkDeltas();
     }

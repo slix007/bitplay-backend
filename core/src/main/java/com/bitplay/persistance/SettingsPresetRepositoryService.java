@@ -186,6 +186,7 @@ public class SettingsPresetRepositoryService {
 //        s.setOkexFakeTakerDev(p.getOkexFakeTakerDev());
         s.setAllFtpd(p.getAllFtpd() != null ? p.getAllFtpd() : AllFtpd.createDefaults());
         s.setAdjustByNtUsd(p.getAdjustByNtUsdRaw());
+        s.setNtUsdMultiplicityOkexLeft(p.getNtUsdMultiplicityOkexLeft());
         s.setNtUsdMultiplicityOkex(p.getNtUsdMultiplicityOkex());
         s.setAmountTypeBitmex(p.getAmountTypeBitmex());
         s.setAmountTypeOkex(p.getAmountTypeOkex());

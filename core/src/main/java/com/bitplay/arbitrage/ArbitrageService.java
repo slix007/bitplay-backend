@@ -1349,10 +1349,11 @@ public class ArbitrageService {
     private void printAdjWarning(BigDecimal b_block_input, BigDecimal o_block_input, BigDecimal b_block, BigDecimal o_block) {
         if (b_block.compareTo(b_block_input) != 0 || o_block.compareTo(o_block_input) != 0) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-            BigDecimal multiplicity = settings.getNtUsdMultiplicityOkex();
+            BigDecimal mLeft = settings.getNtUsdMultiplicityOkexLeft();
+            BigDecimal mRight = settings.getNtUsdMultiplicityOkex();
 
-            String msg = String.format("adjustByNtUsd. Before: b=%s, o=%s. After: b=%s, o=%s. ntUsd=%s, ntUsdMultiplicityOkex=%s",
-                    b_block_input, o_block_input, b_block, o_block, getNtUsd(), multiplicity);
+            String msg = String.format("adjustByNtUsd. Before: b=%s, o=%s. After: b=%s, o=%s. ntUsd=%s, L_ntUsdMultiplicityOkex=%s, R_ntUsdMultiplicityOkex=%s",
+                    b_block_input, o_block_input, b_block, o_block, getNtUsd(), mLeft, mRight);
             log.info(msg);
         }
     }
@@ -1991,24 +1992,23 @@ public class ArbitrageService {
         }
 
         // do the adjustment
-        BigDecimal multiplicity = settings.getNtUsdMultiplicityOkex();
+        BigDecimal mLeft = settings.getNtUsdMultiplicityOkexLeft();
+        BigDecimal mRight = settings.getNtUsdMultiplicityOkex();
         BigDecimal ntUsd = getNtUsd();
         if (ntUsd.signum() > 0) {
             if (deltaRef == DeltaName.B_DELTA) {
-//                b_block_usd = b_block_usd;
-                final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, multiplicity);
+                final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, mRight);
                 o_block_usd = o_block_usd.add(ntUsdOkex);
             } else if (deltaRef == DeltaName.O_DELTA) {
-                b_block_usd = b_block_usd.add(ntUsd);
-//                o_block_usd = o_block_usd;
+                final BigDecimal ntUsdLeft = getNtUsdMultLeft(ntUsd, mLeft);
+                b_block_usd = b_block_usd.add(ntUsdLeft);
             }
         } else if (ntUsd.signum() < 0) {
             if (deltaRef == DeltaName.B_DELTA) {
-                b_block_usd = b_block_usd.subtract(ntUsd);
-//                o_block_usd = o_block_usd;
+                final BigDecimal ntUsdLeft = getNtUsdMultLeft(ntUsd, mLeft);
+                b_block_usd = b_block_usd.subtract(ntUsdLeft);
             } else if (deltaRef == DeltaName.O_DELTA) {
-//                b_block_usd = b_block_usd;
-                final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, multiplicity);
+                final BigDecimal ntUsdOkex = getNtUsdMult(ntUsd, mRight);
                 o_block_usd = o_block_usd.subtract(ntUsdOkex);
             }
         }
@@ -2049,6 +2049,13 @@ public class ArbitrageService {
             b_block = usd.setScale(0, RoundingMode.HALF_UP); // usd to bitmexCont
         }
         return b_block;
+    }
+
+    private BigDecimal getNtUsdMultLeft(BigDecimal ntUsd, BigDecimal multiplicity) {
+        if (leftMarketService.isBtm()) {
+            return ntUsd;
+        }
+        return getNtUsdMult(ntUsd, multiplicity);
     }
 
     private BigDecimal getNtUsdMult(BigDecimal ntUsd, BigDecimal multiplicity) {

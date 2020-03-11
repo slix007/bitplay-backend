@@ -93,4 +93,13 @@ public class Changelog0306 {
         mongoTemplate.dropCollection("settingsPresetCollection");
         mongoTemplate.createCollection("settingsPresetCollection");
     }
+
+    @ChangeSet(order = "2020-03-07", id = "2020-03-07: nuUsd mult left", author = "SergeiShurmin")
+    public void change07(MongoTemplate mongoTemplate) {
+        Query query = new Query();
+        Update update = new Update();
+        update.set("ntUsdMultiplicityOkexLeft", BigDecimal.ZERO);
+        update.set("settingsVolatileMode.ntUsdMultiplicityOkexLeft", BigDecimal.ZERO);
+        mongoTemplate.updateMulti(query, update, "settingsCollection");
+    }
 }

@@ -344,6 +344,10 @@ public class SettingsEndpoint {
             settings.setNtUsdMultiplicityOkex(settingsUpdate.getNtUsdMultiplicityOkex());
             settingsRepositoryService.saveSettings(settings);
         }
+        if (settingsUpdate.getNtUsdMultiplicityOkexLeft() != null) {
+            settings.setNtUsdMultiplicityOkexLeft(settingsUpdate.getNtUsdMultiplicityOkexLeft());
+            settingsRepositoryService.saveSettings(settings);
+        }
         if (settingsUpdate.getBitmexFokMaxDiff() != null) {
             settings.setBitmexFokMaxDiff(settingsUpdate.getBitmexFokMaxDiff());
             settingsRepositoryService.saveSettings(settings);
