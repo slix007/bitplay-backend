@@ -18,10 +18,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LiqParams extends MarketDocument {
-    private BigDecimal dqlMin = BigDecimal.valueOf(-10000);
-    private BigDecimal dqlMax = BigDecimal.valueOf(10000);
-    private BigDecimal dmrlMin = BigDecimal.valueOf(-10000);
-    private BigDecimal dmrlMax = BigDecimal.valueOf(10000);
+    private BigDecimal dqlMin = BigDecimal.valueOf(10000);
+    private BigDecimal dqlMax = BigDecimal.valueOf(-10000);
+    private BigDecimal dmrlMin = BigDecimal.valueOf(10000);
+    private BigDecimal dmrlMax = BigDecimal.valueOf(-10000);
 
     public LiqParams clone() {
         return new LiqParams(this.dqlMin, this.dqlMax, this.dmrlMin, this.dmrlMax);

@@ -20,11 +20,11 @@ public class Changelog0724 {
     @ChangeSet(order = "2019-07-24", id = "2019-07-24: Fix DB from scratch.", author = "SergeiShurmin")
     public void change01(MongoTemplate mongoTemplate) {
         final LiqParams liqParams = new LiqParams();
-        liqParams.setId(1L);
+//        liqParams.setId(1L);
         liqParams.setMarketName(BitmexService.NAME);
         mongoTemplate.save(liqParams);
         final LiqParams ok = new LiqParams();
-        ok.setId(2L);
+//        ok.setId(2L);
         ok.setMarketName(OkCoinService.NAME);
         mongoTemplate.save(ok);
     }
@@ -35,7 +35,7 @@ public class Changelog0724 {
         final SwapParams one = mongoTemplate.findOne(query, SwapParams.class);
         if (one == null) {
             SwapParams swapParams = SwapParams.createDefault();
-            swapParams.setId(1L);
+//            swapParams.setId(1L);
             swapParams.setMarketName(BitmexService.NAME);
             mongoTemplate.save(swapParams);
         }

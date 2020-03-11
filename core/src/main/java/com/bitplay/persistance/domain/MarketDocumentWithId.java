@@ -1,13 +1,13 @@
 package com.bitplay.persistance.domain;
 
-import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 /**
  * Created by Sergey Shurmin on 7/18/17.
  */
-public class MarketDocument {
+public class MarketDocumentWithId extends AbstractDocument {
 
-    @Id
+    @Indexed
     private String marketName;
 
     public String getMarketName() {

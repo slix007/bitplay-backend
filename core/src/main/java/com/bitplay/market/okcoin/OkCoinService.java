@@ -2467,19 +2467,19 @@ public class OkCoinService extends MarketServicePreliq {
     public DqlState updateDqlState() {
         final LiqInfo liqInfo = getLiqInfo();
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
-        final BigDecimal oDQLCloseMin;
-        final BigDecimal oDQLOpenMin;
-        final BigDecimal rightDqlKillPos;
+        final BigDecimal dqlCloseMin;
+        final BigDecimal dqlOpenMin;
+        final BigDecimal dqlKillPos;
         if (getArbType() == ArbType.LEFT) {
-            oDQLCloseMin = dql.getLeftDqlCloseMin();
-            oDQLOpenMin = dql.getLeftDqlOpenMin();
-            rightDqlKillPos = dql.getLeftDqlKillPos();
+            dqlCloseMin = dql.getLeftDqlCloseMin();
+            dqlOpenMin = dql.getLeftDqlOpenMin();
+            dqlKillPos = dql.getLeftDqlKillPos();
         } else {
-            oDQLCloseMin = dql.getRightDqlCloseMin();
-            oDQLOpenMin = dql.getRightDqlOpenMin();
-            rightDqlKillPos = dql.getRightDqlKillPos();
+            dqlCloseMin = dql.getRightDqlCloseMin();
+            dqlOpenMin = dql.getRightDqlOpenMin();
+            dqlKillPos = dql.getRightDqlKillPos();
         }
-        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), rightDqlKillPos, oDQLOpenMin, oDQLCloseMin, liqInfo.getDqlCurr());
+        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
     }
 
     /**

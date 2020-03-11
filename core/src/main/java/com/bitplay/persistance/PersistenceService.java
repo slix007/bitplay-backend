@@ -112,14 +112,6 @@ public class PersistenceService {
     }
 
     private void setMarketDocumentName(MarketDocument swapParams, String marketName) {
-        long id = 1L;
-        if (marketName.equals(BitmexService.NAME)) {
-            id = 2L;
-        }
-        if (marketName.equals(OkCoinService.NAME)) {
-            id = 3L;
-        }
-        swapParams.setId(id);
         swapParams.setMarketName(marketName);
     }
 

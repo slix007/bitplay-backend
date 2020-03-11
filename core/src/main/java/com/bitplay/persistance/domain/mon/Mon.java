@@ -1,6 +1,6 @@
 package com.bitplay.persistance.domain.mon;
 
-import com.bitplay.persistance.domain.MarketDocument;
+import com.bitplay.persistance.domain.MarketDocumentWithId;
 import com.bitplay.persistance.domain.Range;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 @Getter
 @ToString
-public class Mon extends MarketDocument {
+public class Mon extends MarketDocumentWithId {
 
     private String typeName;
 
