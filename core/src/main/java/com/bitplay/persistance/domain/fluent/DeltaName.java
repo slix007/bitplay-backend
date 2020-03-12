@@ -9,8 +9,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum DeltaName {
-    B_DELTA("1", "b"),
-    O_DELTA("2", "o"),
+    B_DELTA("1", "L"),
+    O_DELTA("2", "R"),
     ;
 
     private String deltaNumber;
