@@ -71,6 +71,16 @@ public class OkexContractTypeTest {
     }
 
     @Test
+    public void testBiQuorter() {
+        LocalDateTime nowDate = LocalDateTime.of(2020, 3, 12, 8, 0, 1);
+        assertEquals("0313", OkexContractType.BTC_ThisWeek.getExpString(nowDate, false));
+        assertEquals("0320", OkexContractType.BTC_NextWeek.getExpString(nowDate, false));
+        assertEquals("0327", OkexContractType.BTC_Quarter.getExpString(nowDate, false));
+        assertEquals("0626", OkexContractType.BTC_BiQuarter.getExpString(nowDate, false));
+
+    }
+
+    @Test
     public void test1809Fix() {
         LocalDateTime first = LocalDateTime.of(2018, 9, 18, 17, 0, 0);
         assertEquals("0921", OkexContractType.BTC_ThisWeek.getExpString(first, false));

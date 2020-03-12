@@ -18,6 +18,7 @@ public enum OkexContractType implements ContractType {
     BTC_ThisWeek(FuturesContract.ThisWeek, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_NextWeek(FuturesContract.NextWeek, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     BTC_Quarter(FuturesContract.Quarter, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
+    BTC_BiQuarter(FuturesContract.BiQuarter, CurrencyPair.BTC_USD, BigDecimal.valueOf(0.01), 2),
     ETH_Swap(FuturesContract.Swap, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.01), 2),
     ETH_ThisWeek(FuturesContract.ThisWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_NextWeek(FuturesContract.NextWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
@@ -82,6 +83,12 @@ public enum OkexContractType implements ContractType {
             final LocalDateTime plus2Weeks = now.plusDays(14);
             while (plus2Weeks.isAfter(expTime)) {
                 expTime = expTime.plusDays(28 * 3 + 7);
+            }
+        } else if (futuresContract == FuturesContract.BiQuarter) {
+            expTime = LocalDateTime.of(2020, 6, 26, 8, 0, 0);
+            final LocalDateTime plus4Weeks = now.plusDays(14);
+            while (plus4Weeks.isAfter(expTime)) {
+                expTime = expTime.plusDays(28 * 6);
             }
         } else {
             throw new IllegalArgumentException("Illegal futuresContract " + futuresContract);
