@@ -17,13 +17,13 @@ public class DestinationResolver {
     @Autowired
     private HostResolver hostResolver;
 
-    private final static List<String> testServers = Arrays.asList("658", "660", "661");
-    private final static List<String> prodServers = Arrays.asList("659", "662", "667", "668", "669");
+    private final static List<String> testServers = Arrays.asList("658", "660");
+    private final static List<String> prodServers = Arrays.asList("662", "668", "669");
 
-    private final static List<String> prodServersCoordinator = Arrays.asList("659", "662", "667", "668", "669", "661"); // all prodServers + 661
-    private final static List<String> serversTraderPassive = Arrays.asList("659", "662", "668", "669");
-    private final static List<String> serversTraderActive = Arrays.asList("659", "662", "668", "669");
-    private final static List<String> serversTraderActiveEx = Arrays.asList("661", "667");
+    private final static List<String> prodServersCoordinator = Arrays.asList("662", "668", "669");
+    private final static List<String> serversTraderPassive = Arrays.asList("662", "668", "669");
+    private final static List<String> serversTraderActive = Arrays.asList("662", "668", "669");
+    private final static List<String> serversTraderActiveEx = Arrays.asList("659", "661", "667");
 
 
     // Trader active: сервера 662, 669, 659.
@@ -121,7 +121,7 @@ public class DestinationResolver {
     private final static String LOCAL_CHANNEL = "app-local";
     //    private final static String TEST_CHANNEL_NIGHT = "app-test-night";
     private final static String TRADER_ACTIVE_CHANNEL = "trader-active";
-    private final static String TRADER_ACTIVE_EX_CHANNEL = "trader-active-661-667";
+    private final static String TRADER_ACTIVE_EX_CHANNEL = "trader-active-659-661-667";
     private final static String TRADER_PASSIVE_CHANNEL = "trader-passive";
     private final static String COORDINATOR_CHANNEL = "coordinator";
     private final static String ALL_PROD_CHANNEL = "all-prod";
