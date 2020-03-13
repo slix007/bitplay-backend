@@ -1075,7 +1075,9 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     protected Completable recalcAffordableContracts() {
         return Completable.fromAction(() -> {
-            final BigDecimal reserveBtc = arbitrageService.getParams().getReserveBtc2();
+            final BigDecimal reserveBtc = getArbType() == ArbType.LEFT
+                    ? arbitrageService.getParams().getReserveBtc1()
+                    : arbitrageService.getParams().getReserveBtc2();
             final BigDecimal volPlan = settingsRepositoryService.getSettings().getPlacingBlocks().getFixedBlockOkex();
 //        final BigDecimal volPlan = arbitrageService.getParams().getBlock2();
 
