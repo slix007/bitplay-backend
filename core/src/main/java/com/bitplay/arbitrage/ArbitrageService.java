@@ -1469,8 +1469,8 @@ public class ArbitrageService {
 
         lastCalcSumBal = Instant.now();
         final AccountBalance leftAccount = leftMarketService.getFullBalance().getAccountBalance();
-        final AccountBalance secondAccount = rightMarketService.getFullBalance().getAccountBalance();
-        if (leftAccount != null && secondAccount != null) {
+        final AccountBalance rightAccount = rightMarketService.getFullBalance().getAccountBalance();
+        if (leftAccount != null && rightAccount != null) {
             BigDecimal bW = leftAccount.getWallet();
             //noinspection UnnecessaryLocalVariable
             final BigDecimal bEMark = leftAccount.getEMark() != null ? leftAccount.getEMark() : BigDecimal.ZERO;
@@ -1482,13 +1482,13 @@ public class ArbitrageService {
             BigDecimal bA = leftAccount.getAvailable();
             BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
 
-            BigDecimal oW = secondAccount.getWallet();
-            BigDecimal oELast = secondAccount.getELast() != null ? secondAccount.getELast() : BigDecimal.ZERO;
-            oEbest = secondAccount.getEBest() != null ? secondAccount.getEBest() : BigDecimal.ZERO;
-            BigDecimal oEAvg = secondAccount.getEAvg() != null ? secondAccount.getEAvg() : BigDecimal.ZERO;
-            BigDecimal oU = secondAccount.getUpl();
-            BigDecimal oM = secondAccount.getMargin();
-            BigDecimal oA = secondAccount.getAvailable();
+            BigDecimal oW = rightAccount.getWallet();
+            BigDecimal oELast = rightAccount.getELast() != null ? rightAccount.getELast() : BigDecimal.ZERO;
+            oEbest = rightAccount.getEBest() != null ? rightAccount.getEBest() : BigDecimal.ZERO;
+            BigDecimal oEAvg = rightAccount.getEAvg() != null ? rightAccount.getEAvg() : BigDecimal.ZERO;
+            BigDecimal oU = rightAccount.getUpl();
+            BigDecimal oM = rightAccount.getMargin();
+            BigDecimal oA = rightAccount.getAvailable();
 
             if (bW == null || oW == null) {
                 throw new IllegalStateException(String.format("Balance is not yet defined. bW=%s, oW=%s", bW, oW));
