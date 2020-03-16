@@ -1211,6 +1211,8 @@ public class OkCoinService extends MarketServicePreliq {
     public void tryPlaceDeferredOrder() {
 //        ooSingleExecutor - may read with arbStateLock
         final PlaceOrderArgs currArgs = placeOrderArgsRef.get();
+        // only plain R_wait_L
+        // portions is in the PosDiffPortionsService
         if (currArgs != null && currArgs.getArbScheme() != ArbScheme.R_wait_L_portions) {
             addOoExecutorTask(this::tryPlaceDeferredOrderTask);
         } else {
@@ -1581,8 +1583,9 @@ public class OkCoinService extends MarketServicePreliq {
             final String msgStart = String.format("#%s MT2 deferred placing %s", counterName, currPlaceOrderArgs);
             tradeLogger.info(msgStart);
             log.info(msgStart);
+
             final Settings s = settingsRepositoryService.getSettings();
-            if (s.getArbScheme() == ArbScheme.R_wait_L_portions) {
+            if (currPlaceOrderArgs.getArbScheme() == ArbScheme.R_wait_L_portions) {
                 final String msg = String.format("R_wait_L_portions: min to start nt_usd=%s, maxPortion=%s",
                         s.getConBoPortions().getMinNtUsdToStartOkex(),
                         s.getConBoPortions().getMaxPortionUsdOkex());
@@ -2557,8 +2560,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     protected boolean onReadyState() {
-        if (settingsRepositoryService.getSettings().getArbScheme() == ArbScheme.R_wait_L_portions
-                && placeOrderArgsRef.get() != null) {
+        if (arbitrageService.getIsConBoPortions() && placeOrderArgsRef.get() != null) {
             log.warn("WAITING_ARB was reset by onReadyState");
             tradeLogger.warn("WAITING_ARB was reset by onReadyState");
             setMarketState(MarketState.WAITING_ARB);

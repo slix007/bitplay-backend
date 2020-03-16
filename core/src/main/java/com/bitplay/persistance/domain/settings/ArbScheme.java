@@ -10,19 +10,19 @@ public enum ArbScheme {
      * Consistently bitmex then okex.
      */
     L_with_R,
-    /** deprecated */
+    /** deprecated. delete on second sprint after okex-okex */
     CON_B_O,
     /**
      * Simultaneously set both orders.
      */
     R_wait_L,
-    /** deprecated */
+    /** deprecated. delete on second sprint after okex-okex */
     SIM,
     /**
      * Consistently bitmex(one portion) then okex(multi-portions).
      */
     R_wait_L_portions,
-    /** deprecated */
+    /** deprecated. delete on second sprint after okex-okex */
     CON_B_O_PORTIONS;
 
     public boolean isConBo() {

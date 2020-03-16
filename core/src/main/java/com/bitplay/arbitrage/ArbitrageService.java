@@ -62,6 +62,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
+import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -1115,9 +1116,9 @@ public class ArbitrageService {
         return Instant.now().toEpochMilli() - signalDelayActivateTime > signalDelayMs;
     }
 
-    private boolean getIsConBo() {
+    public boolean getIsConBoPortions() {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        return settings.getArbScheme().isConBo()
+        return settings.getArbScheme() == ArbScheme.R_wait_L_portions
                 || bitmexChangeOnSoService.toConBoActive();
     }
 
@@ -1147,15 +1148,16 @@ public class ArbitrageService {
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(L_delta) L_block=%s R_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
-        final boolean isConBo = getIsConBo();
+        final ArbScheme arbScheme = bitmexChangeOnSoService.toConBoActive() ? ArbScheme.R_wait_L_portions : s.getArbScheme();
+        final boolean isConBo = arbScheme.isConBo();
         final OrderType rightOrderType = OrderType.BID;
         final OrderType leftOrderType = OrderType.ASK;
         final CompletableFuture<Void> rightOrder =
                 signalService.placeOrderOnSignal(rightMarketService, rightOrderType, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
+                        counterName, tradeId, isConBo, null, arbScheme, plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
         final CompletableFuture<Void> leftOrder =
                 signalService.placeOrderOnSignal(leftMarketService, leftOrderType, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
+                        counterName, tradeId, isConBo, null, arbScheme, plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 
@@ -1384,15 +1386,16 @@ public class ArbitrageService {
         slackNotifications.sendNotify(NotifyType.TRADE_SIGNAL, String.format("#%s TRADE_SIGNAL(R_delta) L_block=%s R_block=%s", counterName, b_block, o_block));
 
         // in scheme MT2 Okex should be the first
-        final boolean isConBo = getIsConBo();
+        final ArbScheme arbScheme = bitmexChangeOnSoService.toConBoActive() ? ArbScheme.R_wait_L_portions : s.getArbScheme();
+        final boolean isConBo = arbScheme.isConBo();
         final OrderType rightOrderType = OrderType.ASK;
         final OrderType leftOrderType = OrderType.BID;
         final CompletableFuture<Void> rightOrder =
                 signalService.placeOrderOnSignal(rightMarketService, rightOrderType, o_block, bestQuotes, dealPrices.getOkexPlacingType(),
-                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
+                        counterName, tradeId, isConBo, null, arbScheme, plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
         final CompletableFuture<Void> leftOrder =
                 signalService.placeOrderOnSignal(leftMarketService, leftOrderType, b_block, bestQuotes, dealPrices.getBtmPlacingType(),
-                        counterName, tradeId, isConBo, null, s.getArbScheme(), plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
+                        counterName, tradeId, isConBo, null, arbScheme, plBeforeBtm, tradingSignal.toBtmFokAutoArgs());
 
         setTimeoutAfterStartTrading();
 

@@ -19,4 +19,16 @@ public class Dql {
     private BigDecimal dqlLevel;
     private BigDecimal leftDqlKillPos;
     private BigDecimal rightDqlKillPos;
+
+    public BigDecimal getRightDqlKillPos() {
+        return rightDqlKillPos != null ? rightDqlKillPos : BigDecimal.ZERO;
+    }
+
+    public BigDecimal getRightDqlOpenMin() {
+        return rightDqlOpenMin != null ? rightDqlOpenMin : BigDecimal.ZERO;
+    }
+
+    public BigDecimal getRightDqlCloseMin() {
+        return rightDqlCloseMin != null ? rightDqlCloseMin : BigDecimal.ZERO;
+    }
 }
