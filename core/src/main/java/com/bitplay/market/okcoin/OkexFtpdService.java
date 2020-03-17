@@ -38,25 +38,24 @@ public class OkexFtpdService {
     }
 
     public BigDecimal createPriceForTaker(Order.OrderType orderType, OkcoinPriceRange okcoinPriceRange, OkexFtpd okexFtpd) {
-        if (bodMax == null || bodMin == null) {
-            return BigDecimal.ZERO;
-        }
         //Если bod_max < bod или bod_min < bod, то FTPD == 0, вне зависимости от выбранного типа pts или percent.
         final BigDecimal bod = okexFtpd.getOkexFtpdBod();
 
+        boolean isSellOrder = orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID;
+        BigDecimal bodOne = isSellOrder
+                ? bodMin
+                : bodMax; // orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK
         final BigDecimal ftpd;
-        if (bodMax.compareTo(bod) < 0 || bodMin.compareTo(bod) < 0) {
-            log.warn(String.format("ftpd=0 because bod_max=(%s)<bod(%s) or bod_min(%s)<bod(%s)", bodMax, bod, bodMin, bod));
+        if (bodOne == null || bodOne.compareTo(bod) < 0) {
+            log.warn(String.format("ftpd=0 because orderType=%s bod_min=%s, bod_max=%s => bod_one(%s)<bod(%s)",
+                    orderType, bodMin, bodMax, bodOne, bod));
             ftpd = BigDecimal.ZERO;
         } else if (okexFtpd.getOkexFtpdType() == OkexFtpdType.PTS) {
             ftpd = okexFtpd.getOkexFtpd();
         } else {
-            //else PERCENT
+            //PERCENT
             //FTPD_buy = bod_max * percent / 100;
             //FTPD_sell = bod_min * percent / 100;
-            BigDecimal bodOne = orderType == Order.OrderType.ASK || orderType == Order.OrderType.EXIT_BID
-                    ? bodMin
-                    : bodMax; // orderType == Order.OrderType.BID || orderType == Order.OrderType.EXIT_ASK
             ftpd = bodOne.multiply(okexFtpd.getOkexFtpd()).divide(BigDecimal.valueOf(100), 8, RoundingMode.HALF_UP);
         }
         return createPriceByFtpd(orderType, okcoinPriceRange, ftpd);
