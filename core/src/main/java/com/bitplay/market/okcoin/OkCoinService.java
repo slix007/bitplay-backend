@@ -2484,7 +2484,8 @@ public class OkCoinService extends MarketServicePreliq {
             dqlOpenMin = dql.getRightDqlOpenMin();
             dqlKillPos = dql.getRightDqlKillPos();
         }
-        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
+        final BigDecimal dqlLevel = dql.getDqlLevel();
+        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr(), dqlLevel);
     }
 
     /**

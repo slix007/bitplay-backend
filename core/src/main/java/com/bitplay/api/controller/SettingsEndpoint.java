@@ -15,7 +15,6 @@ import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractMode;
-import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.ManageType;
@@ -396,35 +395,7 @@ public class SettingsEndpoint {
             resetPreset = false;
         }
         if (settingsUpdate.getDql() != null) {
-            final Dql input = settingsUpdate.getDql();
-            if (input.getLeftMrLiq() != null) {
-                settings.getDql().setLeftMrLiq(input.getLeftMrLiq());
-            }
-            if (input.getRightMrLiq() != null) {
-                settings.getDql().setRightMrLiq(input.getRightMrLiq());
-            }
-            if (input.getLeftDqlOpenMin() != null) {
-                settings.getDql().setLeftDqlOpenMin(input.getLeftDqlOpenMin());
-            }
-            if (input.getRightDqlOpenMin() != null) {
-                settings.getDql().setRightDqlOpenMin(input.getRightDqlOpenMin());
-            }
-            if (input.getLeftDqlCloseMin() != null) {
-                settings.getDql().setLeftDqlCloseMin(input.getLeftDqlCloseMin());
-            }
-            if (input.getRightDqlCloseMin() != null) {
-                settings.getDql().setRightDqlCloseMin(input.getRightDqlCloseMin());
-            }
-
-            if (input.getLeftDqlKillPos() != null) {
-                settings.getDql().setLeftDqlKillPos(input.getLeftDqlKillPos());
-            }
-            if (input.getRightDqlKillPos() != null) {
-                settings.getDql().setRightDqlKillPos(input.getRightDqlKillPos());
-            }
-            if (input.getDqlLevel() != null) {
-                settings.getDql().setDqlLevel(input.getDqlLevel());
-            }
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getDql(), settings.getDql());
             settingsRepositoryService.saveSettings(settings);
         }
 

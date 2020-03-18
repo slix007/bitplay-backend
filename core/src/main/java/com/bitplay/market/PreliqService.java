@@ -5,7 +5,6 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.DqlState;
@@ -76,9 +75,18 @@ public class PreliqService {
             final CorrParams corrParams = persistenceService.fetchCorrParams();
             maxCountNotify(corrParams.getPreliq(), "preliq");
             maxCountNotify(corrParams.getKillpos(), "killpos");
+            final BigDecimal dqlLevel = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql().getDqlLevel();
+            final BigDecimal dqlCurr = liqInfo.getDqlCurr();
 
-            final DqlStateService dqlStateService = arbitrageService.getDqlStateService();
-            final DqlState marketDqlState = dqlStateService.updateDqlState(marketService.getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr());
+            final DqlState marketDqlState = arbitrageService.getDqlStateService().updateDqlState(marketService.getArbType(),
+                    dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
+
+            if (dqlCurr != null && dqlCurr.compareTo(dqlLevel) < 0) {
+                log.info(String.format("dtKillpos.stop() because dqlCurr(%s) < dqlLevel(%s)", dqlCurr, dqlLevel));
+                dtPreliq.stop();
+                dtKillpos.stop();
+                return;
+            }
 
             if (marketDqlState != DqlState.KILLPOS) {
                 if (corrParams.getKillpos().tryIncSuccessful(getName())) {

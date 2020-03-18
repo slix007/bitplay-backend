@@ -38,17 +38,21 @@ public class DqlStateService {
                 ;
     }
 
-    public DqlState updateDqlState(ArbType arbType, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateDqlState(ArbType arbType, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr,
+                                   BigDecimal dqlLevel) {
         if (arbType == ArbType.LEFT) {
-            return updateLeftDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
+            return updateLeftDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
         } else {
             return updateRightDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
         }
     }
 
-    public DqlState updateLeftDqlState(BigDecimal leftDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateLeftDqlState(BigDecimal leftDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr,
+                                       BigDecimal dqlLevel) {
         DqlState currState = this.leftState;
-        DqlState resState = defineDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        DqlState resState = dqlCurr != null && dqlCurr.compareTo(dqlLevel) < 0 // workaround when DQL is less zero
+                ? currState
+                : defineDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
         if (currState != resState) {
             log.info(String.format("left DqlState %s => %s", currState, resState));
         }
