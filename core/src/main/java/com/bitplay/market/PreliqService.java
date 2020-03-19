@@ -54,6 +54,11 @@ public class PreliqService {
             dtKillpos.stop();
             return;
         }
+        if (marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getManageType().isManual()) {
+            dtPreliq.stop();
+            dtKillpos.stop();
+            return;
+        }
 
         Instant start = Instant.now();
         try {
