@@ -524,6 +524,7 @@ public class PosDiffService {
                 || arbitrageService.getLeftMarketService() == null
                 || !arbitrageService.getLeftMarketService().isStarted()
                 || marketsStopped()
+                || settingsRepositoryService.getSettings().getManageType().isManual()
         ) {
             dtCorr.stop();
             dtExtraCorr.stop();
@@ -601,11 +602,9 @@ public class PosDiffService {
 
                 if (marketsReadyForAdj() && isAdjViolated(getDcMainSet())) {
 
-                    if (settings.getManageType().isAuto()) {
-                        doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
-                        dtAdj.stop();
-                        return true; // started
-                    } // else stay _ready_
+                    doCorrection(getHedgeAmountMainSet(), SignalType.ADJ);
+                    dtAdj.stop();
+                    return true; // started
 
                 } else {
                     dtAdj.stop();
@@ -718,11 +717,9 @@ public class PosDiffService {
                 // Second check
                 if (marketsReadyForCorr() && !isPosEqualByMaxAdj(getDcMainSet())) {
 
-                    if (settings.getManageType().isAuto()) {
-                        doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
-                        dtCorr.stop();
-                        return true; // started
-                    } // else stay _ready_
+                    doCorrection(getHedgeAmountMainSet(), SignalType.CORR);
+                    dtCorr.stop();
+                    return true; // started
 
                 } else {
                     dtCorr.stop();
@@ -776,11 +773,9 @@ public class PosDiffService {
                 // Second check
                 if (marketsReady() && !isPosEqualByMaxAdj(getDcExtraSet())) {
 
-                    if (settings.getManageType().isAuto()) {
-                        doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
-                        dtExtraCorr.stop();
-                        return true; // started
-                    } // else stay _ready_
+                    doCorrection(getHedgeAmountExtraSet(), SignalType.CORR_BTC);
+                    dtExtraCorr.stop();
+                    return true; // started
 
                 } else {
                     dtExtraCorr.stop();
