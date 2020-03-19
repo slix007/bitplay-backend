@@ -1484,6 +1484,10 @@ public class ArbitrageService {
             BigDecimal bM = leftAccount.getMargin();
             BigDecimal bA = leftAccount.getAvailable();
             BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+            // left okex btc
+            if (!leftMarketService.isBtm()) {
+                bELast = leftAccount.getELast() != null ? leftAccount.getELast() : BigDecimal.ZERO;
+            }
 
             BigDecimal oW = rightAccount.getWallet();
             BigDecimal oELast = rightAccount.getELast() != null ? rightAccount.getELast() : BigDecimal.ZERO;
@@ -1629,6 +1633,10 @@ public class ArbitrageService {
                 BigDecimal bM = leftAccount.getMargin();
                 BigDecimal bA = leftAccount.getAvailable();
                 BigDecimal coldStorageBtc = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageBtc();
+                // left okex btc
+                if (!leftMarketService.isBtm()) {
+                    bELast = leftAccount.getELast() != null ? leftAccount.getELast() : BigDecimal.ZERO;
+                }
 
                 final BigDecimal bP = leftMarketService.getPosVal();
                 final BigDecimal bLv = leftMarketService.getPos().getLeverage();
