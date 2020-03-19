@@ -43,16 +43,14 @@ public class DqlStateService {
         if (arbType == ArbType.LEFT) {
             return updateLeftDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
         } else {
-            return updateRightDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr);
+            return updateRightDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
         }
     }
 
     public DqlState updateLeftDqlState(BigDecimal leftDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr,
                                        BigDecimal dqlLevel) {
         DqlState currState = this.leftState;
-        DqlState resState = dqlCurr != null && dqlCurr.compareTo(dqlLevel) < 0 // workaround when DQL is less zero
-                ? currState
-                : defineDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr);
+        DqlState resState = defineDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, currState, dqlLevel);
         if (currState != resState) {
             log.info(String.format("left DqlState %s => %s", currState, resState));
         }
@@ -68,9 +66,9 @@ public class DqlStateService {
         return leftState;
     }
 
-    public DqlState updateRightDqlState(BigDecimal rightDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr) {
+    public DqlState updateRightDqlState(BigDecimal rightDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr, BigDecimal dqlLevel) {
         DqlState currState = this.rightState;
-        DqlState resState = defineDqlState(rightDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr);
+        DqlState resState = defineDqlState(rightDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, currState, dqlLevel);
         if (currState != resState) {
             log.info(String.format("right DqlState %s => %s", currState, resState));
         }
@@ -84,11 +82,13 @@ public class DqlStateService {
         return this.rightState;
     }
 
-    private DqlState defineDqlState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr) {
-        //TODO send event to check preliq/killpos
+    private DqlState defineDqlState(BigDecimal xDQLKillPos, BigDecimal xDQLOpenMin, BigDecimal xDQLCloseMin, BigDecimal dqlCurr, DqlState currState,
+                                    BigDecimal dqlLevel) {
         final DqlState resState;
         if (dqlCurr == null) {
             resState = DqlState.ANY_ORDERS;
+        } else if (dqlCurr.compareTo(dqlLevel) < 0) {
+            resState = currState;
         } else {
             if (dqlCurr.compareTo(xDQLOpenMin) >= 0) {
                 resState = DqlState.ANY_ORDERS;

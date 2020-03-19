@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.external.NotifyType;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.DqlState;
@@ -39,6 +40,7 @@ import static org.knowm.xchange.dto.Order.OrderType;
 public class PreliqService {
 
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+    private ThrottledWarn throttledLog = new ThrottledWarn(log, 30);
 
     private final MarketServicePreliq marketService;
 
@@ -82,7 +84,7 @@ public class PreliqService {
                     dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
 
             if (dqlCurr != null && dqlCurr.compareTo(dqlLevel) < 0) {
-                log.info(String.format("dtKillpos.stop() because dqlCurr(%s) < dqlLevel(%s)", dqlCurr, dqlLevel));
+                throttledLog.info(String.format("dtKillpos.stop() because dqlCurr(%s) < dqlLevel(%s)", dqlCurr, dqlLevel));
                 dtPreliq.stop();
                 dtKillpos.stop();
                 return;
