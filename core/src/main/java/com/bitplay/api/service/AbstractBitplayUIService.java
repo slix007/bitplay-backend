@@ -388,20 +388,25 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
     }
 
     public LiquidationInfoJson getLiquidationInfoJson() {
-        if (getBusinessService() == null) {
+        final T bs = getBusinessService();
+        if (bs == null) {
             return new LiquidationInfoJson("", "", "", "");
         }
-        final LiqInfo liqInfo = getBusinessService().getLiqInfo();
-        final LiqParams liqParams = getBusinessService().getPersistenceService().fetchLiqParams(getBusinessService().getNameWithType());
+        final LiqInfo liqInfo = bs.getLiqInfo();
+        final LiqParams liqParams = bs.getPersistenceService().fetchLiqParams(bs.getNameWithType());
         String dqlString = liqInfo.getDqlString();
-        String s = getBusinessService().getArbType().s();
+        final String s = bs.getArbType().s();
         if (dqlString != null && dqlString.startsWith(s + "_DQL = na")) {
             dqlString = s + "_DQL = na";
         }
         return new LiquidationInfoJson(dqlString,
                 liqInfo.getDmrlString(),
                 String.format("DQL: %s ... %s", liqParams.getDqlMin(), liqParams.getDqlMax()),
-                String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax())
+                String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax()),
+                liqInfo.getDqlStringExtra(),
+                liqInfo.getDmrlStringExtra(),
+                String.format("DQL_extra: %s ... %s", liqParams.getDqlMinExtra(), liqParams.getDqlMaxExtra()),
+                String.format("DMRL_extra: %s ... %s", liqParams.getDmrlMinExtra(), liqParams.getDmrlMaxExtra())
         );
     }
 

@@ -129,6 +129,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
@@ -2692,34 +2693,96 @@ public class BitmexService extends MarketServicePreliq {
                     dmrlString = "L_DMRL = na";
                 }
 
-                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
-                if (dql != null && dql.compareTo(DQL_WRONG) != 0) {
-                    if (liqParams.getDqlMax().compareTo(dql) < 0) {
-                        liqParams.setDqlMax(dql);
-                    }
-                    if (liqParams.getDqlMin().compareTo(dql) > 0) {
-                        liqParams.setDqlMin(dql);
-                    }
-                }
                 liqInfo.setDqlCurr(dql);
-
-                if (dmrl != null) {
-                    if (liqParams.getDmrlMax().compareTo(dmrl) < 0) {
-                        liqParams.setDmrlMax(dmrl);
-                    }
-                    if (liqParams.getDmrlMin().compareTo(dmrl) > 0) {
-                        liqParams.setDmrlMin(dmrl);
-                    }
-                }
                 liqInfo.setDmrlCurr(dmrl);
-
                 liqInfo.setDqlString(dqlString);
                 liqInfo.setDmrlString(dmrlString);
+
+                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
+                liqParams.updateDql(dql);
+                liqParams.updateDmrl(dmrl);
+
+                recalcLiqInfoExtra(liqParams);
 
                 storeLiqParams(liqParams); // race condition with resetLiqInfo() => user just have to reset one more time.
                 updateDqlState();
             }
         });
+    }
+
+    private void recalcLiqInfoExtra(LiqParams liqParams) {
+        if (!bitmexContractType.isEth()) {
+            return;
+        }
+        final AtomicReference<ContractIndex> contractIndex = this.btcContractIndex;
+        if (!(contractIndex.get() instanceof BitmexContractIndex)) {
+            // bitmex contract index is not updated yet. Skip the re-calc.
+            return;
+        }
+        final BitmexContractIndex bitmexContractIndex = (BitmexContractIndex) contractIndex.get();
+
+        final Pos position = this.posXBTUSD.get();
+        final AccountBalance account = getAccount();
+
+        final BigDecimal equity = account.getEMark();
+        final BigDecimal margin = account.getMargin();
+
+        final BigDecimal bMrliq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getLeftMrLiq();
+
+
+        final BigDecimal m = bitmexContractIndex.getMarkPrice();
+        final BigDecimal L = position.getLiquidationPrice();
+
+        if (equity != null && margin != null
+                && m != null
+                && L != null
+                && position.getPositionLong() != null
+                && position.getPositionShort() != null) {
+
+            BigDecimal dql = null;
+
+            String dqlString;
+            if (position.getPositionLong().signum() > 0) {
+                if (m.signum() > 0 && L.signum() > 0) {
+                    dql = m.subtract(L);
+                    dqlString = String.format("L_DQL_extra = m%s - L%s = %s", m, L, dql);
+                } else {
+                    dqlString = "L_DQL_extra = na";
+                    dql = null;
+                }
+            } else if (position.getPositionLong().signum() < 0) {
+                if (m.signum() > 0 && L.signum() > 0) {
+                    if (L.subtract(BigDecimal.valueOf(100000)).signum() < 0) {
+                        dql = L.subtract(m);
+                        dqlString = String.format("L_DQL_extra = L%s - m%s = %s", L, m, dql);
+                    } else {
+                        dqlString = "L_DQL_extra = na";
+                    }
+                } else {
+                    dqlString = "L_DQL_extra = na";
+                    dql = null;
+                }
+            } else {
+                dqlString = "L_DQL_extra = na";
+            }
+
+            BigDecimal dmrl = null;
+            String dmrlString;
+            if (margin.signum() > 0) {
+                final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                dmrl = bMr.subtract(bMrliq);
+                dmrlString = String.format("L_DMRL_extra = %s - %s = %s%%", bMr, bMrliq, dmrl);
+            } else {
+                dmrlString = "L_DMRL_extra = na";
+            }
+
+            liqParams.updateDqlExtra(dmrl);
+            liqParams.updateDmrlExtra(dmrl);
+
+            liqInfo.setDqlStringExtra(dqlString);
+            liqInfo.setDmrlStringExtra(dmrlString);
+        }
     }
 
     @Override

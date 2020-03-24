@@ -1,38 +1,30 @@
 package com.bitplay.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * Created by Sergey Shurmin on 7/17/17.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@AllArgsConstructor
+@Getter
 public class LiquidationInfoJson {
 
     private String dql; // Diff quote liq.
     private String dmrl; // diff margin rate liq.
     private String mmDql;
     private String mmDmrl;
+    private String dqlExtra; // Diff quote liq.
+    private String dmrlExtra; // diff margin rate liq.
+    private String mmDqlExtra;
+    private String mmDmrlExtra;
 
     public LiquidationInfoJson(String dql, String dmrl, String mmDql, String mmDmrl) {
         this.dql = dql;
         this.dmrl = dmrl;
         this.mmDql = mmDql;
         this.mmDmrl = mmDmrl;
-    }
-
-    public String getDql() {
-        return dql;
-    }
-
-    public String getDmrl() {
-        return dmrl;
-    }
-
-    public String getMmDql() {
-        return mmDql;
-    }
-
-    public String getMmDmrl() {
-        return mmDmrl;
     }
 }
