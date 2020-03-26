@@ -11,10 +11,10 @@ import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.settings.PlacingType;
+import lombok.RequiredArgsConstructor;
 import org.knowm.xchange.dto.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -22,13 +22,13 @@ import java.math.BigDecimal;
 /**
  * Created by Sergey Shurmin on 4/4/17.
  */
-@Component("OkCoin")
-public class BitplayUIServiceOkCoin extends AbstractBitplayUIService<MarketServicePreliq> {
+@Component
+@RequiredArgsConstructor
+public class RightUiService extends AbstractUiService<MarketServicePreliq> {
 
-    private static final Logger logger = LoggerFactory.getLogger(BitplayUIServiceOkCoin.class);
+    private static final Logger logger = LoggerFactory.getLogger(RightUiService.class);
 
-    @Autowired
-    private ArbitrageService arbitrageService;
+    private final ArbitrageService arbitrageService;
 
     @Override
     public MarketServicePreliq getBusinessService() {

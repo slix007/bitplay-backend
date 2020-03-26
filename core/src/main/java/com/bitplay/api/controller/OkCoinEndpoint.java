@@ -8,15 +8,15 @@ import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.ob.OrderBookJson;
 import com.bitplay.api.dto.ob.OrderJson;
-import com.bitplay.api.service.BitplayUIServiceOkCoin;
+import com.bitplay.api.service.RightUiService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.ex.OrderResultTiny;
+import lombok.RequiredArgsConstructor;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -35,14 +34,12 @@ import java.util.List;
 @Secured("ROLE_TRADER")
 @RestController
 @RequestMapping("/market")
+@RequiredArgsConstructor
 public class OkCoinEndpoint {
 
-    @Autowired
-    @Qualifier("OkCoin")
-    private BitplayUIServiceOkCoin okCoin;
+    private final RightUiService okCoin;
 
-    @Autowired
-    private ArbitrageService arbitrageService;
+    private final ArbitrageService arbitrageService;
 
     @RequestMapping(value = "/okcoin/raw-account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoContracts rawAccount() {

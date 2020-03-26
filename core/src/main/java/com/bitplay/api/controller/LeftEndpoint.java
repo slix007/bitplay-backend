@@ -8,13 +8,10 @@ import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.ob.OrderBookJson;
 import com.bitplay.api.dto.ob.OrderJson;
-import com.bitplay.api.service.BitplayUIServiceBitmex;
+import com.bitplay.api.service.LeftUiService;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import java.util.List;
-
 import com.bitplay.model.ex.OrderResultTiny;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,22 +20,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * Created by Sergey Shurmin on 4/3/17.
  */
 @Secured("ROLE_TRADER")
 @RestController
-@RequestMapping("/market/bitmex")
-public class BitmexEndpoint {
+@RequestMapping("/market/left")
+@RequiredArgsConstructor
+public class LeftEndpoint {
 
-    @Autowired
-    @Qualifier("Bitmex")
-    private BitplayUIServiceBitmex bitmex;
+    private final LeftUiService leftUiService;
 
     @RequestMapping(value = "/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson getOrderBook() {
         try {
-            return this.bitmex.getOrderBook();
+            return this.leftUiService.getOrderBook();
         } catch (NotYetInitializedException e) {
             return new OrderBookJson();
         }
@@ -46,7 +44,7 @@ public class BitmexEndpoint {
 
     @RequestMapping(value = "/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoJson getAccountInfo() {
-        return this.bitmex.getFullAccountInfo();
+        return this.leftUiService.getFullAccountInfo();
     }
 
     @RequestMapping(value = "/place-market-order",
@@ -55,12 +53,12 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson placeMarketOrder(@RequestBody TradeRequestJson tradeRequestJson) {
-        return this.bitmex.doTrade(tradeRequestJson);
+        return this.leftUiService.doTrade(tradeRequestJson);
     }
 
     @RequestMapping(value = "/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<OrderJson> openOrders() {
-        return this.bitmex.getOpenOrders();
+        return this.leftUiService.getOpenOrders();
     }
 
     @RequestMapping(value = "/open-orders/move",
@@ -69,7 +67,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrders(@RequestBody OrderJson orderJson) {
-        return this.bitmex.moveOpenOrder(orderJson);
+        return this.leftUiService.moveOpenOrder(orderJson);
     }
 
     @RequestMapping(value = "/custom-swap-time",
@@ -78,7 +76,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson setCustomSwapTime(@RequestBody ChangeRequestJson changeRequestJson) {
-        return this.bitmex.setCustomSwapTime(changeRequestJson);
+        return this.leftUiService.setCustomSwapTime(changeRequestJson);
     }
 
     @RequestMapping(value = "/reset-time-compare",
@@ -87,7 +85,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson resetTimeCompare() {
-        return this.bitmex.resetTimeCompare();
+        return this.leftUiService.resetTimeCompare();
     }
 
     @RequestMapping(value = "/update-time-compare-updating",
@@ -96,12 +94,12 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson updateTimeCompareUpdating(@RequestBody ChangeRequestJson changeRequestJson) {
-        return this.bitmex.updateTimeCompareUpdating(changeRequestJson);
+        return this.leftUiService.updateTimeCompareUpdating(changeRequestJson);
     }
 
     @RequestMapping(value = "/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public LiquidationInfoJson getLiquidationInfo() {
-        return this.bitmex.getLiquidationInfoJson();
+        return this.leftUiService.getLiquidationInfoJson();
     }
 
     @RequestMapping(value = "/liq-info",
@@ -110,7 +108,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public LiquidationInfoJson resetLiquidationInfo() {
-        return this.bitmex.resetLiquidationInfoJson();
+        return this.leftUiService.resetLiquidationInfoJson();
     }
 
     @RequestMapping(value = "/open-orders/cancel",
@@ -121,7 +119,7 @@ public class BitmexEndpoint {
     public ResultJson openOrdersCancel(@RequestBody OrderJson orderJson) {
         final String id = orderJson.getId();
 //        boolean cancelFromUI = this.bitmex.getBusinessService().cancelAllOrders("CancelFromUI");
-        final OrderResultTiny cancelResult = this.bitmex.getBusinessService().cancelOrderSync(id, "CancelFromUI");
+        final OrderResultTiny cancelResult = this.leftUiService.getBusinessService().cancelOrderSync(id, "CancelFromUI");
         return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getError_message());
 
     }
@@ -132,7 +130,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public ResultJson openOrdersCancelAll() {
-        final Integer qty = this.bitmex.getBusinessService().cancelAllPortions();
+        final Integer qty = this.leftUiService.getBusinessService().cancelAllPortions();
         return new ResultJson(qty + "_cancelled", "");
     }
 
@@ -142,7 +140,7 @@ public class BitmexEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public TradeResponseJson closeAllPos() {
-        return this.bitmex.closeAllPos();
+        return this.leftUiService.closeAllPos();
     }
 
 }

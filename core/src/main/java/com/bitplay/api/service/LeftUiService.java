@@ -4,38 +4,28 @@ import com.bitplay.api.dto.ChangeRequestJson;
 import com.bitplay.api.dto.ResultJson;
 import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
-import com.bitplay.api.dto.ob.FutureIndexJson;
-import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.settings.PlacingType;
-import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import lombok.RequiredArgsConstructor;
 import org.knowm.xchange.dto.Order;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
  */
-@Component("Bitmex")
+@Component("LeftUi")
 @RequiredArgsConstructor
-public class BitplayUIServiceBitmex extends AbstractBitplayUIService<MarketServicePreliq> {
+public class LeftUiService extends AbstractUiService<MarketServicePreliq> {
 
     private final ArbitrageService arbitrageService;
     private final BitmexTimeService bitmexTimeService;

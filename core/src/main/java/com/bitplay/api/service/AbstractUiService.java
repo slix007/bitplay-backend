@@ -64,7 +64,7 @@ import static com.bitplay.utils.Utils.timestampToStr;
 /**
  * Created by Sergey Shurmin on 3/25/17.
  */
-public abstract class AbstractBitplayUIService<T extends MarketService> {
+public abstract class AbstractUiService<T extends MarketService> {
 
     Function<LimitOrder, OrderJson> toOrderJson = o -> {
         String amountInBtc = "";

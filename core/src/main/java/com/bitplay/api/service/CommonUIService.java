@@ -32,7 +32,6 @@ import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
-import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.events.BtsEvent;
@@ -64,9 +63,9 @@ import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.TradingModeService;
 import com.bitplay.utils.Utils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -85,67 +84,28 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class CommonUIService {
 
-    @Autowired
-    private ArbitrageService arbitrageService;
-
-    @Autowired
-    private DqlStateService dqlStateService;
-
-    @Autowired
-    private TraderPermissionsService traderPermissionsService;
-
-    @Autowired
-    private DeltasCalcService deltasCalcService;
-
-    @Autowired
-    private BordersCalcScheduler bordersCalcScheduler;
-
-    @Autowired
-    private SettingsRepositoryService settingsRepositoryService;
-
-    @Autowired
-    private PersistenceService persistenceService;
-
-    @Autowired
-    private CumPersistenceService cumPersistenceService;
-
-    @Autowired
-    private BordersService bordersService;
-
-    @Autowired
-    private DeltaMinService deltaMinService;
-
-    @Autowired
-    private PosDiffService posDiffService;
-
-    @Autowired
-    private MonitoringDataService monitoringDataService;
-
-    @Autowired
-    private SignalTimeService signalTimeService;
-
-    @Autowired
-    private LastPriceDeviationService lastPriceDeviationService;
-
-    @Autowired
-    private SlackNotifications slackNotifications;
-
-    @Autowired
-    private TradingModeService tradingModeService;
-
-    @Autowired
-    private VolatileModeSwitcherService volatileModeSwitcherService;
-
-    @Autowired
-    private BitmexChangeOnSoService bitmexChangeOnSoService;
-
-    @Autowired
-    private OkexSettlementService okexSettlementService;
-
-    @Autowired
-    private NtUsdRecoveryService ntUsdRecoveryService;
+    private final ArbitrageService arbitrageService;
+    private final DqlStateService dqlStateService;
+    private final TraderPermissionsService traderPermissionsService;
+    private final DeltasCalcService deltasCalcService;
+    private final BordersCalcScheduler bordersCalcScheduler;
+    private final SettingsRepositoryService settingsRepositoryService;
+    private final PersistenceService persistenceService;
+    private final CumPersistenceService cumPersistenceService;
+    private final BordersService bordersService;
+    private final DeltaMinService deltaMinService;
+    private final PosDiffService posDiffService;
+    private final MonitoringDataService monitoringDataService;
+    private final SignalTimeService signalTimeService;
+    private final LastPriceDeviationService lastPriceDeviationService;
+    private final TradingModeService tradingModeService;
+    private final VolatileModeSwitcherService volatileModeSwitcherService;
+    private final BitmexChangeOnSoService bitmexChangeOnSoService;
+    private final OkexSettlementService okexSettlementService;
+    private final NtUsdRecoveryService ntUsdRecoveryService;
 
     public TradeLogJson getPoloniexTradeLog() {
         return getTradeLogJson("./logs/poloniex-trades.log");
@@ -421,40 +381,11 @@ public class CommonUIService {
     }
 
     private void setAffordableStatus(final SignalPartsJson signalPartsJson) {
-//        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
-
-//        BigDecimal btmBlock;
-//        BigDecimal okBlock;
-//        if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
-//            btmBlock = placingBlocks.getFixedBlockBitmex();
-//            okBlock = placingBlocks.getFixedBlockOkex();
-//        } else {
-//            // the minimum is 1 okex contract
-//            okBlock = BigDecimal.valueOf(1);
-//            final BigDecimal usd = PlacingBlocks.okexContToUsd(okBlock, placingBlocks.isEth());
-//            btmBlock = PlacingBlocks.toBitmexCont(usd, placingBlocks.isEth(), placingBlocks.getCm());
-//        }
-
-//        final BigDecimal posBtm = bitmexService.getPosition().getPositionLong().subtract(bitmexService.getPosition().getPositionShort());
-//        final BigDecimal posOk = okCoinService.getPosition().getPositionLong().subtract(okCoinService.getPosition().getPositionShort());
         final boolean isBtmAffordable = arbitrageService.isAffordableBitmex();
         final boolean isOkAffordable = arbitrageService.isAffordableOkex();
         signalPartsJson.setBtmAffordable(isBtmAffordable ? Status.OK : Status.WRONG);
         signalPartsJson.setOkAffordable(isOkAffordable ? Status.OK : Status.WRONG);
     }
-
-//    private boolean isAffordable(BigDecimal block, BigDecimal pos, MarketService marketService) {
-//        boolean isOk;
-//        if (pos.signum() > 0) {
-//            isOk = marketService.isAffordable(OrderType.BID, block);
-//        } else if (pos.signum() < 0) {
-//            isOk = marketService.isAffordable(OrderType.ASK, block);
-//        } else {
-//            isOk = marketService.isAffordable(OrderType.BID, block);
-//        }
-//        return isOk;
-//    }
-
 
     private DelayTimerJson getCorrDelay() {
         final Integer delaySec = settingsRepositoryService.getSettings().getPosAdjustment().getCorrDelaySec();
@@ -545,28 +476,8 @@ public class CommonUIService {
         }
         return new ResultJson(res, "");
     }
-//
-//    public TradableAmountJson getTradableAmount() {
-//        final PlacingBlocks placingBlocks = settingsRepositoryService.getSettings().getPlacingBlocks();
-//        return new TradableAmountJson(arbitrageService.getParams().getBlock1().toPlainString(),
-//                arbitrageService.getParams().getBlock2().toPlainString());
-//    }
-//
-//    public TradableAmountJson updateTradableAmount(TradableAmountJson tradableAmountJson) {
-//        if (tradableAmountJson.getBlock1() != null) {
-//            arbitrageService.getParams().setBlock1(new BigDecimal(tradableAmountJson.getBlock1()));
-//        }
-//        if (tradableAmountJson.getBlock2() != null) {
-//            arbitrageService.getParams().setBlock2(new BigDecimal(tradableAmountJson.getBlock2()));
-//        }
-//
-//        arbitrageService.saveParamsToDb();
-//        return new TradableAmountJson(arbitrageService.getParams().getBlock1().toPlainString(),
-//                arbitrageService.getParams().getBlock2().toPlainString());
-//    }
 
     public ResultJson printSumBal() {
-//        arbitrageService.printSumBal(null,"button");
         return new ResultJson("OK", "");
     }
 
