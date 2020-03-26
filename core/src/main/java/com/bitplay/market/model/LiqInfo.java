@@ -23,7 +23,6 @@ public class LiqInfo {
     private volatile String dmrlString;// Diff Margin Rate Liq.
 
     private volatile String dqlStringExtra;
-    private volatile String dmrlStringExtra;
 
     public BigDecimal getDqlCurr() {
         if (dqlCurr != null && dqlCurr.compareTo(DQL_WRONG) == 0) {
@@ -34,6 +33,6 @@ public class LiqInfo {
 
     @Override
     public LiqInfo clone() {
-        return new LiqInfo(dqlCurr, dmrlCurr, dqlString, dmrlString, dqlStringExtra, dmrlStringExtra);
+        return new LiqInfo(dqlCurr, dmrlCurr, dqlString, dmrlString, dqlStringExtra);
     }
 }

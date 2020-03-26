@@ -404,9 +404,7 @@ public abstract class AbstractBitplayUIService<T extends MarketService> {
                 String.format("DQL: %s ... %s", liqParams.getDqlMin(), liqParams.getDqlMax()),
                 String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax()),
                 liqInfo.getDqlStringExtra(),
-                liqInfo.getDmrlStringExtra(),
-                String.format("DQL_extra: %s ... %s", liqParams.getDqlMinExtra(), liqParams.getDqlMaxExtra()),
-                String.format("DMRL_extra: %s ... %s", liqParams.getDmrlMinExtra(), liqParams.getDmrlMaxExtra())
+                String.format("DQL_extra: %s ... %s", liqParams.getDqlMinExtra(), liqParams.getDqlMaxExtra())
         );
     }
 

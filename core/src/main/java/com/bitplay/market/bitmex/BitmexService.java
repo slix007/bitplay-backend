@@ -132,8 +132,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
-
 /**
  * Created by Sergey Shurmin on 4/29/17.
  */
@@ -2722,19 +2720,10 @@ public class BitmexService extends MarketServicePreliq {
         final BitmexContractIndex bitmexContractIndex = (BitmexContractIndex) contractIndex.get();
 
         final Pos position = this.posXBTUSD.get();
-        final AccountBalance account = getAccount();
-
-        final BigDecimal equity = account.getEMark();
-        final BigDecimal margin = account.getMargin();
-
-        final BigDecimal bMrliq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getLeftMrLiq();
-
-
         final BigDecimal m = bitmexContractIndex.getMarkPrice();
         final BigDecimal L = position.getLiquidationPrice();
 
-        if (equity != null && margin != null
-                && m != null
+        if (m != null
                 && L != null
                 && position.getPositionLong() != null
                 && position.getPositionShort() != null) {
@@ -2766,22 +2755,8 @@ public class BitmexService extends MarketServicePreliq {
                 dqlString = "L_DQL_extra = na";
             }
 
-            BigDecimal dmrl = null;
-            String dmrlString;
-            if (margin.signum() > 0) {
-                final BigDecimal bMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                        .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-                dmrl = bMr.subtract(bMrliq);
-                dmrlString = String.format("L_DMRL_extra = %s - %s = %s%%", bMr, bMrliq, dmrl);
-            } else {
-                dmrlString = "L_DMRL_extra = na";
-            }
-
-            liqParams.updateDqlExtra(dmrl);
-            liqParams.updateDmrlExtra(dmrl);
-
+            liqParams.updateDqlExtra(dql);
             liqInfo.setDqlStringExtra(dqlString);
-            liqInfo.setDmrlStringExtra(dmrlString);
         }
     }
 

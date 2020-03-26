@@ -27,11 +27,9 @@ public class LiqParams extends MarketDocument {
     private BigDecimal dmrlMax = BigDecimal.valueOf(-10000);
     private BigDecimal dqlMinExtra = BigDecimal.valueOf(10000);
     private BigDecimal dqlMaxExtra = BigDecimal.valueOf(-10000);
-    private BigDecimal dmrlMinExtra = BigDecimal.valueOf(10000);
-    private BigDecimal dmrlMaxExtra = BigDecimal.valueOf(-10000);
 
     public LiqParams clone() {
-        return new LiqParams(this.dqlMin, this.dqlMax, this.dmrlMin, this.dmrlMax, this.dqlMinExtra, this.dqlMaxExtra, this.dmrlMinExtra, this.dmrlMaxExtra);
+        return new LiqParams(this.dqlMin, this.dqlMax, this.dmrlMin, this.dmrlMax, this.dqlMinExtra, this.dqlMaxExtra);
     }
 
     private BigDecimal min(BigDecimal curr, BigDecimal v2) {
@@ -73,10 +71,4 @@ public class LiqParams extends MarketDocument {
         }
     }
 
-    public void updateDmrlExtra(BigDecimal dmrl) {
-        if (dmrl != null) {
-            dmrlMinExtra = min(dmrlMinExtra, dmrl);
-            dmrlMaxExtra = max(dmrlMaxExtra, dmrl);
-        }
-    }
 }

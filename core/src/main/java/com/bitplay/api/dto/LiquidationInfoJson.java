@@ -17,9 +17,7 @@ public class LiquidationInfoJson {
     private String mmDql;
     private String mmDmrl;
     private String dqlExtra; // Diff quote liq.
-    private String dmrlExtra; // diff margin rate liq.
     private String mmDqlExtra;
-    private String mmDmrlExtra;
 
     public LiquidationInfoJson(String dql, String dmrl, String mmDql, String mmDmrl) {
         this.dql = dql;

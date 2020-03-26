@@ -730,6 +730,8 @@ public abstract class MarketService extends MarketServiceWithState {
         liqParams.setDqlMax(BigDecimal.valueOf(-10000));
         liqParams.setDmrlMin(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(10000));
         liqParams.setDmrlMax(liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr() : BigDecimal.valueOf(-10000));
+        liqParams.setDqlMinExtra(BigDecimal.valueOf(10000));
+        liqParams.setDqlMaxExtra(BigDecimal.valueOf(-10000));
 
         storeLiqParams(liqParams); // race condition with recalcLiqInfo() => user just have to reset one more time.
         updateDqlState();
