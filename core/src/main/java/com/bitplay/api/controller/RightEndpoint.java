@@ -35,18 +35,18 @@ import java.util.List;
 @RestController
 @RequestMapping("/market")
 @RequiredArgsConstructor
-public class OkCoinEndpoint {
+public class RightEndpoint {
 
     private final RightUiService okCoin;
 
     private final ArbitrageService arbitrageService;
 
-    @RequestMapping(value = "/okcoin/raw-account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/right/raw-account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoContracts rawAccount() {
         return ((OkCoinService) arbitrageService.getRightMarketService()).getAccountApiV3();
     }
 
-    @RequestMapping(value = "/okcoin/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/right/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public OrderBookJson okCoinOrderBook() {
         try {
             return this.okCoin.getOrderBook();
@@ -55,12 +55,12 @@ public class OkCoinEndpoint {
         }
     }
 
-    @RequestMapping(value = "/okcoin/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/right/account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoJson getAccountInfo() {
         return this.okCoin.getFullAccountInfo();
     }
 
-    @RequestMapping(value = "/okcoin/place-market-order",
+    @RequestMapping(value = "/right/place-market-order",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -69,12 +69,12 @@ public class OkCoinEndpoint {
         return this.okCoin.doTrade(tradeRequestJson);
     }
 
-    @RequestMapping(value = "/okcoin/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/right/open-orders", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<OrderJson> openOrders() {
         return this.okCoin.getOpenOrders();
     }
 
-    @RequestMapping(value = "/okcoin/open-orders/move",
+    @RequestMapping(value = "/right/open-orders/move",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -83,7 +83,7 @@ public class OkCoinEndpoint {
         return this.okCoin.moveOpenOrder(orderJson);
     }
 
-    @RequestMapping(value = "/okcoin/open-orders/cancel",
+    @RequestMapping(value = "/right/open-orders/cancel",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -94,7 +94,7 @@ public class OkCoinEndpoint {
         return new ResultJson(String.valueOf(cancelResult.isResult()), cancelResult.getError_message());
     }
 
-    @RequestMapping(value = "/okcoin/open-orders/cancel-all",
+    @RequestMapping(value = "/right/open-orders/cancel-all",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -106,12 +106,12 @@ public class OkCoinEndpoint {
         return new ResultJson(qty + "_cancelled", "");
     }
 
-    @RequestMapping(value = "/okcoin/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/right/liq-info", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public LiquidationInfoJson getLiquidationInfo() {
         return this.okCoin.getLiquidationInfoJson();
     }
 
-    @RequestMapping(value = "/okcoin/liq-info",
+    @RequestMapping(value = "/right/liq-info",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -120,7 +120,7 @@ public class OkCoinEndpoint {
         return this.okCoin.resetLiquidationInfoJson();
     }
 
-    @RequestMapping(value = "/okcoin/close-all-pos",
+    @RequestMapping(value = "/right/close-all-pos",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -129,6 +129,7 @@ public class OkCoinEndpoint {
         return this.okCoin.closeAllPos();
     }
 
+    // both: left or right
     @RequestMapping(value = "/{arbType}/change-leverage",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
