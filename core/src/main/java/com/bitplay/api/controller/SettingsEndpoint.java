@@ -60,27 +60,11 @@ public class SettingsEndpoint {
     private final SettingsCorrEndpoint settingsCorrEndpoint;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
 
-    /**
-     * The only method that works without @PreAuthorize("hasPermission(null, 'e_best_min-check')")
-     */
-/*    @RequestMapping(value = "/reload-e-best-min",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public SumBalJson reloadSumEBestMin() {
-        config.reload();
-        final Settings settings = settingsRepositoryService.getSettings();
-        final String sumEBestMin = settings.getEBestMin().toString();
-        final String coldStorage = settings.getColdStorageBtc().toPlainString();
-        final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
-        return new SumBalJson("", "", sumEBestMin, timeToForbidden, coldStorage);
-    }
-*/
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings getSettings() {
         Settings settings = new Settings();
         try {
-            settings = settingsRepositoryService.getSettings();
+            settings = getFullSettings();
 
             setTransientFields(settings);
 
@@ -88,6 +72,12 @@ public class SettingsEndpoint {
             final String error = String.format("Failed to get settings %s", e.toString());
             logger.error(error, e);
         }
+        return settings;
+    }
+
+    private Settings getFullSettings() {
+        final Settings settings = settingsRepositoryService.getSettings();
+        setTransientFields(settings);
         return settings;
     }
 
@@ -609,7 +599,7 @@ public class SettingsEndpoint {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public Settings toggleMovingStop() {
-        final Settings settings = settingsRepositoryService.getSettings();
+        final Settings settings = getFullSettings();
         final EnumSet<ExtraFlag> extraFlags = settings.getExtraFlags();
         if (extraFlags.contains(ExtraFlag.STOP_MOVING)) {
             extraFlags.remove(ExtraFlag.STOP_MOVING);
@@ -623,7 +613,7 @@ public class SettingsEndpoint {
     @Secured("ROLE_ADMIN")
     @RequestMapping(value = "/all-admin", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings updateAdminSettings(@RequestBody Settings settingsUpdate) {
-        final Settings settings = settingsRepositoryService.getSettings();
+        final Settings settings = getFullSettings();
         if (settingsUpdate.getColdStorageBtc() != null) {
             settings.setColdStorageBtc(settingsUpdate.getColdStorageBtc());
             settingsRepositoryService.saveSettings(settings);
