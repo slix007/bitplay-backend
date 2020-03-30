@@ -109,6 +109,7 @@ public enum OkexContractType implements ContractType {
         );
     }
 
+    @Override
     public boolean isEth() {
         return this.name().startsWith("ETH");
     }
@@ -123,5 +124,8 @@ public enum OkexContractType implements ContractType {
         return name();
     }
 
+    public boolean isNotSwap() {
+        return this.getFuturesContract() != FuturesContract.Swap;
+    }
 
 }

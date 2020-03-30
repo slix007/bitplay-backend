@@ -1,5 +1,6 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.Config;
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
@@ -64,6 +65,7 @@ import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Dql;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -162,6 +164,8 @@ public class ArbitrageService {
     private ApplicationEventPublisher applicationEventPublisher;
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
+    @Autowired
+    private Config config;
 
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
@@ -1463,6 +1467,23 @@ public class ArbitrageService {
         return fplayTrade;
     }
 
+    private boolean okexTheSameFutureAccount() {
+        final boolean bothOkex = !leftMarketService.isBtm();
+        if (bothOkex) {
+            final OkexContractType lc = (OkexContractType) leftMarketService.getContractType();
+            final OkexContractType rc = (OkexContractType) rightMarketService.getContractType();
+            if (lc.isNotSwap() && rc.isNotSwap()) {
+                final boolean keyEquals = config.getOkexLeftMarketExKey().equals(config.getOkexMarketExKey());
+                final boolean passEquals = config.getOkexLeftMarketExPassphrase().equals(config.getOkexMarketExPassphrase());
+                final boolean secretEquals = config.getOkexLeftMarketExSecret().equals(config.getOkexMarketExSecret());
+                if (keyEquals && passEquals && secretEquals) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @SuppressWarnings("Duplicates")
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
     public void calcSumBalForGui() {
@@ -1535,6 +1556,16 @@ public class ArbitrageService {
                     bA = bA.multiply(ethBtcBid2);
                     coldStorageBtc = BigDecimal.ZERO;
                 }
+            }
+            // workaround one okex account for left and right
+            if (okexTheSameFutureAccount()) {
+                oW = BigDecimal.ZERO;
+                oELast = BigDecimal.ZERO;
+                oEbestWithColdStorageEth = BigDecimal.ZERO;
+                oEAvg = BigDecimal.ZERO;
+                oU = BigDecimal.ZERO;
+                oM = BigDecimal.ZERO;
+                oA = BigDecimal.ZERO;
             }
 
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
@@ -1741,6 +1772,17 @@ public class ArbitrageService {
                         oBestBid,
                         usdQuote.toPlainString()
                 ));
+
+                // workaround one okex account for left and right
+                if (okexTheSameFutureAccount()) {
+                    oW = BigDecimal.ZERO;
+                    oElast = BigDecimal.ZERO;
+                    oEbestWithColdStorageEth = BigDecimal.ZERO;
+                    oEavg = BigDecimal.ZERO;
+                    oU = BigDecimal.ZERO;
+                    oM = BigDecimal.ZERO;
+                    oA = BigDecimal.ZERO;
+                }
 
                 final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumE = bELast.add(oElast).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
