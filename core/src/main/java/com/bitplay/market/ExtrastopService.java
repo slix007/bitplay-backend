@@ -147,8 +147,8 @@ public class ExtrastopService {
         final Date oT = oOB.getTimeStamp();
         details = "";
 
-        long bDiffSec = getDiffSec(bT, "Bitmex");
-        long oDiffSec = getDiffSec(oT, "Okex");
+        long bDiffSec = getDiffSec(bT, arbitrageService.getLeftMarketService().isBtm() ? "L_bitmex" : "L_okex");
+        long oDiffSec = getDiffSec(oT, "R_okex");
         monRestart.addBTimestampDelay(BigDecimal.valueOf(bDiffSec));
         monRestart.addOTimestampDelay(BigDecimal.valueOf(oDiffSec));
         monitoringDataService.saveRestartMonitoring(monRestart);
@@ -160,6 +160,10 @@ public class ExtrastopService {
         if (okexSettlementService.isSettlementMode()) {
             oWrong = false;
             isODiff = false;
+            if (!arbitrageService.getLeftMarketService().isBtm()) {
+                bWrong = false;
+                isBDiff = false;
+            }
         }
 
         boolean isHanged = false;
@@ -184,21 +188,24 @@ public class ExtrastopService {
     }
 
     private boolean isHangedExtra(Settings settings, Integer maxGap) {
+        if (!arbitrageService.getLeftMarketService().isBtm()) {
+            return false;
+        }
         boolean isHanged = false;
         final OrderBook bOBExtra = arbitrageService.getLeftMarketService().getOrderBookXBTUSD();
         final Date bTExtra = getBitmexOrderBook3BestTimestamp(bOBExtra); // bitmexService.getOrderBookLastTimestamp();
-        long bDiffSecExtra = getDiffSec(bTExtra, "Bitmex-XBTUSD");
+        long bDiffSecExtra = getDiffSec(bTExtra, "L_bitmex-XBTUSD");
         boolean bWrongExtra = isOrderBookPricesWrong(bOBExtra);
         boolean isBDiffExtra = bDiffSecExtra > maxGap;
         if (bWrongExtra || isBDiffExtra) {
-            details += String.format("Bitmex-XBTUSD extraSet maxTimestampDelay(maxDiff)=%s, b_XBTUSD_bid_more_ask=%s,",
+            details += String.format("L_bitmex-XBTUSD extraSet maxTimestampDelay(maxDiff)=%s, b_XBTUSD_bid_more_ask=%s,",
                     settings.getRestartSettings().getMaxTimestampDelay(),
                     bWrongExtra);
             warningLogger.warn(details);
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
             warningLogger.warn(String.format("now time is %s ", sdf.format(new Date())));
-            Utils.getBestBids(bOBExtra, 3).forEach(item -> printItem("bitmex-XBTUSD", item));
-            Utils.getBestAsks(bOBExtra, 3).forEach(item -> printItem("bitmex-XBTUSD", item));
+            Utils.getBestBids(bOBExtra, 3).forEach(item -> printItem("L_bitmex-XBTUSD", item));
+            Utils.getBestAsks(bOBExtra, 3).forEach(item -> printItem("L_bitmex-XBTUSD", item));
 
             isHanged = true;
         }
