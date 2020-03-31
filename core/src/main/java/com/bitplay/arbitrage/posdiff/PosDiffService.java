@@ -1651,7 +1651,7 @@ public class PosDiffService {
     }
 
     private BigDecimal getDcExtraSet() {
-        if (!arbitrageService.isEth()) {
+        if (!arbitrageService.isEth() || !arbitrageService.getLeftMarketService().isBtm()) {
             return BigDecimal.ZERO;
         }
         final BigDecimal hedgeAmountUsd = getHedgeAmountExtraSet();

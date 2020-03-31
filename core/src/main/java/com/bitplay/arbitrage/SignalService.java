@@ -37,7 +37,7 @@ public class SignalService {
                                                       PlacingType placingType, String counterName, Long tradeId,
                                                       boolean isConBo, Integer portionsQty,
                                                       ArbScheme arbScheme, PlBefore beforeSignalMetrics, BtmFokAutoArgs btmFokAutoArgs) {
-        CompletableFuture<Void> promise = CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> promise;
         if (marketService.getArbType() == ArbType.LEFT) {
             // bitmex or okex
             promise = placeLeftOrderOnSignal(marketService, orderType, block, bestQuotes, placingType, counterName, tradeId, isConBo,

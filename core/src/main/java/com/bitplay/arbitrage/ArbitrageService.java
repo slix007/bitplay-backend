@@ -1940,7 +1940,7 @@ public class ArbitrageService {
     public String getExtraSetStr() {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         final MarketService left = getLeftMarketService();
-        if (left.getContractType().isEth()) {
+        if (left.getContractType().isEth() && left.isBtm()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal b_pos_usd = left.getHbPosUsd();
             final BigDecimal hb_usd = hedgeService.getHedgeBtc();
@@ -1976,9 +1976,10 @@ public class ArbitrageService {
     public String getExtraSetSource() {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
-        if (getLeftMarketService().getContractType().isEth()) {
+        final MarketServicePreliq left = getLeftMarketService();
+        if (left.getContractType().isEth() && left.isBtm()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-            final BigDecimal bP = getLeftMarketService().getHbPosUsd();
+            final BigDecimal bP = left.getHbPosUsd();
             return String.format("%s, %s, cont: L(%s) R(+0, -0). ",
                     settings.getContractMode().getModeName(),
                     "set_bu10",
