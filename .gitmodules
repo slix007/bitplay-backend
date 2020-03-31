@@ -1,8 +1,8 @@
 [submodule "xchange-stream"]
 	path = xchange-stream
-	url = https://github.com/slix007/xchange-stream.git
+	url = https://gitlab.com/mbfplay/xchange-stream.git
 	branch = okex-v3-bts
 [submodule "XChange"]
 	path = XChange
-	url = https://github.com/slix007/XChange.git
+	url = https://gitlab.com/mbfplay/xchange.git
   branch = bitplay-changes
