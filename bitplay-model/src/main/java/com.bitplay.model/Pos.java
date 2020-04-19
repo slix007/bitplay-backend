@@ -50,6 +50,10 @@ public class Pos {
         return new Pos(null, null, null, BigDecimal.ZERO);
     }
 
+    public static Pos posForTests(BigDecimal posLong) {
+        return new Pos(posLong, null, null, BigDecimal.ZERO);
+    }
+
     public Pos(BigDecimal positionLong, BigDecimal positionShort,
             BigDecimal longAvailToClose, BigDecimal shortAvailToClose,
             BigDecimal leverage, BigDecimal liquidationPrice, BigDecimal markValue,

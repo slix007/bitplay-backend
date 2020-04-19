@@ -710,9 +710,10 @@ public class ArbitrageService {
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
                                     PlBefore plBeforeBtm) {
 
-        final BigDecimal bP = leftMarketService.getPosVal();
-        final BigDecimal oPL = rightMarketService.getPos().getPositionLong();
-        final BigDecimal oPS = rightMarketService.getPos().getPositionShort();
+        final Pos leftPos = leftMarketService.getPos();
+        final Pos rightPos = rightMarketService.getPos();
+        final BigDecimal oPL = rightPos.getPositionLong();
+        final BigDecimal oPS = rightPos.getPositionShort();
 
         BorderParams borderParams = bordersService.getBorderParams();
         BigDecimal defaultMax = BigDecimal.valueOf(9999);
@@ -726,7 +727,7 @@ public class ArbitrageService {
 
         } else if (borderParams != null && borderParams.getActiveVersion() == Ver.V2) {
 
-            if (bordersV2(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, bP, oPL, oPS, borderParams, btmMaxDelta, okMaxDelta, plBeforeBtm)) {
+            if (bordersV2(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, leftPos, oPL, oPS, borderParams, btmMaxDelta, okMaxDelta, plBeforeBtm)) {
                 return;
             }
         } else {
@@ -736,7 +737,7 @@ public class ArbitrageService {
         return;
     }
 
-    private boolean bordersV2(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, BigDecimal bP,
+    private boolean bordersV2(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, Pos leftPos,
                               BigDecimal oPL, BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
                               PlBefore plBeforeBtm) {
         BigDecimal defaultMax;
@@ -746,7 +747,7 @@ public class ArbitrageService {
         final Affordable firstAffordable = leftMarketService.recalcAffordable();
         final Affordable secondAffordable = rightMarketService.recalcAffordable();
         TradingSignal tradingSignal;
-        tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs, firstAffordable,
+        tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, leftPos, oPL, oPS, withWarningLogs, firstAffordable,
                 secondAffordable);
         tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
 
@@ -756,7 +757,7 @@ public class ArbitrageService {
             defaultMax = BigDecimal.valueOf(9999);
             btmMaxDelta = borderParams.getBtmMaxDelta() == null ? defaultMax : borderParams.getBtmMaxDelta();
             okMaxDelta = borderParams.getOkMaxDelta() == null ? defaultMax : borderParams.getOkMaxDelta();
-            tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, bP, oPL, oPS, withWarningLogs, firstAffordable,
+            tradingSignal = bordersService.checkBorders(bitmexOrderBook, okCoinOrderBook, delta1, delta2, leftPos, oPL, oPS, withWarningLogs, firstAffordable,
                     secondAffordable);
             tradingSignal = applyMaxDelta(tradingSignal, btmMaxDelta, okMaxDelta, borderParams.getOnlyOpen());
         }

@@ -2,7 +2,10 @@ package com.bitplay.arbitrage;
 
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.dto.DiffFactBr;
+import com.bitplay.market.MarketService;
+import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.model.Affordable;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.borders.BorderItem;
@@ -161,6 +164,8 @@ public class BordersServiceTest {
 
         when(arbitrageService.isEth()).thenReturn(false);
         when(arbitrageService.getCm()).thenReturn(BigDecimal.valueOf(100));
+        final BitmexService bitmexService = new BitmexService();
+        when(arbitrageService.getLeftMarketService()).thenReturn(bitmexService);
     }
 
     /** like Ex.2 */
@@ -529,7 +534,7 @@ public class BordersServiceTest {
         final BigDecimal oPS = BigDecimal.valueOf(3);
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, Pos.posForTests(bP), oPL, oPS, true,
                 firstAffordable, secondAffordable);
 
         System.out.println(signal.toString());
@@ -559,7 +564,7 @@ public class BordersServiceTest {
         final BigDecimal oPS = BigDecimal.valueOf(3);
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, Pos.posForTests(bP), oPL, oPS, true,
                 firstAffordable, secondAffordable);
 
         System.out.println(signal.toString());
@@ -589,7 +594,7 @@ public class BordersServiceTest {
         final BigDecimal oPS = BigDecimal.valueOf(3);
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, Pos.posForTests(bP), oPL, oPS, true,
                 firstAffordable, secondAffordable);
 
         System.out.println(signal.toString());
@@ -618,7 +623,7 @@ public class BordersServiceTest {
         final BigDecimal oPS = BigDecimal.valueOf(3);
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, Pos.posForTests(bP), oPL, oPS, true,
                 firstAffordable, secondAffordable);
 
         System.out.println(signal.toString());
@@ -647,7 +652,7 @@ public class BordersServiceTest {
         final BigDecimal oPS = BigDecimal.valueOf(3);
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(15));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
-        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, bP, oPL, oPS, true,
+        final BordersService.TradingSignal signal = bordersService.checkBorders(bOb, oOb, delta1, delta2, Pos.posForTests(bP), oPL, oPS, true,
                 firstAffordable, secondAffordable);
 
         System.out.println(signal.toString());

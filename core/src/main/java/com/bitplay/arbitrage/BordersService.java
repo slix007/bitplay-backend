@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BtmFokAutoArgs;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -163,10 +164,11 @@ public class BordersService {
             BigDecimal oPS) {
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
-        return checkBorders(bitmexOrderBook, okexOrderBook, b_delta, o_delta, bP, oPL, oPS, true, firstAffordable, secondAffordable);
+        final Pos leftPos = Pos.posForTests(bP);
+        return checkBorders(bitmexOrderBook, okexOrderBook, b_delta, o_delta, leftPos, oPL, oPS, true, firstAffordable, secondAffordable);
     }
 
-    public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP, BigDecimal oPL,
+    public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, Pos leftPos, BigDecimal oPL,
             BigDecimal oPS, boolean withLogs, Affordable bitmexAffordable, Affordable okexAffordable) {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         BigDecimal cm = placingBlocks.getCm();
@@ -188,7 +190,7 @@ public class BordersService {
             } else {
                 throw new IllegalStateException("Unhandled placingBlocks version: " + placingBlocks.getActiveVersion());
             }
-            pos = bP.intValueExact();
+            pos = leftPos.getPositionLong().intValueExact() - leftPos.getPositionShort().intValueExact();
         } else {
             if (placingBlocks.getActiveVersion() == PlacingBlocks.Ver.FIXED) {
                 block = placingBlocks.getFixedBlockOkex().intValueExact();
@@ -230,7 +232,35 @@ public class BordersService {
             if (obOpenSignal != null) signal = obOpenSignal;
         }
 
-        // Decrease by current position
+        if (!arbitrageService.getLeftMarketService().isBtm()) {
+            signal = decreaseByZeroCrossLeft(leftPos, placingBlocks, cm, signal);
+        }
+        signal = decreaseByZeroCrossRight(oPL, oPS, placingBlocks, cm, signal);
+
+        return signal != null ? signal : TradingSignal.none();
+    }
+
+    private TradingSignal decreaseByZeroCrossLeft(Pos leftPos, PlacingBlocks placingBlocks, BigDecimal cm, TradingSignal signal) {
+        final BigDecimal pL = leftPos.getPositionLong();
+        final BigDecimal pS = leftPos.getPositionShort();
+        // Decrease by current position. Left okex through zero
+        if (signal != null && signal.tradeType == TradeType.DELTA1_B_SELL_O_BUY
+                && pL.intValueExact() > 0 && signal.bitmexBlock > pL.intValueExact()) {
+            signal = new TradingSignal(signal.tradeType, pL.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList,
+                    signal.deltaVal,
+                    placingBlocks.getActiveVersion(), cm, signal.blockOnceWarn);
+        }
+        if (signal != null && signal.tradeType == TradeType.DELTA2_B_BUY_O_SELL
+                && pS.intValueExact() > 0 && signal.bitmexBlock > pS.intValueExact()) {
+            signal = new TradingSignal(signal.tradeType, pS.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList,
+                    signal.deltaVal,
+                    placingBlocks.getActiveVersion(), cm, signal.blockOnceWarn);
+        }
+        return signal;
+    }
+
+    private TradingSignal decreaseByZeroCrossRight(BigDecimal oPL, BigDecimal oPS, PlacingBlocks placingBlocks, BigDecimal cm, TradingSignal signal) {
+        // Decrease by current position. Right okex through zero
         if (signal != null && signal.tradeType == TradeType.DELTA1_B_SELL_O_BUY
                 && oPS.intValueExact() > 0 && signal.okexBlock > oPS.intValueExact()) {
             signal = new TradingSignal(signal.tradeType, oPS.intValueExact(), signal.borderName, signal.borderValue, signal.borderValueList,
@@ -243,8 +273,7 @@ public class BordersService {
                     signal.deltaVal,
                     placingBlocks.getActiveVersion(), cm, signal.blockOnceWarn);
         }
-
-        return signal != null ? signal : TradingSignal.none();
+        return signal;
     }
 
     @SuppressWarnings("Duplicates")
