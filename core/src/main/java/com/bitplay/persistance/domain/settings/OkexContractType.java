@@ -9,6 +9,9 @@ import org.knowm.xchange.okcoin.FuturesContract;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @Getter
@@ -130,4 +133,11 @@ public enum OkexContractType implements ContractType {
         return this.getFuturesContract() != FuturesContract.Swap;
     }
 
+    public static Map<String, String> getNameToContractName() {
+        final Map<String, String> map = new HashMap<>();
+        for (OkexContractType value : OkexContractType.values()) {
+            map.put(value.getName(), value.getContractName());
+        }
+        return map;
+    }
 }

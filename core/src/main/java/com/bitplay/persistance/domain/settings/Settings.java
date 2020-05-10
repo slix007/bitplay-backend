@@ -17,6 +17,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 11/27/17.
@@ -70,6 +72,8 @@ public class Settings extends AbstractDocument {
     private ContractMode contractMode;
     @Transient
     private ContractMode contractModeCurrent; // only for UI
+    @Transient
+    private Map<String, String> okexContractNames = new HashMap<>(); // only for UI. enumName to contractNameWithExpDate
 
     private BigDecimal hedgeBtc;
     private BigDecimal hedgeEth;

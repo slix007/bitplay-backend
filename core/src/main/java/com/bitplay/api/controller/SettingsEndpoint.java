@@ -18,6 +18,7 @@ import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.Limits;
 import com.bitplay.persistance.domain.settings.ManageType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.RestartSettings;
@@ -92,6 +93,8 @@ public class SettingsEndpoint {
         final ContractMode contractMode = ContractMode.parse(left.getFuturesContractName(), right.getFuturesContractName());
         settings.setContractModeCurrent(contractMode);
 //        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
+        // okex
+        settings.setOkexContractNames(OkexContractType.getNameToContractName());
 
         // Corr
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();

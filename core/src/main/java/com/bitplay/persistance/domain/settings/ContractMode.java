@@ -45,55 +45,8 @@ public class ContractMode {
         return getModeName();
     }
 
-    //    private String mainSetName;
-//    private BitmexContractType bitmexContractType;
-//    private OkexContractType okexContractType;
-
-//    public enum ContractModeSet {
-//        set_bu11,
-//        set_bu10,
-//        set_bu12,
-//        set_bu23,
-//        set_eu11,
-//        set_eu12,
-//    }
-    //Mod #1 - set_bu11; // set_bu11 пишется справа от Model #1
-    //Mod #2 - set_bu12;
-    //Mod #3 - set_bu23;
-    //Mod #4 - set_bu10 + set_eu11;
-    //Mod #5 - set_bu10 + set_eu12;
-
-    //set_bu11: b = XBTUSD, o = BTC_W (BTC##), hedge_btc
-    //set_bu10: b = XBTUSD, o = null, hedge_btc
-    //set_bu12: b = XBTUSD, o = BTC_BW (BTC##), hedge_btc
-    //set_bu23: b = XBT_Q, o = BTC_Q (BTC##), hedge_btc
-    //set_eu11: b = ETHUSD, o = ETH_W, hedge_eth
-    //set_eu12: b = ETHUSD, o = ETH_BW, hedge_eth
-
-//    public static ContractMode parse(String left, String right) {
-//        BitmexContractType bitmexContractType = BitmexContractType.valueOf(bitmex);
-//        OkexContractType okexContractType = OkexContractType.valueOf(okex);
-//        return ContractMode.parse(bitmexContractType, okexContractType);
-//    }
-//
-//    public static ContractMode parse(BitmexContractType bitmexContractType, OkexContractType okexContractType) {
-//        for (ContractMode value : ContractMode.values()) {
-//            if (value.bitmexContractType == bitmexContractType
-//                    && value.okexContractType == okexContractType) {
-//                return value;
-//            }
-//        }
-//        throw new IllegalArgumentException(String.format("Unknown mode bitmexContractType=%s, okexContractType=%s",
-//                bitmexContractType,
-//                okexContractType));
-//    }
-
     public boolean isEth() {
         return left.isEth() || right.isEth();
-    }
-
-    public String getExtraSetName() {
-        return isEth() ? "set_bu10" : "";
     }
 
     public Integer getModeScale() {
