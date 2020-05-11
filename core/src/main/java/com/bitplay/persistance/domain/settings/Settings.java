@@ -103,6 +103,8 @@ public class Settings extends AbstractDocument {
 
     private ConBoPortions conBoPortions;
 
+    private BitmexContractTypes bitmexContractTypes;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.manageType = ManageType.AUTO;
@@ -135,6 +137,7 @@ public class Settings extends AbstractDocument {
         settings.bitmexObType = BitmexObType.INCREMENTAL_25;
         settings.okexSettlement = OkexSettlement.createDefault();
         settings.conBoPortions = ConBoPortions.createDefault();
+        settings.bitmexContractTypes = BitmexContractTypes.createDefault();
         settings.setId(1L);
         return settings;
     }

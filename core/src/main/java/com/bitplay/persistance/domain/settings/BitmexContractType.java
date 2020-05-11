@@ -11,20 +11,16 @@ import java.math.BigDecimal;
 @Getter
 public enum BitmexContractType implements ContractType {
 
-    XBTUSD(new CurrencyPair("XBT", "USD"), BigDecimal.valueOf(0.5), 1),
-//    XBTH18(new CurrencyPair("XBT", "H18")),
-    XBT7D_D95(new CurrencyPair("XBT", "7D_D95"), BigDecimal.valueOf(0.5), 1),
-    XBT7D_U105(new CurrencyPair("XBT", "7D_U105"), BigDecimal.valueOf(0.5), 1),
-    XBTU18(new CurrencyPair("XBT", "U18"), BigDecimal.valueOf(0.5), 1),
-    XBTZ18(new CurrencyPair("XBT", "Z18"), BigDecimal.valueOf(0.5), 1),
-    XBTZ19(new CurrencyPair("XBT", "Z19"), BigDecimal.valueOf(0.5), 1),
-    XBTH20(new CurrencyPair("XBT", "H20"), BigDecimal.valueOf(0.5), 1),
-    XBTM20(new CurrencyPair("XBT", "M20"), BigDecimal.valueOf(0.5), 1),
-    ETHUSD(new CurrencyPair("ETH", "USD"), BigDecimal.valueOf(0.05), 2),
-    ETHU18(new CurrencyPair("ETH", "U18"), BigDecimal.valueOf(0.05), 2),
+    XBTUSD_Perpetual("XBT", BigDecimal.valueOf(0.5), 1),
+    XBTUSD_NextWeek("XBT", BigDecimal.valueOf(0.5), 1),
+    XBTUSD_Quoter("XBT", BigDecimal.valueOf(0.5), 1),
+    XBTUSD_BiQuoter("XBT", BigDecimal.valueOf(0.5), 1),
+    ETHUSD_Perpetual("XBT", BigDecimal.valueOf(0.05), 2),
+    ETHUSD_NextWeek("XBT", BigDecimal.valueOf(0.05), 2),
     ;
 
-    private CurrencyPair currencyPair;
+//    private CurrencyPair currencyPair;
+    private String firstCurrency; // XBT, ETH
     private BigDecimal tickSize;
     private Integer scale;
 
@@ -42,6 +38,10 @@ public enum BitmexContractType implements ContractType {
             }
         }
         return resultType;
+    }
+
+    public CurrencyPair getCurrencyPair() {
+        throw new IllegalArgumentException("Use Settings.getBitmexCurrencyPair");
     }
 
     public String getSymbol() {
