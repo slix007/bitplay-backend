@@ -26,6 +26,6 @@ public enum ArbScheme {
     CON_B_O_PORTIONS;
 
     public boolean isConBo() {
-        return this == L_with_R || this == R_wait_L_portions;
+        return this == R_wait_L || this == R_wait_L_portions;
     }
 }
