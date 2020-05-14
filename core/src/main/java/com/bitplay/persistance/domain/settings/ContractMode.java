@@ -32,7 +32,16 @@ public class ContractMode {
         if (contractTypeName.startsWith("_", 3)) { // BTC_*, ETH_* - okex
             theType = OkexContractType.valueOf(contractTypeName);
         } else {
-            theType = BitmexContractType.valueOf(contractTypeName);
+            try {
+                theType = BitmexContractType.valueOf(contractTypeName);
+            } catch (IllegalArgumentException e) {
+                // workaround for BitmexContractType change
+                if (contractTypeName.startsWith("XBT")) {
+                    theType = BitmexContractType.XBTUSD_Perpetual;
+                } else { // ETH
+                    theType = BitmexContractType.ETHUSD_Perpetual;
+                }
+            }
         }
         return theType;
     }

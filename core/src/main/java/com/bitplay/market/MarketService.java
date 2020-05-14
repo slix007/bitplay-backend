@@ -49,6 +49,7 @@ import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -173,12 +174,12 @@ public abstract class MarketService extends MarketServiceWithState {
             if (getName().equals(BitmexService.NAME)) {
                 final BitmexObType obType = getPersistenceService().getSettingsRepositoryService().getSettings().getBitmexObType();
                 if (obType != BitmexObType.TRADITIONAL_10) {
-                    final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
+                    final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
                     final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids()); // timestamp may be null
                     return ob; // for bitmex incremental
                 }
             }
-            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getContractType().getCurrencyPair());
+            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
             final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
             this.orderBook = ob;
             this.orderBookShort.setOb(ob);
@@ -970,6 +971,10 @@ public abstract class MarketService extends MarketServiceWithState {
 
     abstract public ContractType getContractType();
 
+    public CurrencyPair getCurrencyPair() {
+        return getPersistenceService().getSettingsRepositoryService().getCurrencyPair(getContractType());
+    }
+
     public MoveResponse moveMakerOrderFromGui(String orderId) {
         MoveResponse response;
 
@@ -1432,7 +1437,7 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
         final String counterName = dealPrices.getCounterName();
-        final String contractTypeStr = getContractType().getCurrencyPair().toString();
+        final String contractTypeStr = getCurrencyPair().toString();
         final FactPrice avgPrice = getArbType() == ArbType.LEFT ? dealPrices.getBPriceFact() : dealPrices.getOPriceFact();
         final LogService tradeLogger = getTradeLogger();
         if (avgPrice.isZeroOrder()) {

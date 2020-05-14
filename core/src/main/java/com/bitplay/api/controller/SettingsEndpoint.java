@@ -93,8 +93,8 @@ public class SettingsEndpoint {
         final ContractMode contractMode = ContractMode.parse(left.getFuturesContractName(), right.getFuturesContractName());
         settings.setContractModeCurrent(contractMode);
 //        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
-        // okex
         settings.setOkexContractNames(OkexContractType.getNameToContractName());
+        settings.setBitmexContractNames(settingsRepositoryService.getBitmexContractNames());
 
         // Corr
         final CorrParams corrParams = settingsCorrEndpoint.getCorrParams();
@@ -354,6 +354,10 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getBitmexObType() != null) {
             settings.setBitmexObType(settingsUpdate.getBitmexObType());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getBitmexContractTypes() != null) {
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getBitmexContractTypes(), settings.getBitmexContractTypes());
             settingsRepositoryService.saveSettings(settings);
         }
 

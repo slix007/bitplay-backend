@@ -369,8 +369,13 @@ public abstract class AbstractUiService<T extends MarketService> {
                 .collect(Collectors.toList());
         final PlaceOrderArgs da = businessService.getDeferredOrder();
         if (da != null) {
-            final String currency = da.getContractType() != null && da.getContractType().getCurrencyPair() != null
-                    ? da.getContractType().getCurrencyPair().toString() : "";
+            final String currency;
+            if (da.getContractType() == null) {
+                currency = "";
+            } else {
+                currency = businessService.getPersistenceService().getSettingsRepositoryService()
+                        .getCurrencyPair(businessService.getContractType()).toString();
+            }
             res.add(new OrderJson(da.getCounterName(), "DEFERRED", "WAITING", currency, "",
                     da.getAmount().toPlainString(),
                     da.getOrderType() != null ? da.getOrderType().toString() : "null",

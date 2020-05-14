@@ -48,6 +48,7 @@ import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.BitmexContractTypeEx;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Dql;
@@ -226,7 +227,8 @@ public class BitmexService extends MarketServicePreliq {
     private String secret;
     private Disposable restartTimer;
     private volatile BitmexContractType bitmexContractType;
-    public static final BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD;
+    private volatile BitmexContractTypeEx bitmexContractTypeEx;
+    public static final BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD_Perpetual;
     private Map<CurrencyPair, Integer> currencyToScale = new HashMap<>();
 
     private AtomicInteger cancelledInRow = new AtomicInteger();
@@ -285,7 +287,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public String getFuturesContractName() {
-        return bitmexContractType != null ? bitmexContractType.getSymbol() : "";
+        return bitmexContractTypeEx != null ? bitmexContractTypeEx.getSymbol() : "";
     }
 
     @Override
@@ -380,7 +382,7 @@ public class BitmexService extends MarketServicePreliq {
 
         Instant start = Instant.now();
         if (account.get().getWallet().signum() == 0) {
-            tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.", bitmexContractType.getCurrencyPair().toString());
+            tradeLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.", getCurrencyPair().toString());
             warningLogger.warn("WARNING: Bitmex Balance is null. Restarting accountInfoListener.");
             if (accountInfoSubscription != null && !accountInfoSubscription.isDisposed()) {
                 accountInfoSubscription.dispose();
@@ -414,7 +416,7 @@ public class BitmexService extends MarketServicePreliq {
                                 ((OkCoinService) arbitrageService.getRightMarketService()).resetWaitingArb("reset WAITING_ARB after reconnect");
                             } else {
                                 String msg = String.format("Warning: Bitmex reconnect is finished, but there are %s openOrders.", getOnlyOpenOrders().size());
-                                tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+                                tradeLogger.info(msg, getCurrencyPair().toString());
                                 warningLogger.info(msg);
                                 logger.info(msg);
                             }
@@ -427,10 +429,12 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
         bitmexContractType = (BitmexContractType) contractType;
-
-        currencyToScale.put(bitmexContractType.getCurrencyPair(), bitmexContractType.getScale());
+        final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractType);
+        bitmexContractTypeEx = new BitmexContractTypeEx(bitmexContractType, currencyPair);
+        currencyToScale.put(getCurrencyPair(), bitmexContractType.getScale());
         if (!sameOrderBookXBTUSD()) {
-            currencyToScale.put(bitmexContractTypeXBTUSD.getCurrencyPair(), bitmexContractTypeXBTUSD.getScale());
+            final CurrencyPair currencyPairXBTUSD = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
+            currencyToScale.put(currencyPairXBTUSD, bitmexContractTypeXBTUSD.getScale());
         }
 
         this.usdInContract = 1; // not in use for Bitmex.
@@ -481,7 +485,7 @@ public class BitmexService extends MarketServicePreliq {
                     ob.getAsks().size(), // should be lock on collections
                     ob.getBids().size(), // should be lock on collections
                     ob.getTimeStamp());
-            tradeLogger.info(msgOb, bitmexContractType.getCurrencyPair().toString());
+            tradeLogger.info(msgOb, getCurrencyPair().toString());
             warningLogger.info(msgOb);
             logger.info(msgOb);
             if (!sameOrderBookXBTUSD()) {
@@ -490,7 +494,8 @@ public class BitmexService extends MarketServicePreliq {
                         obXBTUSD.getAsks().size(),
                         obXBTUSD.getBids().size(),
                         obXBTUSD.getTimeStamp());
-                tradeLogger.info(msgObXBTUSD, bitmexContractTypeXBTUSD.getCurrencyPair().toString());
+                final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
+                tradeLogger.info(msgObXBTUSD, currencyPair.toString());
                 warningLogger.info(msgObXBTUSD);
                 logger.info(msgObXBTUSD);
             }
@@ -502,7 +507,7 @@ public class BitmexService extends MarketServicePreliq {
 
             orderBookSubscription.dispose();
             List<String> symbols = new ArrayList<>();
-            symbols.add(bitmexContractType.getSymbol());
+            symbols.add(bitmexContractTypeEx.getSymbol());
             if (!sameOrderBookXBTUSD()) {
                 symbols.add(bitmexContractTypeXBTUSD.getSymbol());
             }
@@ -575,7 +580,7 @@ public class BitmexService extends MarketServicePreliq {
                 } catch (Exception e) {
                     final String msg = String.format("Reconnect exception: %s", e.getMessage());
                     warningLogger.error(msg);
-                    tradeLogger.error(msg, bitmexContractType.getCurrencyPair().toString());
+                    tradeLogger.error(msg, getCurrencyPair().toString());
                     logger.error(msg, e);
                 } finally {
                     reconnectInProgress = false;
@@ -600,7 +605,7 @@ public class BitmexService extends MarketServicePreliq {
             try {
                 final String msg = String.format("Warning: Bitmex reconnect(%s) attempt=%s. %s", currReconnectCount, attempt, getSubscribersStatuses());
                 warningLogger.info(msg);
-                tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+                tradeLogger.info(msg, getCurrencyPair().toString());
                 logger.info(msg);
 
                 reconnect(skipAfterReconnectReset);
@@ -638,7 +643,7 @@ public class BitmexService extends MarketServicePreliq {
         }
         try {
             final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-            final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractType.getSymbol());
+            final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractTypeEx.getSymbol());
             mergePosition(pUpdate);
 
             getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
@@ -980,7 +985,8 @@ public class BitmexService extends MarketServicePreliq {
         List<FplayOrder> res = new ArrayList<>();
 
         // PLACE ORDER instead of cancelled on moving.
-        final BitmexContractType cntType = BitmexContractType.parse(openOrder.getOrder().getCurrencyPair());
+        final BitmexContractType cntType = BitmexContractType.parse(openOrder.getOrder().getCurrencyPair(),
+                settingsRepositoryService.getSettings().getBitmexContractTypes());
         if (cntType == null) {
             String msg = String.format("no moving. Can not determinate contractType! %s", openOrder.toString());
             warningLogger.warn("Error on moving: " + msg);
@@ -1061,7 +1067,7 @@ public class BitmexService extends MarketServicePreliq {
         ExchangeSpecification spec = new ExchangeSpecification(BitmexStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
-        spec.setExchangeSpecificParametersItem("Symbol", bitmexContractType.getSymbol());
+        spec.setExchangeSpecificParametersItem("Symbol", bitmexContractTypeEx.getSymbol());
         spec.setExchangeSpecificParametersItem("Scale", bitmexContractType.getScale());
         spec.setExchangeSpecificParametersItem("currencyToScale", currencyToScale);
 
@@ -1152,13 +1158,13 @@ public class BitmexService extends MarketServicePreliq {
     public void reconnect(boolean skipAfterReconnectReset) throws ReconnectFailedException {
         if (Thread.currentThread().getName().startsWith("bitmex-ob-executor")) {
             String startMsg = "WARNING: Bitmex reconnect in the thread " + Thread.currentThread().getName();
-            tradeLogger.info(startMsg, bitmexContractType.getCurrencyPair().toString());
+            tradeLogger.info(startMsg, getCurrencyPair().toString());
             warningLogger.info(startMsg);
             logger.info(startMsg);
         }
 
         String startMsg = "Warning: Bitmex reconnect is starting. " + getSubscribersStatuses();
-        tradeLogger.info(startMsg, bitmexContractType.getCurrencyPair().toString());
+        tradeLogger.info(startMsg, getCurrencyPair().toString());
         warningLogger.info(startMsg);
         logger.info(startMsg);
 
@@ -1217,7 +1223,7 @@ public class BitmexService extends MarketServicePreliq {
                         getSubscribersStatuses(),
                         getOpenOrdersSize());
 
-                tradeLogger.info(finishMsg, bitmexContractType.getCurrencyPair().toString());
+                tradeLogger.info(finishMsg, getCurrencyPair().toString());
                 warningLogger.info(finishMsg);
                 logger.info(finishMsg);
 
@@ -1228,7 +1234,7 @@ public class BitmexService extends MarketServicePreliq {
 
         } catch (Exception e) {
             String msg = "Warning: Bitmex reconnect error: " + e.getMessage() + getSubscribersStatuses();
-            tradeLogger.info(msg, bitmexContractType.getCurrencyPair().toString());
+            tradeLogger.info(msg, getCurrencyPair().toString());
             warningLogger.info(msg);
             logger.info(msg);
 
@@ -1254,7 +1260,7 @@ public class BitmexService extends MarketServicePreliq {
     private void doRestart(String errMsg) {
         errMsg += " Do restart. " + getSubscribersStatuses();
         warningLogger.info(errMsg);
-        tradeLogger.info(errMsg, bitmexContractType.getCurrencyPair().toString());
+        tradeLogger.info(errMsg, getCurrencyPair().toString());
         logger.info(errMsg);
 
         try {
@@ -1334,9 +1340,9 @@ public class BitmexService extends MarketServicePreliq {
 
         OrderBook finalOB;
         String symbol = obUpdate.getSymbol();
-        if (symbol.equals(bitmexContractType.getSymbol())) {
+        if (symbol.equals(bitmexContractTypeEx.getSymbol())) {
 //            final long adaptStart = Instant.now().toEpochMilli();
-            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractType.getCurrencyPair());
+            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, getCurrencyPair());
             this.orderBook = finalOB;
             this.getOrderBookShort().setOb(finalOB, obUpdate.getTimestamp(), finalOB.getTimeStamp().toInstant());
 //            final long adaptObMs = Instant.now().toEpochMilli() - adaptStart; // tested by logs. Result 0ms
@@ -1344,7 +1350,8 @@ public class BitmexService extends MarketServicePreliq {
             metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
 
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
-            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, bitmexContractTypeXBTUSD.getCurrencyPair());
+            final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
+            finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, currencyPair);
             this.orderBookXBTUSD = finalOB;
             this.orderBookXBTUSDShort = this.orderBookXBTUSD;
         } else {
@@ -1366,12 +1373,12 @@ public class BitmexService extends MarketServicePreliq {
         OrderBook fullOB;
         String symbol = obUpdate.getBitmexOrderList().get(0).getSymbol();
         boolean isDefault = false;
-        if (symbol.equals(bitmexContractType.getSymbol())) {
-            currencyPair = bitmexContractType.getCurrencyPair();
+        if (symbol.equals(bitmexContractTypeEx.getSymbol())) {
+            currencyPair = getCurrencyPair();
             fullOB = this.orderBook;
             isDefault = true;
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
-            currencyPair = bitmexContractTypeXBTUSD.getCurrencyPair();
+            currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
             fullOB = this.orderBookXBTUSD;
         } else {
             // skip the update
@@ -1441,7 +1448,7 @@ public class BitmexService extends MarketServicePreliq {
     private Disposable startQuoteListener() {
         final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
         List<String> symbols = new ArrayList<>();
-        symbols.add(bitmexContractType.getSymbol());
+        symbols.add(bitmexContractTypeEx.getSymbol());
 //        if (!sameOrderBookXBTUSD()) {
 //            symbols.add(bitmexContractTypeXBTUSD.getSymbol());
 //        }
@@ -1470,7 +1477,7 @@ public class BitmexService extends MarketServicePreliq {
                     .map(bitmexOrderBook -> mergeOrderBookIncremental(bitmexOrderBook, obType));
         } else {
             List<String> symbols = new ArrayList<>();
-            symbols.add(bitmexContractType.getSymbol());
+            symbols.add(bitmexContractTypeEx.getSymbol());
             if (!sameOrderBookXBTUSD()) {
                 symbols.add(bitmexContractTypeXBTUSD.getSymbol());
             }
@@ -1518,7 +1525,7 @@ public class BitmexService extends MarketServicePreliq {
 
     private Observable<BitmexOrderBook> getBitmexOrderBookObservable(BitmexObType obType) {
         List<String> symbols = new ArrayList<>();
-        symbols.add(bitmexContractType.getSymbol());
+        symbols.add(bitmexContractTypeEx.getSymbol());
         if (!sameOrderBookXBTUSD()) {
             symbols.add(bitmexContractTypeXBTUSD.getSymbol());
         }
@@ -1547,7 +1554,7 @@ public class BitmexService extends MarketServicePreliq {
         if (currencyPair == null) {
             throw new IllegalArgumentException("OB update has no symbol. " + orderBook.toString());
         }
-        return bitmexContractType.getCurrencyPair().equals(currencyPair);
+        return getCurrencyPair().equals(currencyPair);
     }
 
     @SuppressWarnings("Duplicates")
@@ -1775,8 +1782,8 @@ public class BitmexService extends MarketServicePreliq {
         final BitmexContractType btmContType = (placeOrderArgs.getContractType() != null && placeOrderArgs.getContractType() instanceof BitmexContractType)
                 ? ((BitmexContractType) placeOrderArgs.getContractType())
                 : bitmexContractType;
-        final CurrencyPair currencyPair = btmContType.getCurrencyPair();
-        final String contractTypeStr = btmContType.getCurrencyPair() != null ? btmContType.getCurrencyPair().toString() : "";
+        final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(btmContType);
+        final String contractTypeStr = currencyPair.toString();
 
         final Settings settings = settingsRepositoryService.getSettings();
         final Integer maxAttempts = settings.getBitmexSysOverloadArgs().getPlaceAttempts();
@@ -1803,7 +1810,7 @@ public class BitmexService extends MarketServicePreliq {
         final SignalType signalType = placeOrderArgs.getSignalType();
         final Long tradeId = placeOrderArgs.getTradeId();
         final PlBefore plBeforeBtm = placeOrderArgs.getPlBefore();
-        final String symbol = btmContType.getSymbol();
+        final String symbol = currencyPair.base.getCurrencyCode() + currencyPair.counter.getCurrencyCode();
         final Integer scale = btmContType.getScale();
         BtmFokAutoArgs btmFokArgs = placeOrderArgs.getBtmFokArgs(); // not null only when by signal
 
@@ -2243,12 +2250,14 @@ public class BitmexService extends MarketServicePreliq {
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
         }
 
-        final BitmexContractType cntType = BitmexContractType.parse(limitOrder.getCurrencyPair());
+        final BitmexContractType cntType = BitmexContractType.parse(limitOrder.getCurrencyPair(),
+                settingsRepositoryService.getSettings().getBitmexContractTypes());
         if (cntType == null) {
             String msg = String.format("no moving. Can not determinate contractType! %s", limitOrder.toString());
-           return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
+            return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, msg);
         }
-        final String contractTypeStr = cntType.getCurrencyPair().toString();
+        final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(cntType);
+        final String contractTypeStr = currencyPair.toString();
 
         final String counterWithPortion = fplayOrder.getCounterWithPortion();
         Instant startReq = null;
@@ -2511,7 +2520,7 @@ public class BitmexService extends MarketServicePreliq {
     private Disposable startPositionListener() {
 
         return ((BitmexStreamingAccountService) exchange.getStreamingAccountService())
-                .getPositionObservable(bitmexContractType.getSymbol())
+                .getPositionObservable(bitmexContractTypeEx.getSymbol())
                 .observeOn(stateUpdater)
                 .doOnError(throwable1 -> handleSubscriptionError(throwable1, "Position fetch error"))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
@@ -2534,9 +2543,9 @@ public class BitmexService extends MarketServicePreliq {
 
     private Disposable startFutureIndexListener() {
         List<String> symbols = new ArrayList<>();
-        symbols.add(bitmexContractType.getSymbol());
+        symbols.add(bitmexContractTypeEx.getSymbol());
         if (bitmexContractType.isEth()) {
-            symbols.add(BitmexContractType.XBTUSD.getSymbol());
+            symbols.add(BitmexContractType.XBTUSD_Perpetual.getSymbol());
         }
 
         return ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
@@ -2546,7 +2555,7 @@ public class BitmexService extends MarketServicePreliq {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(contIndUpdate -> {
                     try {
-                        if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD.getSymbol())) {
+                        if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD_Perpetual.getSymbol())) {
 
                             boolean success = false;
                             while (!success) {
@@ -2851,7 +2860,7 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public void updateAvgPrice(DealPrices dealPrices, boolean onlyOneAttempt) {
         final String counterName = dealPrices.getCounterName();
-        final String contractTypeStr = bitmexContractType.getCurrencyPair().toString();
+        final String contractTypeStr = getCurrencyPair().toString();
         final FactPrice avgPrice = dealPrices.getBPriceFact();
         if (avgPrice.isZeroOrder()) {
             String msg = String.format("#%s WARNING: no updateAvgPrice for btm orders tradeId=%s. Zero order", counterName, dealPrices.getTradeId());
@@ -3172,10 +3181,10 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public TradeResponse closeAllPos() {
-        return closeAllPos(bitmexContractType);
+        return closeAllPos(bitmexContractTypeEx);
     }
 
-    private TradeResponse closeAllPos(BitmexContractType btmContType) {
+    private TradeResponse closeAllPos(BitmexContractTypeEx btmContType) {
         final String symbol = btmContType.getSymbol();
         final TradeResponse tradeResponse = new TradeResponse();
         tradeResponse.setErrorCode("");
@@ -3233,7 +3242,8 @@ public class BitmexService extends MarketServicePreliq {
 
             final String logString = String.format("#closeAllPos %s: %s", getName(), message);
             logger.error(logString, e);
-            tradeLogger.error(logString, btmContType.getCurrencyPair().toString());
+            final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(btmContType);
+            tradeLogger.error(logString, currencyPair.toString());
             warningLogger.error(logString);
         }
         return tradeResponse;

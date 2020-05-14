@@ -24,7 +24,7 @@ public class Changelog0219 {
 
         Query query2 = new Query();
         Update update2 = new Update();
-        update2.set("contractMode.left", BitmexContractType.XBTUSD);
+        update2.set("contractMode.left", BitmexContractType.XBTUSD_Perpetual);
         update2.set("contractMode.right", OkexContractType.BTC_ThisWeek);
         mongoTemplate.updateMulti(query2, update2, Settings.class);
     }

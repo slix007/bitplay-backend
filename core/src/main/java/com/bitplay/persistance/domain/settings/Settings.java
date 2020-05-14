@@ -74,6 +74,8 @@ public class Settings extends AbstractDocument {
     private ContractMode contractModeCurrent; // only for UI
     @Transient
     private Map<String, String> okexContractNames = new HashMap<>(); // only for UI. enumName to contractNameWithExpDate
+    @Transient
+    private Map<String, String> bitmexContractNames = new HashMap<>(); // only for UI. enumName to contractNameWithTYpe
 
     private BigDecimal hedgeBtc;
     private BigDecimal hedgeEth;
@@ -103,7 +105,7 @@ public class Settings extends AbstractDocument {
 
     private ConBoPortions conBoPortions;
 
-    private BitmexContractTypes bitmexContractTypes;
+    private BitmexCtList bitmexContractTypes;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -119,7 +121,7 @@ public class Settings extends AbstractDocument {
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
-        settings.contractMode = new ContractMode(BitmexContractType.XBTUSD, OkexContractType.BTC_ThisWeek);
+        settings.contractMode = new ContractMode(BitmexContractType.XBTUSD_Perpetual, OkexContractType.BTC_ThisWeek);
         settings.coldStorageBtc = BigDecimal.ZERO;
         settings.coldStorageEth = BigDecimal.ZERO;
         settings.eBestMin = 0;
@@ -137,7 +139,7 @@ public class Settings extends AbstractDocument {
         settings.bitmexObType = BitmexObType.INCREMENTAL_25;
         settings.okexSettlement = OkexSettlement.createDefault();
         settings.conBoPortions = ConBoPortions.createDefault();
-        settings.bitmexContractTypes = BitmexContractTypes.createDefault();
+        settings.bitmexContractTypes = BitmexCtList.createDefault();
         settings.setId(1L);
         return settings;
     }

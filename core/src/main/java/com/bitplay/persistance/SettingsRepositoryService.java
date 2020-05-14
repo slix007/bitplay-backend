@@ -3,10 +3,15 @@ package com.bitplay.persistance;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
 import com.bitplay.market.MarketStaticData;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.BitmexCtList;
+import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.repository.SettingsRepository;
 import com.mongodb.WriteResult;
+import org.knowm.xchange.currency.CurrencyPair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -17,6 +22,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 12/4/17.
@@ -119,5 +126,43 @@ public class SettingsRepositoryService {
         return this.settings;
     }
 
+    public CurrencyPair getCurrencyPair(ContractType type) {
+        if (type instanceof OkexContractType) {
+            return type.getCurrencyPair();
+        }
+        // else Bitmex
+        final BitmexContractType btmType = (BitmexContractType) type;
+        final Settings s = getSettings();
+        final BitmexCtList types = s.getBitmexContractTypes();
+        final String secondCurrency;
+        switch (btmType) {
+            case XBTUSD_Perpetual:
+            case ETHUSD_Perpetual:
+                secondCurrency = "USD";
+                break;
+            case XBTUSD_Quarter:
+                secondCurrency = types.getBtcUsdQuoter().substring(3);
+                break;
+            case XBTUSD_BiQuarter:
+                secondCurrency = types.getBtcUsdBiQuoter().substring(3);
+                break;
+            case ETHUSD_Quarter:
+                secondCurrency = types.getEthUsdQuoter().substring(3);
+                break;
+            default:
+                secondCurrency = "";
+        }
+        return new CurrencyPair(btmType.getFirstCurrency(), secondCurrency);
+    }
 
+    public Map<String, String> getBitmexContractNames() {
+        final Map<String, String> map = new HashMap<>();
+        for (BitmexContractType type : BitmexContractType.values()) {
+            final CurrencyPair currencyPair = getCurrencyPair(type);
+            final String symbol = currencyPair.base.getCurrencyCode() + currencyPair.counter.getCurrencyCode();
+            map.put(type.getName(), symbol);
+        }
+        return map;
+
+    }
 }

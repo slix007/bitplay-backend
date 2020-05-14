@@ -11,29 +11,37 @@ import java.math.BigDecimal;
 @Getter
 public enum BitmexContractType implements ContractType {
 
-    XBTUSD_Perpetual("XBT", BigDecimal.valueOf(0.5), 1),
-    XBTUSD_NextWeek("XBT", BigDecimal.valueOf(0.5), 1),
-    XBTUSD_Quoter("XBT", BigDecimal.valueOf(0.5), 1),
-    XBTUSD_BiQuoter("XBT", BigDecimal.valueOf(0.5), 1),
-    ETHUSD_Perpetual("XBT", BigDecimal.valueOf(0.05), 2),
-    ETHUSD_NextWeek("XBT", BigDecimal.valueOf(0.05), 2),
+    XBTUSD_Perpetual(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1),
+    XBTUSD_Quarter(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1),
+    XBTUSD_BiQuarter(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1),
+    ETHUSD_Perpetual(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2),
+    ETHUSD_Quarter(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2),
     ;
 
-//    private CurrencyPair currencyPair;
+    //    private CurrencyPair currencyPair;
     private String firstCurrency; // XBT, ETH
     private BigDecimal tickSize;
     private Integer scale;
 
-    public static BitmexContractType parse(CurrencyPair currencyPair) {
+    public static BitmexContractType parse(CurrencyPair orderCurrencyPair, BitmexCtList bitmexContractTypes) {
         BitmexContractType resultType = null;
-        if (currencyPair != null) {
-            String first = currencyPair.base.getCurrencyCode();
-            String second = currencyPair.counter.getCurrencyCode();
-            for (BitmexContractType type : BitmexContractType.values()) {
-                CurrencyPair pair = type.getCurrencyPair();
-                if (first.equals(pair.base.getCurrencyCode()) && second.equals(pair.counter.getCurrencyCode())) {
-                    resultType = type;
-                    break;
+        if (orderCurrencyPair != null) {
+            String first = orderCurrencyPair.base.getCurrencyCode();
+            String second = orderCurrencyPair.counter.getCurrencyCode();
+            String both = first + second;
+            if (first.equals(BitmexContractTypeFirst.XBT.name())) {
+                if (both.equals("XBTUSD")) {
+                    resultType = BitmexContractType.XBTUSD_Perpetual;
+                } else if (both.equals(bitmexContractTypes.getBtcUsdQuoter())) {
+                    resultType = BitmexContractType.XBTUSD_Quarter;
+                } else if (both.equals(bitmexContractTypes.getBtcUsdBiQuoter())) {
+                    resultType = BitmexContractType.XBTUSD_BiQuarter;
+                }
+            } else if (first.equals(BitmexContractTypeFirst.ETH.name())) {
+                if (both.equals("ETHUSD")) {
+                    resultType = BitmexContractType.ETHUSD_Perpetual;
+                } else if (both.equals(bitmexContractTypes.getEthUsdQuoter())) {
+                    resultType = BitmexContractType.ETHUSD_Quarter;
                 }
             }
         }
@@ -45,6 +53,9 @@ public enum BitmexContractType implements ContractType {
     }
 
     public String getSymbol() {
+        if (this == XBTUSD_Perpetual) {
+            return "XBTUSD";
+        }
         return this.name();
     }
 
@@ -62,5 +73,7 @@ public enum BitmexContractType implements ContractType {
         return name();
     }
 
-
+    public String getFirstCurrency() {
+        return firstCurrency;
+    }
 }

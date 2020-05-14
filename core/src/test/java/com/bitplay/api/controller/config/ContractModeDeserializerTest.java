@@ -24,6 +24,13 @@ public class ContractModeDeserializerTest {
     public void testDeserialize() throws IOException {
         String json = "{ \"left\" : \"ETHUSD\" }";
         ContractMode contractMode = objectMapper.readValue(json, ContractMode.class);
-        assertEquals(new ContractMode(BitmexContractType.ETHUSD, null), contractMode);
+        assertEquals(new ContractMode(BitmexContractType.ETHUSD_Perpetual, null), contractMode);
+    }
+
+    @Test
+    public void testDeserialize2() throws IOException {
+        String json = "{ \"left\" : \"ETHM20\" }";
+        ContractMode contractMode = objectMapper.readValue(json, ContractMode.class);
+        assertEquals(new ContractMode(BitmexContractType.ETHUSD_Perpetual, null), contractMode);
     }
 }
