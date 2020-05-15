@@ -21,12 +21,6 @@ public class ContractMode {
     private ContractType left;
     private ContractType right;
 
-    public static ContractMode parse(String leftName, String rightName) {
-        ContractType left = parseContractType(leftName);
-        ContractType right = parseContractType(rightName);
-        return new ContractMode(left, right);
-    }
-
     public static ContractType parseContractType(String contractTypeName) {
         ContractType theType;
         if (contractTypeName.startsWith("_", 3)) { // BTC_*, ETH_* - okex

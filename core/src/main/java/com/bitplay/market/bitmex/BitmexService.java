@@ -290,6 +290,10 @@ public class BitmexService extends MarketServicePreliq {
         return bitmexContractTypeEx != null ? bitmexContractTypeEx.getSymbol() : "";
     }
 
+    public BitmexContractTypeEx getBitmexContractTypeEx() {
+        return bitmexContractTypeEx;
+    }
+
     @Override
     public SlackNotifications getSlackNotifications() {
         return slackNotifications;

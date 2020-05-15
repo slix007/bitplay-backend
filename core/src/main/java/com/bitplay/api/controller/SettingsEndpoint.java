@@ -4,7 +4,6 @@ import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
@@ -13,6 +12,8 @@ import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.AbortSignal;
 import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
+import com.bitplay.persistance.domain.settings.BitmexContractTypeEx;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractMode;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
@@ -90,7 +91,9 @@ public class SettingsEndpoint {
         if (left == null || right == null) {
             return;
         }
-        final ContractMode contractMode = ContractMode.parse(left.getFuturesContractName(), right.getFuturesContractName());
+        // left": "XBTUSD_Quarter",
+        //"right": "ETH_ThisWeek",
+        final ContractMode contractMode = new ContractMode(left.getContractType(), right.getContractType());
         settings.setContractModeCurrent(contractMode);
 //        settings.setOkexContractName(settings.getContractMode().getOkexContractType().getContractName());
         settings.setOkexContractNames(OkexContractType.getNameToContractName());
@@ -106,12 +109,20 @@ public class SettingsEndpoint {
 
         // BitmexObType
         BitmexObType bitmexObTypeCurrent = settings.getBitmexObType();
-        if (left.getMarketStaticData() == MarketStaticData.BITMEX) {
+        if (left.isBtm()) {
             bitmexObTypeCurrent = ((BitmexService) left).getBitmexObTypeCurrent();
-        } else if (right.getMarketStaticData() == MarketStaticData.BITMEX) {
-            bitmexObTypeCurrent = ((BitmexService) right).getBitmexObTypeCurrent();
         }
         settings.setBitmexObTypeCurrent(bitmexObTypeCurrent);
+        boolean restartWarnBitmexCt = false;
+        if (left.isBtm()) {
+            final BitmexService btm = (BitmexService) left;
+            final BitmexContractTypeEx ex = btm.getBitmexContractTypeEx();
+            final String currSymbol = ex.getSymbol();
+            final BitmexContractType bitmexContractType = ex.getBitmexContractType();
+            final String inDb = settings.getBitmexContractTypes().getSymbolForType(bitmexContractType);
+            restartWarnBitmexCt = !inDb.equals(currSymbol);
+        }
+        settings.setRestartWarnBitmexCt(restartWarnBitmexCt);
 
         if (!left.isBtm()) {
             BigDecimal okexLeverage = ((OkCoinService) left).getLeverage();

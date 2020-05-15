@@ -106,6 +106,8 @@ public class Settings extends AbstractDocument {
     private ConBoPortions conBoPortions;
 
     private BitmexCtList bitmexContractTypes;
+    @Transient
+    private boolean restartWarnBitmexCt = false;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
