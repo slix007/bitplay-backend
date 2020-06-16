@@ -21,7 +21,7 @@ public class DestinationResolver {
     private final static List<String> prodServers = Arrays.asList("662", "668", "669");
 
     private final static List<String> prodServersCoordinator = Arrays.asList("662", "668", "669");
-    private final static List<String> serversTraderPassive = Arrays.asList("662", "668", "669");
+    private final static List<String> serversTraderPassive = Arrays.asList("662", "668", "669", "667");
     private final static List<String> serversTraderActive = Arrays.asList("662", "668", "669");
     private final static List<String> serversTraderActiveEx = Arrays.asList("659", "661", "667");
 
