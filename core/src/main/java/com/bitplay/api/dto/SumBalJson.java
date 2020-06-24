@@ -14,6 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SumBalJson {
     private String result;
+    private String sumBalImpliedString;
     private String s_e_best;
     private String s_e_best_min;
     private String s_e_best_min_time_to_forbidden;

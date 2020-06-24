@@ -28,6 +28,8 @@ import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import java.math.BigDecimal;
+import java.util.EnumSet;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +40,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.math.BigDecimal;
-import java.util.EnumSet;
 
 /**
  * Created by Sergey Shurmin on 11/27/17.
@@ -318,6 +317,10 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getUsdQuoteType() != null) {
             settings.setUsdQuoteType(settingsUpdate.getUsdQuoteType());
+            settingsRepositoryService.saveSettings(settings);
+        }
+        if (settingsUpdate.getImplied() != null) {
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getImplied(), settings.getImplied());
             settingsRepositoryService.saveSettings(settings);
         }
         if (settingsUpdate.getHedgeBtc() != null) {

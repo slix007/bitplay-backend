@@ -55,6 +55,7 @@ public class Settings extends AbstractDocument {
     private BigDecimal coldStorageEth;
     private Integer eBestMin;
     private UsdQuoteType usdQuoteType;
+    private Implied implied;
     private AllFtpd allFtpd;
     private Boolean adjustByNtUsd;
     private BigDecimal ntUsdMultiplicityOkexLeft;
@@ -131,6 +132,7 @@ public class Settings extends AbstractDocument {
         settings.hedgeEth = BigDecimal.ZERO;
         settings.hedgeAuto = false;
         settings.usdQuoteType = UsdQuoteType.INDEX_LEFT;
+        settings.implied = Implied.createDefaults();
         settings.allFtpd = AllFtpd.createDefaults();
         settings.tradingModeAuto = false;
         settings.tradingModeState = new TradingModeState(TradingMode.CURRENT);

@@ -63,11 +63,6 @@ import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.TradingModeService;
 import com.bitplay.utils.Utils;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -78,6 +73,10 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/17/17.
@@ -487,13 +486,14 @@ public class CommonUIService {
         }
 
         final String sumBalString = arbitrageService.getSumBalString();
+        final String sumBalImpliedString = arbitrageService.getSumBalImpliedString();
         final String sumEBest = arbitrageService.getSumEBestUsd().toPlainString();
         Settings settings = settingsRepositoryService.getSettings();
         final String sumEBestMin = settings.getEBestMin().toString();
         final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
         final String coldStorageBtc = settings.getColdStorageBtc().toPlainString();
         final String coldStorageEth = settings.isEth() ? settings.getColdStorageEth().toPlainString() : null;
-        return new SumBalJson(sumBalString, sumEBest, sumEBestMin, timeToForbidden, coldStorageBtc, coldStorageEth);
+        return new SumBalJson(sumBalString, sumBalImpliedString, sumEBest, sumEBestMin, timeToForbidden, coldStorageBtc, coldStorageEth);
     }
 
     public PosDiffJson getPosDiff() {

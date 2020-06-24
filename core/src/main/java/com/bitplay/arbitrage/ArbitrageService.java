@@ -65,6 +65,7 @@ import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Dql;
+import com.bitplay.persistance.domain.settings.Implied;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -81,18 +82,6 @@ import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -105,6 +94,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -190,6 +190,7 @@ public class ArbitrageService {
     private volatile BigDecimal oEbest = BigDecimal.ZERO;
     private volatile BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
     private volatile String sumBalString = "";
+    private volatile String sumBalImpliedString = "";
     //    private volatile Boolean isReadyForTheArbitrage = true;
 //    private Disposable theTimer;
     private Disposable theCheckBusyTimer;
@@ -1596,6 +1597,8 @@ public class ArbitrageService {
                     sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                     usdQuote.toPlainString());
 
+            sumBalImpliedString = calcImpliedSum(sumEBest, sumE, sumEAvg);
+
             traderPermissionsService.checkEBestMin();
 
             // calc auto hedge
@@ -1641,6 +1644,36 @@ public class ArbitrageService {
         final String counterName = fplayTradeService.getCounterName(tradeIdSnap);
         fplayTradeService.info(tradeIdSnap, counterName, msg);
         return tradeIdSnap;
+    }
+
+    private String calcImpliedSum(BigDecimal s_e_best_btc, BigDecimal s_e_btc, BigDecimal s_e_avg_btc) {
+        final Implied implied = settingsRepositoryService.getSettings().getImplied();
+        final BigDecimal vol_usd = implied.getVolUsd().setScale(2, BigDecimal.ROUND_HALF_UP);
+        final BigDecimal usd_qu_ini = implied.getUsdQuIni().signum() == 0 ? getUsdQuote() : implied.getUsdQuIni();
+        final BigDecimal s_e_best_ini_btc = implied.getSebestIniUsd();
+        final BigDecimal usd_qu = getUsdQuote();
+
+        BigDecimal hedge_imp_pl_btc = vol_usd.divide(usd_qu, 8, BigDecimal.ROUND_HALF_UP)
+                .subtract(vol_usd.divide(usd_qu_ini, 8, BigDecimal.ROUND_HALF_UP));
+        BigDecimal hedge_imp_pl_usd = hedge_imp_pl_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal s_e_best_imp_btc = s_e_best_btc.add(hedge_imp_pl_btc);
+        BigDecimal s_e_best_imp_usd = s_e_best_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal arb_pl_btc = s_e_best_imp_btc.subtract(s_e_best_ini_btc);
+        BigDecimal arb_pl_usd = arb_pl_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal s_e_imp_btc = s_e_btc.add(hedge_imp_pl_btc);
+        BigDecimal s_e_imp_usd = s_e_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+
+        BigDecimal s_e_avg_imp_btc = s_e_avg_btc.add(hedge_imp_pl_btc);
+        BigDecimal s_e_avg_imp_usd = s_e_avg_imp_btc.multiply(usd_qu);
+
+        return String.format("Implied: s_e_imp_%s_%s, s_e_best_imp_%s_%s, s_e_avg_imp_%s_%s, "
+                        + "hedge_imp_pl_%s_%s, arb_pl_%s_%s,",
+                s_e_imp_btc.toPlainString(), s_e_imp_usd.toPlainString(),
+                s_e_best_imp_btc.toPlainString(), s_e_best_imp_usd.toPlainString(),
+                s_e_avg_imp_btc.toPlainString(), s_e_avg_imp_usd.toPlainString(),
+                hedge_imp_pl_btc.toPlainString(), hedge_imp_pl_usd.toPlainString(),
+                arb_pl_btc.toPlainString(), arb_pl_usd.toPlainString()
+        );
     }
 
     @SuppressWarnings("Duplicates")
@@ -1830,6 +1863,9 @@ public class ArbitrageService {
                 final LiqInfo oLiqInfo = getRightMarketService().getLiqInfo();
                 fplayTradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
+
+                final String impliedSum = calcImpliedSum(sumEBest, sumE, sumEavg);
+                fplayTradeService.info(tradeId, counterName, impliedSum);
             }
         } catch (Exception e) {
             fplayTradeService.error(tradeId, counterName, "Error on printSumBal");
@@ -2251,6 +2287,10 @@ public class ArbitrageService {
 
     public String getSumBalString() {
         return sumBalString;
+    }
+
+    public String getSumBalImpliedString() {
+        return sumBalImpliedString;
     }
 
     public DeltaMon getDeltaMon() {
