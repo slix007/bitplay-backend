@@ -16,6 +16,7 @@ import com.bitplay.api.service.CommonUIService;
 import com.bitplay.market.MarketService;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
+import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -130,6 +131,15 @@ public class CommonEndpoint {
     public ResultJson resetEbestmin() {
         traderPermissionsService.resetSebestMin();
         return new ResultJson("reset requested", "");
+    }
+
+    @RequestMapping(value = "/market/implied/fix-current",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public Settings impliedFixCurrent() {
+        return commonUIService.impliedFixCurrent();
     }
 
     @RequestMapping(value = "/market/free-states",

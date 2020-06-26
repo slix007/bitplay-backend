@@ -701,4 +701,7 @@ public class CommonUIService {
         return cumPersistenceService.fetchAllCum();
     }
 
+    public Settings impliedFixCurrent() {
+        return arbitrageService.impliedFixCurrent();
+    }
 }

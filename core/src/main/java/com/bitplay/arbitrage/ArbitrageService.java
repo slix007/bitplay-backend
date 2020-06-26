@@ -188,6 +188,7 @@ public class ArbitrageService {
     private volatile GuiParams params = new GuiParams();
     private volatile BigDecimal bEbest = BigDecimal.ZERO;
     private volatile BigDecimal oEbest = BigDecimal.ZERO;
+    private volatile BigDecimal sumEBestUsdCurr = BigDecimal.valueOf(-1);
     private volatile BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
     private volatile String sumBalString = "";
     private volatile String sumBalImpliedString = "";
@@ -1488,7 +1489,7 @@ public class ArbitrageService {
 
     @SuppressWarnings("Duplicates")
     @Scheduled(initialDelay = 10 * 1000, fixedDelay = 1000)
-    public void calcSumBalForGui() {
+    public synchronized void calcSumBalForGui() {
         if (leftMarketService == null || rightMarketService == null) {
             return; // NotYetInitializedException
         }
@@ -1580,7 +1581,7 @@ public class ArbitrageService {
 
             final BigDecimal usdQuote = getUsdQuote();
 
-            final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+            sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
             final BigDecimal btmQu = isEth
                     ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
@@ -1826,7 +1827,7 @@ public class ArbitrageService {
                 final BigDecimal sumM = bM.add(oM).setScale(8, BigDecimal.ROUND_HALF_UP);
                 final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
-                final BigDecimal sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
+                sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
                 final BigDecimal btmQu = isEth
                         ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
@@ -2435,5 +2436,19 @@ public class ArbitrageService {
             return ((BitmexService) leftMarketService).getCm();
         }
         return DEFAULT_CM;
+    }
+
+    public Settings impliedFixCurrent() {
+        //usd_qu_ini = usd_qu;
+        //s_e_best_ini = s_e_best;
+        //vol_usd = s_e_best - hedge amount;
+        final Settings settings = settingsRepositoryService.getSettings();
+        final Implied implied = settings.getImplied();
+        implied.setUsdQuIni(getUsdQuote());
+        final BigDecimal s_e_best = this.sumEBestUsdCurr;
+        implied.setSebestIniUsd(s_e_best);
+        implied.setVolUsd(s_e_best.subtract(hedgeService.getHedgeBtc()));
+        settingsRepositoryService.saveSettings(settings);
+        return settings;
     }
 }
