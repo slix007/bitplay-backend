@@ -29,7 +29,7 @@ public class HedgeService {
         if (settings.getHedgeAuto() && hedgeBtc == null) {
             throw new NotYetInitializedException();
         }
-        return settings.getHedgeAuto() ? hedgeBtc : settings.getHedgeBtc();
+        return settings.getHedgeAuto() ? hedgeBtc.negate() : settings.getHedgeBtc().negate();
     }
 
     public BigDecimal getHedgeEth() {
@@ -37,11 +37,11 @@ public class HedgeService {
         if (settings.getHedgeAuto() && hedgeBtc == null) {
             throw new NotYetInitializedException();
         }
-        return settings.getHedgeAuto() ? hedgeEth : settings.getHedgeEth();
+        return settings.getHedgeAuto() ? hedgeEth.negate() : settings.getHedgeEth().negate();
     }
 
     public void setHedgeBtc(BigDecimal hedge) {
-        this.hedgeBtc = hedge.negate();
+        this.hedgeBtc = hedge;
         final Settings settings = settingsRepositoryService.getSettings();
         if (settings.getHedgeAuto() && this.hedgeBtc != null) {
             // save settings
@@ -50,7 +50,7 @@ public class HedgeService {
     }
 
     public void setHedgeEth(BigDecimal hedge) {
-        this.hedgeEth = hedge.negate();
+        this.hedgeEth = hedge;
         final Settings settings = settingsRepositoryService.getSettings();
         if (settings.getHedgeAuto() && this.hedgeEth != null) {
             // save settings
