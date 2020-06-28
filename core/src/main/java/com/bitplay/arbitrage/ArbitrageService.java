@@ -1598,7 +1598,7 @@ public class ArbitrageService {
                     sumA.toPlainString(), sumA.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                     usdQuote.toPlainString());
 
-            sumBalImpliedString = calcImpliedSum(sumEBest, sumE, sumEAvg);
+            sumBalImpliedString = calcImpliedSum(sumEBest, sumE, sumEAvg, usdQuote);
 
             traderPermissionsService.checkEBestMin();
 
@@ -1647,25 +1647,27 @@ public class ArbitrageService {
         return tradeIdSnap;
     }
 
-    private String calcImpliedSum(BigDecimal s_e_best_btc, BigDecimal s_e_btc, BigDecimal s_e_avg_btc) {
+    private String calcImpliedSum(BigDecimal s_e_best_btc, BigDecimal s_e_btc, BigDecimal s_e_avg_btc, BigDecimal usd_qu) {
         final Implied implied = settingsRepositoryService.getSettings().getImplied();
         final BigDecimal vol_usd = implied.getVolUsd().setScale(2, BigDecimal.ROUND_HALF_UP);
-        final BigDecimal usd_qu_ini = implied.getUsdQuIni().signum() == 0 ? getUsdQuote() : implied.getUsdQuIni();
-        final BigDecimal s_e_best_ini_btc = implied.getSebestIniUsd();
-        final BigDecimal usd_qu = getUsdQuote();
+        final BigDecimal usd_qu_ini = implied.getUsdQuIni().signum() == 0 ? BigDecimal.ONE : implied.getUsdQuIni();
+        final BigDecimal s_e_best_ini_usd = implied.getSebestIniUsd();
+        final BigDecimal s_e_best_ini_btc = s_e_best_ini_usd.divide(usd_qu_ini, 16, BigDecimal.ROUND_HALF_UP);
 
-        BigDecimal hedge_imp_pl_btc = vol_usd.divide(usd_qu, 8, BigDecimal.ROUND_HALF_UP)
-                .subtract(vol_usd.divide(usd_qu_ini, 8, BigDecimal.ROUND_HALF_UP));
+        BigDecimal hedge_imp_pl_btc = (vol_usd.divide(usd_qu, 16, BigDecimal.ROUND_HALF_UP)
+                .subtract(vol_usd.divide(usd_qu_ini, 16, BigDecimal.ROUND_HALF_UP))
+        ).setScale(8, BigDecimal.ROUND_HALF_UP);
         BigDecimal hedge_imp_pl_usd = hedge_imp_pl_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
         BigDecimal s_e_best_imp_btc = s_e_best_btc.add(hedge_imp_pl_btc);
         BigDecimal s_e_best_imp_usd = s_e_best_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+
         BigDecimal arb_pl_btc = s_e_best_imp_btc.subtract(s_e_best_ini_btc);
         BigDecimal arb_pl_usd = arb_pl_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
         BigDecimal s_e_imp_btc = s_e_btc.add(hedge_imp_pl_btc);
-        BigDecimal s_e_imp_usd = s_e_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal s_e_imp_usd = s_e_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         BigDecimal s_e_avg_imp_btc = s_e_avg_btc.add(hedge_imp_pl_btc);
-        BigDecimal s_e_avg_imp_usd = s_e_avg_imp_btc.multiply(usd_qu);
+        BigDecimal s_e_avg_imp_usd = s_e_avg_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);;
 
         return String.format("Implied: s_e_imp_%s_%s, s_e_best_imp_%s_%s, s_e_avg_imp_%s_%s, "
                         + "hedge_imp_pl_%s_%s, arb_pl_%s_%s,",
@@ -1865,7 +1867,7 @@ public class ArbitrageService {
                 fplayTradeService
                         .info(tradeId, counterName, String.format("#%s %s; %s; %s", counterName, oLiqInfo.getDqlString(), oLiqInfo.getDmrlString(), oDQLMin));
 
-                final String impliedSum = calcImpliedSum(sumEBest, sumE, sumEavg);
+                final String impliedSum = calcImpliedSum(sumEBest, sumE, sumEavg, usdQuote);
                 fplayTradeService.info(tradeId, counterName, impliedSum);
             }
         } catch (Exception e) {
@@ -2439,15 +2441,12 @@ public class ArbitrageService {
     }
 
     public Settings impliedFixCurrent() {
-        //usd_qu_ini = usd_qu;
-        //s_e_best_ini = s_e_best;
-        //vol_usd = s_e_best - hedge amount;
         final Settings settings = settingsRepositoryService.getSettings();
         final Implied implied = settings.getImplied();
         implied.setUsdQuIni(getUsdQuote());
         final BigDecimal s_e_best = this.sumEBestUsdCurr;
         implied.setSebestIniUsd(s_e_best);
-        implied.setVolUsd(s_e_best.subtract(hedgeService.getHedgeBtc()));
+        implied.setVolUsd(s_e_best.add(hedgeService.getHedgeBtc()));
         settingsRepositoryService.saveSettings(settings);
         return settings;
     }
