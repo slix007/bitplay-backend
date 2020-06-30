@@ -1661,7 +1661,7 @@ public class ArbitrageService {
         BigDecimal s_e_best_imp_btc = s_e_best_btc.add(hedge_imp_pl_btc);
         BigDecimal s_e_best_imp_usd = s_e_best_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-        BigDecimal arb_pl_btc = s_e_best_imp_btc.subtract(s_e_best_ini_btc);
+        BigDecimal arb_pl_btc = s_e_best_imp_btc.subtract(s_e_best_ini_btc).setScale(8, BigDecimal.ROUND_HALF_UP);
         BigDecimal arb_pl_usd = arb_pl_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
         BigDecimal s_e_imp_btc = s_e_btc.add(hedge_imp_pl_btc);
         BigDecimal s_e_imp_usd = s_e_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -1669,8 +1669,9 @@ public class ArbitrageService {
         BigDecimal s_e_avg_imp_btc = s_e_avg_btc.add(hedge_imp_pl_btc);
         BigDecimal s_e_avg_imp_usd = s_e_avg_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);;
 
-        return String.format("Implied: s_e_imp_%s_%s, s_e_best_imp_%s_%s, s_e_avg_imp_%s_%s, "
-                        + "hedge_imp_pl_%s_%s, arb_pl_%s_%s,",
+        return String.format("Implied: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                        + " s_e_imp%s_%s, s_e_best_imp%s_%s, s_e_avg_imp%s_%s, "
+                        + "hedge_imp_pl%s_%s, arb_pl%s_%s,",
                 s_e_imp_btc.toPlainString(), s_e_imp_usd.toPlainString(),
                 s_e_best_imp_btc.toPlainString(), s_e_best_imp_usd.toPlainString(),
                 s_e_avg_imp_btc.toPlainString(), s_e_avg_imp_usd.toPlainString(),
