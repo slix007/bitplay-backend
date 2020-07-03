@@ -3,6 +3,7 @@ package com.bitplay.api.controller;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.external.DestinationResolverByFile;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.okcoin.OkCoinService;
@@ -30,6 +31,7 @@ import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import java.math.BigDecimal;
 import java.util.EnumSet;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +62,12 @@ public class SettingsEndpoint {
     private final PosDiffService posDiffService;
     private final SettingsCorrEndpoint settingsCorrEndpoint;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
+    private final DestinationResolverByFile destinationResolverByFile;
+
+    @RequestMapping(value = "/slack", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<String> getSlackSettings() {
+        return destinationResolverByFile.getSettings();
+    }
 
     @RequestMapping(value = "/all", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings getSettings() {

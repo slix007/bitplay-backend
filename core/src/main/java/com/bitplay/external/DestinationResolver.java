@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -127,7 +125,7 @@ public class DestinationResolver {
     private final static String ALL_PROD_CHANNEL = "all-prod";
     private final static String ALL_TEST_CHANNEL = "all-test";
 
-    ToObj defineWhereToSend(NotifyType notifyType) {
+    Destination defineWhereToSend(NotifyType notifyType) {
         final String hostLabel = hostResolver.getHostname();
         final List<String> channels = new ArrayList<>();
         if (hostLabel.equals(HostResolver.LOCALHOST) || hostLabel.equals(HostResolver.UNKNOWN)) { // local development workaround
@@ -154,15 +152,7 @@ public class DestinationResolver {
             channels.add(COORDINATOR_CHANNEL);
         }
 
-        return new ToObj(channels, hostLabel);
-    }
-
-    @AllArgsConstructor
-    @Getter
-    static class ToObj {
-
-        private List<String> channels;
-        private String hostLabel;
+        return new Destination(channels, hostLabel);
     }
 
 }

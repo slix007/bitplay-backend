@@ -1,6 +1,5 @@
 package com.bitplay.external;
 
-import com.bitplay.external.DestinationResolver.ToObj;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Service;
 public class SlackNotifications {
 
     @Autowired
-    private DestinationResolver destinationResolver;
+    private DestinationResolverByFile destinationResolver;
 
     private final static String SLACK_URL = "https://hooks.slack.com/services/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";
 
@@ -44,7 +43,7 @@ public class SlackNotifications {
                 return;
             }
 
-            final ToObj toObj = destinationResolver.defineWhereToSend(notifyType);
+            final Destination toObj = destinationResolver.defineWhereToSend(notifyType);
 
             for (String channel : toObj.getChannels()) {
                 sendSync(channel, toObj.getHostLabel(), message);
