@@ -1652,7 +1652,7 @@ public class ArbitrageService {
         final BigDecimal vol_usd = implied.getVolUsd().setScale(2, BigDecimal.ROUND_HALF_UP);
         final BigDecimal usd_qu_ini = implied.getUsdQuIni().signum() == 0 ? BigDecimal.ONE : implied.getUsdQuIni();
         final BigDecimal s_e_best_ini_usd = implied.getSebestIniUsd();
-        final BigDecimal s_e_best_ini_btc = s_e_best_ini_usd.divide(usd_qu_ini, 16, BigDecimal.ROUND_HALF_UP);
+//        final BigDecimal s_e_best_ini_btc = s_e_best_ini_usd.divide(usd_qu_ini, 16, BigDecimal.ROUND_HALF_UP);
 
         BigDecimal hedge_imp_pl_btc = (vol_usd.divide(usd_qu, 16, BigDecimal.ROUND_HALF_UP)
                 .subtract(vol_usd.divide(usd_qu_ini, 16, BigDecimal.ROUND_HALF_UP))
@@ -1661,8 +1661,7 @@ public class ArbitrageService {
         BigDecimal s_e_best_imp_btc = s_e_best_btc.add(hedge_imp_pl_btc);
         BigDecimal s_e_best_imp_usd = s_e_best_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-        BigDecimal arb_pl_btc = s_e_best_imp_btc.subtract(s_e_best_ini_btc).setScale(8, BigDecimal.ROUND_HALF_UP);
-        BigDecimal arb_pl_usd = arb_pl_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal arb_pl_usd = s_e_best_imp_usd.subtract(s_e_best_ini_usd).setScale(2, BigDecimal.ROUND_HALF_UP);
         BigDecimal s_e_imp_btc = s_e_btc.add(hedge_imp_pl_btc);
         BigDecimal s_e_imp_usd = s_e_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
@@ -1671,12 +1670,12 @@ public class ArbitrageService {
 
         return String.format("Implied: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                         + " s_e_imp%s_%s, s_e_best_imp%s_%s, s_e_avg_imp%s_%s, "
-                        + "hedge_imp_pl%s_%s, arb_pl%s_%s,",
+                        + "hedge_imp_pl%s_%s, arb_pl%s,",
                 s_e_imp_btc.toPlainString(), s_e_imp_usd.toPlainString(),
                 s_e_best_imp_btc.toPlainString(), s_e_best_imp_usd.toPlainString(),
                 s_e_avg_imp_btc.toPlainString(), s_e_avg_imp_usd.toPlainString(),
                 hedge_imp_pl_btc.toPlainString(), hedge_imp_pl_usd.toPlainString(),
-                arb_pl_btc.toPlainString(), arb_pl_usd.toPlainString()
+                arb_pl_usd.toPlainString()
         );
     }
 
