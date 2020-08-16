@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 public class BitmexSwapService {
 
     private final static Logger logger = LoggerFactory.getLogger(BitmexSwapService.class);
-    private static final Logger tradeLogger = LoggerFactory.getLogger("BITMEX_TRADE_LOG");
+    private static final Logger tradeLogger = LoggerFactory.getLogger("LEFT_TRADE_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
     private static final int TICK_SEC = 1;
     private static final int MAX_TICKS_TO_SWAP_REVERT = 120; // 2 min

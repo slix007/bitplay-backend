@@ -111,7 +111,7 @@ public class LeftUiService extends AbstractUiService<MarketServicePreliq> {
             ((BitmexService) arbitrageService.getLeftMarketService()).getBitmexSwapService().setCustomSwapTime(swapTime);
         }
 
-        return new ResultJson("true", "");
+        return new ResultJson(swapTime, "");
     }
 
     public ResultJson resetTimeCompare() {
