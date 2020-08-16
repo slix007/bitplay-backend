@@ -1913,7 +1913,7 @@ public class BitmexService extends MarketServicePreliq {
                         throwTestingException();
                         final LimitOrder resultOrder = bitmexTradeService.placeLimitOrderBitmex(
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
-                                participateDoNotInitiate, symbol, scale);
+                                participateDoNotInitiate, symbol, scale, placeOrderArgs.isPreliqOrder());
                         final Instant endReq = Instant.now();
                         plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
                         plBeforeBtm.setGetAnswerFromPlacing(endReq);
@@ -1981,9 +1981,11 @@ public class BitmexService extends MarketServicePreliq {
                             ordersLogger.info(message);
 
                             if (placingType == PlacingType.TAKER_FOK) {
-                                resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale);
+                                resultOrder = bitmexTradeService.placeMarketOrderFillOrKill(marketOrder, symbol, thePrice, scale,
+                                        placeOrderArgs.isPreliqOrder());
                             } else { //TAKER_IOC
-                                resultOrder = bitmexTradeService.placeMarketOrderImmediateOrCancel(marketOrder, symbol, thePrice, scale);
+                                resultOrder = bitmexTradeService.placeMarketOrderImmediateOrCancel(marketOrder, symbol, thePrice, scale,
+                                        placeOrderArgs.isPreliqOrder());
                             }
                             if (resultOrder.getStatus() == OrderStatus.CANCELED) {
                                 String type = placingType == PlacingType.TAKER_FOK ? "FillOrKill" : "ImmediateOrCancel";
@@ -1993,7 +1995,7 @@ public class BitmexService extends MarketServicePreliq {
                                 nextMarketState = MarketState.READY;
                             }
                         } else {
-                            resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol);
+                            resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol, placeOrderArgs.isPreliqOrder());
                         }
                         final Instant endReq = Instant.now();
                         plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
