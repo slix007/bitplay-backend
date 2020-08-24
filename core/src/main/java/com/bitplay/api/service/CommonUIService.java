@@ -106,10 +106,6 @@ public class CommonUIService {
     private final OkexSettlementService okexSettlementService;
     private final NtUsdRecoveryService ntUsdRecoveryService;
 
-    public TradeLogJson getPoloniexTradeLog() {
-        return getTradeLogJson("./logs/poloniex-trades.log");
-    }
-
     public TradeLogJson getTradeLog(String marketName, String date) {
         String logName;
         if (date == null || date.trim().length() == 0) {

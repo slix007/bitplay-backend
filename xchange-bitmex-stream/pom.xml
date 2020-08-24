@@ -7,8 +7,8 @@
     </parent>
 
     <properties>
-        <xchange.version>4.2.2-bts-SNAPSHOT</xchange.version>
-        <xchange-stream.version>4.3.16-bts-SNAPSHOT</xchange-stream.version>
+        <xchange.version>4.2.3-bts</xchange.version>
+        <xchange-stream.version>4.3.17-bts</xchange-stream.version>
         <bitplay-model.version>0.0.1-SNAPSHOT</bitplay-model.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -86,7 +86,7 @@
             <version>1.0.1</version>
         </dependency>
 
-        
+
 
         <dependency>
             <groupId>org.knowm.xchange</groupId>

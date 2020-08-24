@@ -1,5 +1,7 @@
 package com.bitplay.market.okcoin;
 
+import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
+
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
@@ -71,37 +73,11 @@ import info.bitrich.xchangestream.okexv3.dto.InstrumentDto;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkCoinDepth;
 import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
+import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
-import org.knowm.xchange.Exchange;
-import org.knowm.xchange.ExchangeFactory;
-import org.knowm.xchange.ExchangeSpecification;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.okcoin.FuturesContract;
-import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Scope;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import si.mazi.rescu.HttpStatusIOException;
-
-import javax.annotation.PreDestroy;
-import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -127,8 +103,32 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-
-import static com.bitplay.market.model.LiqInfo.DQL_WRONG;
+import javax.annotation.PreDestroy;
+import javax.validation.constraints.NotNull;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.ExchangeFactory;
+import org.knowm.xchange.ExchangeSpecification;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.okcoin.FuturesContract;
+import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Scope;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import si.mazi.rescu.HttpStatusIOException;
 
 /**
  * Created by Sergey Shurmin on 3/21/17.
@@ -485,9 +485,12 @@ public class OkCoinService extends MarketServicePreliq {
                 .doOnError(throwable -> log.error("okex orderBook onError", throwable))
                 .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS));
 
+        //TODO split extraOB stream
         orderBookSubscription = orderBookObservable
-                .observeOn(stateUpdater)
+                .toFlowable(BackpressureStrategy.LATEST)
+                .observeOn(stateUpdater, false, 1)
                 .subscribe(okcoinDepth -> {
+                    log.info("u=>" + okcoinDepth.getTimestamp().toString() + "=" + okcoinDepth.getReceiveTimestamp().toString());
                     boolean isExtra = isObExtra(okcoinDepth);
                     final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
                     OrderBook newOrderBook = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());

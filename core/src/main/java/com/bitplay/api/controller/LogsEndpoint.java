@@ -18,11 +18,6 @@ public class LogsEndpoint {
     @Autowired
     private CommonUIService commonUIService;
 
-    @RequestMapping(value = "/market/trade-log/poloniex", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public TradeLogJson getPoloniexTradeLog() {
-        return commonUIService.getPoloniexTradeLog();
-    }
-
     @RequestMapping(value = "/market/trade-log/left", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public TradeLogJson getBitmexTradeLog(@RequestParam(value = "date", required = false) String date) {
         return commonUIService.getTradeLog("left", date);
