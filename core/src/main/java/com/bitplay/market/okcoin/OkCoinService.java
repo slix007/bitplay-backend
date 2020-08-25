@@ -81,6 +81,7 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -164,6 +165,7 @@ public class OkCoinService extends MarketServicePreliq {
     private ApiCredentials apiCredentials;
     private FplayExchangeOkex fplayOkexExchange;
     private Disposable orderBookSubscription;
+    private Disposable orderBookSubscriptionExtra;
     private Disposable userPositionSub;
     private Disposable userAccountSub;
     private Disposable userOrderSub;
@@ -417,6 +419,9 @@ public class OkCoinService extends MarketServicePreliq {
     private Completable closeAllSubscibers() {
         // Unsubscribe from data order book.
         orderBookSubscription.dispose();
+        if (orderBookSubscriptionExtra != null && !orderBookSubscriptionExtra.isDisposed()) {
+            orderBookSubscriptionExtra.dispose();
+        }
 
 //        orderSubscriptions.forEach((s, disposable) -> disposable.dispose());
         userPositionSub.dispose();
@@ -485,35 +490,38 @@ public class OkCoinService extends MarketServicePreliq {
                 .doOnError(throwable -> log.error("okex orderBook onError", throwable))
                 .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS));
 
-        //TODO split extraOB stream
-        orderBookSubscription = orderBookObservable
+        orderBookSubscriptionExtra = orderBookObservable.filter(this::isObExtra)
                 .toFlowable(BackpressureStrategy.LATEST)
                 .observeOn(stateUpdater, false, 1)
                 .subscribe(okcoinDepth -> {
-                    log.info("u=>" + okcoinDepth.getTimestamp().toString() + "=" + okcoinDepth.getReceiveTimestamp().toString());
-                    boolean isExtra = isObExtra(okcoinDepth);
+                    final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
+                    this.orderBookXBTUSD = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
+                    this.orderBookXBTUSDShort = this.orderBookXBTUSD;
+                }, throwable -> log.error("ERROR in getting extra OrderBook: ", throwable));
+
+        orderBookSubscription = orderBookObservable.filter(d -> !isObExtra(d))
+                .toFlowable(BackpressureStrategy.LATEST)
+                .observeOn(stateUpdater, false, 1)
+                .subscribe(okcoinDepth -> {
+//                    final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
+//                    Thread.sleep(1000);
+//                    log.info("u=>" + sdt.format(okcoinDepth.getTimestamp()) + "=" + sdt.format(okcoinDepth.getReceiveTimestamp()));
                     final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
                     OrderBook newOrderBook = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
-                    if (isExtra) {
-                        this.orderBookXBTUSD = newOrderBook;
-                        this.orderBookXBTUSDShort = this.orderBookXBTUSD;
-                    } else {
-                        metricsDictionary.incOkexObCounter();
-                        this.orderBook = newOrderBook;
-                        this.setOrderBookShort(newOrderBook);
+                    metricsDictionary.incOkexObCounter();
+                    this.orderBook = newOrderBook;
+                    this.setOrderBookShort(newOrderBook);
 
-                        final LimitOrder bestAsk = Utils.getBestAsk(newOrderBook);
-                        final LimitOrder bestBid = Utils.getBestBid(newOrderBook);
+                    final LimitOrder bestAsk = Utils.getBestAsk(newOrderBook);
+                    final LimitOrder bestBid = Utils.getBestBid(newOrderBook);
 
-                        stateRecalcInStateUpdaterThread(); // includes FullBalance and not only bestAsk/Bid
-                        this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
-                        this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
-                        log.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
+                    stateRecalcInStateUpdaterThread(); // includes FullBalance and not only bestAsk/Bid
+                    this.bestAsk = bestAsk != null ? bestAsk.getLimitPrice() : BigDecimal.ZERO;
+                    this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
+                    log.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
-                        Instant lastObTime = Instant.now();
-                        getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));
-                    }
-
+                    Instant lastObTime = Instant.now();
+                    getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));
                 }, throwable -> log.error("ERROR in getting order book: ", throwable));
     }
 

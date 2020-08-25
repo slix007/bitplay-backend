@@ -2,15 +2,6 @@ package com.bitplay.utils;
 
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import info.bitrich.xchangestream.okexv3.dto.marketdata.OkcoinPriceRange;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.Position;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.slf4j.Logger;
-import org.springframework.data.util.Pair;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DateFormat;
@@ -22,6 +13,12 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.Position;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.slf4j.Logger;
+import org.springframework.data.util.Pair;
 
 /**
  * Created by Sergey Shurmin on 4/4/17.
@@ -227,12 +224,20 @@ public class Utils {
         }
 
         //noinspection UnnecessaryLocalVariable
+        final String timestamps;
+        if (orderBook.getReceiveTimestamp() != null) {
+            timestamps = "OB_timestamp:" + Utils.dateToString(orderBook.getReceiveTimestamp())
+                    + ", OB_market_timestamp:" + Utils.dateToString(orderBook.getTimeStamp());
+        } else {
+            timestamps = "OB_timestamp:" + Utils.dateToString(orderBook.getTimeStamp());
+        }
+
         final String message = String.format(
-                "#%s %s: %s, OB_timestamp: %s",
+                "#%s %s: %s, %s",
                 counterName,
                 description,
                 obBuilder.toString(),
-                Utils.dateToString(orderBook.getTimeStamp())
+                timestamps
         );
         return message;
     }
