@@ -933,6 +933,7 @@ public class OkCoinService extends MarketServicePreliq {
                 .doOnError(throwable -> log.error("Error on PriceRange observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
+                .toFlowable(BackpressureStrategy.LATEST)
                 .subscribe(priceRange -> {
                     log.debug(priceRange.toString());
                     this.priceRange = priceRange;

@@ -70,14 +70,43 @@ import info.bitrich.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import info.bitrich.xchangestream.service.exception.NotConnectedException;
 import info.bitrich.xchangestream.service.ws.statistic.PingStatEvent;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
+import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
+import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.Scheduler;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import io.swagger.client.model.Error;
 import io.swagger.client.model.Execution;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import javax.annotation.PreDestroy;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeSpecification;
 import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
@@ -105,33 +134,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
 import si.mazi.rescu.InvocationResult;
-
-import javax.annotation.PreDestroy;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.net.SocketTimeoutException;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 /**
  * Created by Sergey Shurmin on 4/29/17.
@@ -170,6 +172,7 @@ public class BitmexService extends MarketServicePreliq {
 
     private volatile Disposable quoteSubscription;
     private volatile Disposable orderBookSubscription;
+    private volatile Disposable orderBookSubscriptionExtra;
     private volatile Disposable openOrdersSubscription;
     private volatile Disposable accountInfoSubscription;
     private volatile Disposable positionSubscription;
@@ -459,7 +462,7 @@ public class BitmexService extends MarketServicePreliq {
 
         logger.info("startAllListeners");
         quoteSubscription = startQuoteListener();
-        orderBookSubscription = startOrderBookListener();
+        startOrderBookListener();
         accountInfoSubscription = startAccountInfoListener();
         openOrdersSubscription = startOpenOrderListener();
         positionSubscription = startPositionListener();
@@ -510,6 +513,9 @@ public class BitmexService extends MarketServicePreliq {
             this.orderBookXBTUSDShort = new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
 
             orderBookSubscription.dispose();
+            if (orderBookSubscriptionExtra != null) {
+                orderBookSubscriptionExtra.dispose();
+            }
             List<String> symbols = new ArrayList<>();
             symbols.add(bitmexContractTypeEx.getSymbol());
             if (!sameOrderBookXBTUSD()) {
@@ -518,7 +524,7 @@ public class BitmexService extends MarketServicePreliq {
 
             Throwable throwable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
                     .unsubscribeOrderBook(symbols)
-                    .doOnComplete(() -> orderBookSubscription = startOrderBookListener())
+                    .doOnComplete(this::startOrderBookListener)
                     .blockingGet(5, TimeUnit.SECONDS);
             if (throwable != null) {
                 throw new ReconnectFailedException(throwable);
@@ -1293,6 +1299,9 @@ public class BitmexService extends MarketServicePreliq {
             if (orderBookSubscription != null) {
                 orderBookSubscription.dispose();
             }
+            if (orderBookSubscriptionExtra != null) {
+                orderBookSubscriptionExtra.dispose();
+            }
             if (accountInfoSubscription != null) {
                 accountInfoSubscription.dispose();
             }
@@ -1336,12 +1345,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private OrderBook mergeOrderBook10(BitmexDepth obUpdate) {
-        if (obUpdate.getSymbol() == null) {
-            // skip the update
-            throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
-        }
         final long ms = Instant.now().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
-
         OrderBook finalOB;
         String symbol = obUpdate.getSymbol();
         if (symbol.equals(bitmexContractTypeEx.getSymbol())) {
@@ -1470,15 +1474,18 @@ public class BitmexService extends MarketServicePreliq {
                 .subscribe();
     }
 
-    private Disposable startOrderBookListener() {
+    private void startOrderBookListener() {
         final BitmexObType obType = settingsRepositoryService.getSettings().getBitmexObType();
         startFlag = false;
-        final Observable<OrderBook> orderBookObservable;
+        final Flowable<OrderBook> orderBookObservable;
+        final Flowable<OrderBook> orderBookObservableExtra;
         if (obType != BitmexObType.TRADITIONAL_10) {
             orderBookObservable = getBitmexOrderBookObservable(obType)
                     .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
+                    .toFlowable(BackpressureStrategy.BUFFER)
                     .observeOn(stateUpdater) // the sync queue is here.
                     .map(bitmexOrderBook -> mergeOrderBookIncremental(bitmexOrderBook, obType));
+            orderBookObservableExtra = null;
         } else {
             List<String> symbols = new ArrayList<>();
             symbols.add(bitmexContractTypeEx.getSymbol());
@@ -1486,26 +1493,42 @@ public class BitmexService extends MarketServicePreliq {
                 symbols.add(bitmexContractTypeXBTUSD.getSymbol());
             }
             final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
-            orderBookObservable = streamingMarketDataService.getOrderBookTop10(symbols)
+            final Observable<BitmexDepth> allOrderBooks = streamingMarketDataService.getOrderBookTop10(symbols)
                     .doOnError(throwable -> handleSubscriptionError(throwable, "can not get orderBook"))
-                    .observeOn(stateUpdater) // the sync queue is here.
+                    .doOnNext(obUpdate -> {
+                        if (obUpdate.getSymbol() == null) {
+                            // skip the update
+                            throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
+                        }
+                    });
+            orderBookObservable = allOrderBooks
+                    .filter(u -> u.getSymbol().equals(bitmexContractTypeEx.getSymbol()))
+                    .toFlowable(BackpressureStrategy.LATEST)
+                    .observeOn(stateUpdater, false, 1)
+                    .map(this::mergeOrderBook10);
+
+            orderBookObservableExtra = allOrderBooks
+                    .filter(u -> u.getSymbol().equals(bitmexContractTypeXBTUSD.getSymbol()))
+                    .toFlowable(BackpressureStrategy.LATEST)
+                    .observeOn(stateUpdater, false, 1)
                     .map(this::mergeOrderBook10);
         }
         bitmexObTypeCurrent = obType;
-        return orderBookObservable
-                .doOnDispose(() -> logger.info("bitmex subscription doOnDispose"))
+
+        final Consumer<Throwable> obErrorConsumer = throwable -> {
+            if (throwable instanceof NotConnectedException) {
+                logger.error("can not convert orderBook " + throwable.getMessage()); //
+                warningLogger.error("can not convert orderBook " + throwable.getMessage());
+            } else {
+                logger.error("can not convert orderBook", throwable); //
+                warningLogger.error("can not convert orderBook", throwable);
+            }
+            orderBookErrors.incrementAndGet();
+        };
+        orderBookSubscription = orderBookObservable
                 .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
                 .filter(ob -> ob.getBids().size() != 0 && ob.getAsks().size() != 0)
-                .doOnError(throwable -> {
-                    if (throwable instanceof NotConnectedException) {
-                        logger.error("can not convert orderBook " + throwable.getMessage()); //
-                        warningLogger.error("can not convert orderBook " + throwable.getMessage());
-                    } else {
-                        logger.error("can not convert orderBook", throwable); //
-                        warningLogger.error("can not convert orderBook", throwable);
-                    }
-                    orderBookErrors.incrementAndGet();
-                })
+                .doOnError(obErrorConsumer)
                 .retry()
                 .subscribe(orderBook -> {
                     try {
@@ -1525,6 +1548,27 @@ public class BitmexService extends MarketServicePreliq {
                     orderBookErrors.incrementAndGet();
                     requestReconnect(true);
                 });
+        if (orderBookObservableExtra != null) {
+            orderBookSubscriptionExtra = orderBookObservableExtra
+                    .doOnTerminate(() -> logger.info("bitmex subscription doOnTerminate"))
+                    .filter(ob -> ob.getBids().size() != 0 && ob.getAsks().size() != 0)
+                    .doOnError(obErrorConsumer)
+                    .retry()
+                    .subscribe(orderBook -> {
+                        try {
+                            afterOrderBookXBTUSDChanged(orderBook);
+                        } catch (Exception e) {
+                            logger.error("Can not merge OrderBook", e);
+                        }
+                    }, throwable -> {
+                        logger.error("can not merge orderBook exception", throwable);
+                        warningLogger.error("can not merge orderBook", throwable);
+                        orderBookErrors.incrementAndGet();
+                        requestReconnect(true);
+                    });
+
+        }
+
     }
 
     private Observable<BitmexOrderBook> getBitmexOrderBookObservable(BitmexObType obType) {
