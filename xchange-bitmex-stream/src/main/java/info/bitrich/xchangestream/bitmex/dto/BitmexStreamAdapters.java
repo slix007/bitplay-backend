@@ -23,7 +23,7 @@ public class BitmexStreamAdapters {
         List<LimitOrder> asks = adaptLimitOrders(bitmexDepth.getAsks(), Order.OrderType.ASK, currencyPair, timestamp);
         List<LimitOrder> bids = adaptLimitOrders(bitmexDepth.getBids(), Order.OrderType.BID, currencyPair, timestamp);
 
-        return new OrderBook(timestamp, asks, bids);
+        return new OrderBook(timestamp, bitmexDepth.getReceiveTimestamp(), asks, bids);
     }
 
     private static List<LimitOrder> adaptLimitOrders(BigDecimal[][] list, Order.OrderType type, CurrencyPair currencyPair, Date timestamp) {

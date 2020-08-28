@@ -1580,6 +1580,9 @@ public class ArbitrageService {
             final BigDecimal sumA = bA.add(oA).setScale(8, BigDecimal.ROUND_HALF_UP);
 
             final BigDecimal usdQuote = getUsdQuote();
+            if (usdQuote.signum() == 0) {
+                return;
+            }
 
             sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 

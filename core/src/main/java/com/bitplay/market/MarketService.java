@@ -115,6 +115,7 @@ public abstract class MarketService extends MarketServiceWithState {
     protected volatile Scheduler freeOoCheckerScheduler;
     protected volatile Scheduler indexSingleExecutor;
     protected volatile Scheduler stateUpdater;
+    protected volatile Scheduler stateUpdaterObExtra;
 
     // Moving timeout
     private volatile ScheduledFuture<?> scheduledOverloadReset;
@@ -154,6 +155,7 @@ public abstract class MarketService extends MarketServiceWithState {
         freeOoCheckerScheduler = Schedulers.from(Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(s + "-free-oo-checker")));
         indexSingleExecutor = Schedulers.from(Executors.newSingleThreadExecutor(new NamedThreadFactory(s + "-index-executor-%d")));
         stateUpdater = Schedulers.from(Executors.newSingleThreadExecutor(new NamedThreadFactory(s + "-state-updater")));
+        stateUpdaterObExtra = Schedulers.from(Executors.newSingleThreadExecutor(new NamedThreadFactory(s + "-state-updater-ob-extra")));
 
         initEventBus();
         initializeMarket(key, secret, contractType, exArgs);

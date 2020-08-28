@@ -84,7 +84,6 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     // timestamp
                     //noinspection UnnecessaryLocalVariable
                     final BitmexDepth data = mapper.treeToValue(s.get("data").get(0), BitmexDepth.class);
-                    data.setReceiveTime(new Date());
                     return data;
                 });
     }

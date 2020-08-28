@@ -1368,7 +1368,7 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         final long endMergeMs = Instant.now().toEpochMilli();
-        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10(endMergeMs - obUpdate.getReceiveTime().toInstant().toEpochMilli());
+        metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10(endMergeMs - obUpdate.getReceiveTimestamp().toInstant().toEpochMilli());
         return finalOB;
     }
 
@@ -1500,7 +1500,7 @@ public class BitmexService extends MarketServicePreliq {
                             // skip the update
                             throw new IllegalArgumentException("OB update has no symbol. " + obUpdate);
                         }
-                    });
+                    }).share();
             orderBookObservable = allOrderBooks
                     .filter(u -> u.getSymbol().equals(bitmexContractTypeEx.getSymbol()))
                     .toFlowable(BackpressureStrategy.LATEST)
@@ -1510,7 +1510,7 @@ public class BitmexService extends MarketServicePreliq {
             orderBookObservableExtra = allOrderBooks
                     .filter(u -> u.getSymbol().equals(bitmexContractTypeXBTUSD.getSymbol()))
                     .toFlowable(BackpressureStrategy.LATEST)
-                    .observeOn(stateUpdater, false, 1)
+                    .observeOn(stateUpdaterObExtra, false, 1)
                     .map(this::mergeOrderBook10);
         }
         bitmexObTypeCurrent = obType;
