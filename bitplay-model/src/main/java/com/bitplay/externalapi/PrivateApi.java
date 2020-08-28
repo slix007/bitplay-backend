@@ -6,6 +6,7 @@ import com.bitplay.model.ex.OrderResultTiny;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.AccountInfoContracts;
+import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
@@ -37,6 +38,8 @@ public interface PrivateApi {
     Leverage getLeverage(String instrumentId);
 
     Leverage changeLeverage(String newCurrOrInstrId, String newLeverageStr);
+
+//    OrderBook getOrderBook(String newCurrOrInstrId, String newLeverageStr);
 
     boolean notCreated();
 }

@@ -81,7 +81,6 @@ import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -523,6 +522,22 @@ public class OkCoinService extends MarketServicePreliq {
                     Instant lastObTime = Instant.now();
                     getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));
                 }, throwable -> log.error("ERROR in getting order book: ", throwable));
+    }
+
+    @Override
+    public OrderBook fetchOrderBookMain() {
+        //TODO
+//        try {
+//            fplayOkexExchange.getPrivateApi().changeLeverage()
+//
+//            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
+//            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+//            this.orderBook = ob;
+//            this.orderBookShort.setOb(ob);
+//        } catch (IOException e) {
+//            log.error("can not fetch orderBook");
+//        }
+        return this.getOrderBookShort().getOb();
     }
 
     private boolean isObExtra(OkCoinDepth okCoinDepth) {

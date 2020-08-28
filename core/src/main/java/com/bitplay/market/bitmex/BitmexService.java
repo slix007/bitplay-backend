@@ -645,6 +645,25 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
+    public OrderBook fetchOrderBookMain() {
+        try {
+            final BitmexObType obType = getPersistenceService().getSettingsRepositoryService().getSettings().getBitmexObType();
+            if (obType != BitmexObType.TRADITIONAL_10) {
+                final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
+                final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids()); // timestamp may be null
+                return ob; // for bitmex incremental
+            }
+            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
+            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+            this.orderBook = ob;
+            this.setOrderBookShort(ob);
+        } catch (IOException e) {
+            log.error("can not fetch orderBook");
+        }
+        return this.getOrderBookShort().getOb();
+    }
+
+    @Override
     public String fetchPosition() throws Exception {
         if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
             logger.warn("WARNING: no position fetch: SYSTEM_OVERLOADED");
