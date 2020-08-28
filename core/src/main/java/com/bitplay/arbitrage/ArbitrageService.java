@@ -921,10 +921,8 @@ public class ArbitrageService {
     }
 
     private String composeDynBlockLogs(String deltaNameForLogs, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, BigDecimal b_block, BigDecimal o_block) {
-        final String bMsg = Utils.getTenAskBid(bitmexOrderBook, "",
-                "Left OrderBook");
-        final String oMsg = Utils.getTenAskBid(okCoinOrderBook, "",
-                "Right OrderBook");
+        final String bMsg = Utils.getTenAskBid(bitmexOrderBook, "", "Left OrderBook", "L");
+        final String oMsg = Utils.getTenAskBid(okCoinOrderBook, "", "Right OrderBook", "R");
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         return String.format("%s: Dynamic: dynMaxBlockUsd=%s, isEth=%s, cm=%s, L_block=%s, R_block=%s\n%s\n%s. ",
                 deltaNameForLogs,

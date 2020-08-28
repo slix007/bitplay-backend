@@ -1019,7 +1019,8 @@ public class OkCoinService extends MarketServicePreliq {
         final Order.OrderType orderType = adjustOrderType(inputOrderType, amount);
 
         final String message = Utils.getTenAskBid(getOrderBook(), counterNameWithPortion,
-                String.format("Before %s placing, orderType=%s,", orderType, Utils.convertOrderTypeName(orderType)));
+                String.format("Before %s placing, orderType=%s,", orderType, Utils.convertOrderTypeName(orderType)),
+                getArbType().s());
         log.info(message);
         tradeLogger.info(message);
 //        synchronized (openOrdersLock)
@@ -1651,7 +1652,8 @@ public class OkCoinService extends MarketServicePreliq {
             orderType = adjustOrderType(orderType, tradableAmount);
 
             final String message = Utils.getTenAskBid(getOrderBook(), counterNameWithPortion,
-                    String.format("Before %s placing, orderType=%s,", placingSubType, Utils.convertOrderTypeName(orderType)));
+                    String.format("Before %s placing, orderType=%s,", placingSubType, Utils.convertOrderTypeName(orderType)),
+                    getArbType().s());
             log.info(message);
             tradeLogger.info(message);
 

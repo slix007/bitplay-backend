@@ -204,7 +204,7 @@ public class Utils {
         }
     }
 
-    public static String getTenAskBid(OrderBook orderBook, String counterName, String description) {
+    public static String getTenAskBid(OrderBook orderBook, String counterName, String description, String leftOrRight) {
         StringBuilder obBuilder = new StringBuilder();
         obBuilder.append("ask: ");
         final List<LimitOrder> asks = orderBook.getAsks();
@@ -226,10 +226,13 @@ public class Utils {
         //noinspection UnnecessaryLocalVariable
         final String timestamps;
         if (orderBook.getReceiveTimestamp() != null) {
-            timestamps = "OB_timestamp:" + Utils.dateToString(orderBook.getReceiveTimestamp())
-                    + ", OB_market_timestamp:" + Utils.dateToString(orderBook.getTimeStamp());
+            timestamps = String.format("%s_OB_timestamp: %s, Initial_%s_OB_timestamp:%s",
+                    leftOrRight,
+                    Utils.dateToString(orderBook.getReceiveTimestamp()),
+                    leftOrRight,
+                    Utils.dateToString(orderBook.getTimeStamp()));
         } else {
-            timestamps = "OB_timestamp:" + Utils.dateToString(orderBook.getTimeStamp());
+            timestamps = leftOrRight + "_OB_timestamp:" + Utils.dateToString(orderBook.getTimeStamp());
         }
 
         final String message = String.format(

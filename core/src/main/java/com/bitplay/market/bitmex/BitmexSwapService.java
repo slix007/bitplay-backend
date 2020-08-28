@@ -287,7 +287,7 @@ public class BitmexSwapService {
 
     private void printAskBid(String description) {
         final OrderBook orderBook = bitmexService.getOrderBook();
-        final String message = Utils.getTenAskBid(orderBook, arbitrageService.getSignalType().getCounterName(), description);
+        final String message = Utils.getTenAskBid(orderBook, arbitrageService.getSignalType().getCounterName(), description, "L");
 
         logger.info(message);
         tradeLogger.info(message);

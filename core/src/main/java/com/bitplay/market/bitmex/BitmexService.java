@@ -1947,7 +1947,8 @@ public class BitmexService extends MarketServicePreliq {
                             orderBook = bestQuotes.getBtmOrderBook();
                             bestQuotes.setBtmOrderBook(null);
                             final String message = String.format("#%s placing %s using btmObTimestamp=%s",
-                                    counterName, orderType, Utils.getTenAskBid(orderBook, counterName, "Bitmex orderBook"));
+                                    counterName, orderType,
+                                    Utils.getTenAskBid(orderBook, counterName, "Bitmex orderBook", getArbType().s()));
                             tradeLogger.info(message, contractTypeStr);
 
                         } else {
@@ -2054,7 +2055,8 @@ public class BitmexService extends MarketServicePreliq {
                                 String type = placingType == PlacingType.TAKER_FOK ? "FillOrKill" : "ImmediateOrCancel";
                                 extraLog = "order had timeInForce of " + type + ". "
                                         + "filledAmount=" + resultOrder.getCumulativeAmount() + ". "
-                                        + Utils.getTenAskBid(orderBook, counterName, "Bitmex OrderBook");
+                                        + Utils.getTenAskBid(orderBook, counterName, "Bitmex OrderBook",
+                                        getArbType().s());
                                 nextMarketState = MarketState.READY;
                             }
                         } else {
@@ -2282,7 +2284,7 @@ public class BitmexService extends MarketServicePreliq {
                             type, FOK_total_diff, btmFokArgs.getAllBorders()));
                 }
             }
-            fokExtraLogs.append(Utils.getTenAskBid(orderBook, "", "Bitmex OrderBook"));
+            fokExtraLogs.append(Utils.getTenAskBid(orderBook, "", "Bitmex OrderBook", getArbType().s()));
             tryPrintZeroPriceWarning(price);
             return price;
         }
