@@ -1676,8 +1676,8 @@ public class OkCoinService extends MarketServicePreliq {
                 OrderBook orderBook = getOrderBook();
                 // workaround. if OrderBook was not updated between attempts.
                 if (obTimestamp.equals(orderBook.getTimeStamp().toInstant().toString())) {
-                    final String msg = String.format("#%s/%s orderBook timestamp=%s is the same. Updating orderBook...",
-                            counterNameWithPortion, attempt, obTimestamp);
+                    final String msg = String.format("#%s/%s %s_OB_timestamp=%s is the same. Updating orderBook...",
+                            counterNameWithPortion, attempt, getArbType().s(), obTimestamp);
                     tradeLogger.info(msg);
                     log.info(msg);
 

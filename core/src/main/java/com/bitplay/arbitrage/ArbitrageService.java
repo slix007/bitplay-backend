@@ -1337,8 +1337,9 @@ public class ArbitrageService {
             bestQuotes.setBtmOrderBook(btmOb);
             final Instant end = Instant.now();
             final long ms = Duration.between(start, end).toMillis();
-            final String msg = String.format("Recheck OB after SD %s ms. %s, btmObTimestamp=%s, okexObTimestamp=%s",
-                    ms, bestQuotes.toStringEx(), Utils.dateToString(btmOb.getTimeStamp()), Utils.dateToString(okOb.getTimeStamp()));
+            final String msg = String.format("Recheck OB after SD %s ms. %s, L_OB_timestamp=%s, R_OB_timestamp=%s",
+                    ms, bestQuotes.toStringEx(),
+                    Utils.dateToString(btmOb.getTimeStamp()), Utils.dateToString(okOb.getTimeStamp()));
             log.info(msg);
             warningLogger.info(msg);
         } finally {

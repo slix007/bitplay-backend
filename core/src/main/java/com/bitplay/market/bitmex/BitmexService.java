@@ -1946,7 +1946,7 @@ public class BitmexService extends MarketServicePreliq {
                         if (bestQuotes != null && bestQuotes.getBtmOrderBook() != null) {
                             orderBook = bestQuotes.getBtmOrderBook();
                             bestQuotes.setBtmOrderBook(null);
-                            final String message = String.format("#%s placing %s using btmObTimestamp=%s",
+                            final String message = String.format("#%s placing %s using L_OB_timestamp=%s",
                                     counterName, orderType,
                                     Utils.getTenAskBid(orderBook, counterName, "Bitmex orderBook", getArbType().s()));
                             tradeLogger.info(message, contractTypeStr);
@@ -2032,7 +2032,7 @@ public class BitmexService extends MarketServicePreliq {
                             thePrice = (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0)
                                     ? settings.getBitmexPrice()
                                     : createFillOrKillPrice(fokExtraLogs, orderType, orderBook, btmContType, btmFokArgs, placingType);
-                            final String message = String.format("#%s placing %s %s, q=%s, a=%s. pos=%s, btmObTimestamp=%s. %s",
+                            final String message = String.format("#%s placing %s %s, q=%s, a=%s. pos=%s, L_OB_timestamp=%s. %s",
                                     counterName,
                                     placingType,
                                     orderType,
