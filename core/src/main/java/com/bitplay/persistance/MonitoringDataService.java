@@ -2,6 +2,7 @@ package com.bitplay.persistance;
 
 import com.bitplay.persistance.dao.SequenceDao;
 import com.bitplay.persistance.domain.mon.Mon;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.exception.SequenceException;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,16 @@ public class MonitoringDataService {
         }
         return firstByDocumentId;
     }
+
+    public MonObTimestamp fetchTimestampMonitoring(String marketName) {
+        MonObTimestamp firstByDocumentId = findMonTimestamp(marketName);
+        if (firstByDocumentId == null) {
+            firstByDocumentId = MonObTimestamp.createDefaults(marketName);
+            firstByDocumentId = saveMonTimestamp(firstByDocumentId);
+        }
+        return firstByDocumentId;
+    }
+
 
     public MonRestart saveRestartMonitoring(MonRestart monRestart) {
         if (monRestart.getId() == null) {
@@ -88,5 +99,23 @@ public class MonitoringDataService {
                         .and("typeName").is(typeName)),
                 Mon.class);
     }
+
+
+    public MonObTimestamp saveMonTimestamp(MonObTimestamp mon) {
+        if (mon.getId() == null) {
+            long nextId = sequenceDao.getNextSequenceId(SEQ_NAME);
+            mon.setId(nextId);
+        }
+        mongoTemplate.save(mon);
+        return mon;
+    }
+
+    private MonObTimestamp findMonTimestamp(String marketName) {
+        return mongoTemplate.findOne(
+                Query.query(Criteria.where("marketName").is(marketName)
+                        .and("typeName").is("ob_timestamp")
+                ), MonObTimestamp.class);
+    }
+
 
 }

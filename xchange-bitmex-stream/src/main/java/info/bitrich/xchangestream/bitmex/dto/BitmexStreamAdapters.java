@@ -44,7 +44,7 @@ public class BitmexStreamAdapters {
      * <p>{@link OrderBook#getAsks()} and {@link OrderBook#getBids()} are synchronizedList</p>
      */
     public static OrderBook adaptBitmexOrderBook(BitmexOrderBook bitmexOrderBook, CurrencyPair currencyPair) {
-        final Date timestamp = new Date();
+        final Date timestamp = new Date(bitmexOrderBook.getGettingTimeEpochMs());
         List<LimitOrder> asks = Collections.synchronizedList(new ArrayList<>());
         List<LimitOrder> bids = Collections.synchronizedList(new ArrayList<>());
 
@@ -90,8 +90,8 @@ public class BitmexStreamAdapters {
         return orderBook;
     }
 
-    public static OrderBook cloneOrderBook(OrderBook ob) {
-        return new OrderBook(new Date(),
+    public static OrderBook cloneOrderBook(OrderBook ob, Date gettingTimestamp) {
+        return new OrderBook(gettingTimestamp,
                 Collections.synchronizedList(ob.getAsks().stream().map(BitmexStreamAdapters::cloneLimitOrder).collect(Collectors.toList())),
                 Collections.synchronizedList(ob.getBids().stream().map(BitmexStreamAdapters::cloneLimitOrder).collect(Collectors.toList()))
         );

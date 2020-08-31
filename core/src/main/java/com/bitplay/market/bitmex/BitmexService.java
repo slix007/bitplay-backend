@@ -46,6 +46,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexContractTypeEx;
@@ -241,6 +242,7 @@ public class BitmexService extends MarketServicePreliq {
     private volatile BigDecimal cm = null; // correlation multiplier
     public static final BigDecimal DEFAULT_BTM_CM = BigDecimal.valueOf(100);
 
+    private MonObTimestamp monObTimestamp;
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
@@ -435,6 +437,8 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
+        monObTimestamp = monitoringDataService.fetchTimestampMonitoring(getNameWithType());
+
         bitmexContractType = (BitmexContractType) contractType;
         final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractType);
         bitmexContractTypeEx = new BitmexContractTypeEx(bitmexContractType, currencyPair);
@@ -1376,6 +1380,11 @@ public class BitmexService extends MarketServicePreliq {
 //            System.out.println("trad10ToUsMs=" + ms + ". adaptOrderBookMs=" + adaptObMs);
             metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
 
+            final long leftMs = obUpdate.getReceiveTimestamp().toInstant().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
+            if (monObTimestamp.addLeft((int) leftMs)) {
+                monitoringDataService.saveMonTimestamp(monObTimestamp);
+            }
+
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
             final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, currencyPair);
@@ -1413,17 +1422,18 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         OrderBook finalOB;
+        final Date gettingTimestamp = new Date(obUpdate.getGettingTimeEpochMs());
         if (obUpdate.getAction().equals("partial")) {
             logger.info("update OB. partial: " + obUpdate);
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, currencyPair);
         } else if (obUpdate.getAction().equals("delete")) {
-            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB);
+            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB, gettingTimestamp);
             finalOB = BitmexStreamAdapters.delete(fullOB, obUpdate);
         } else if (obUpdate.getAction().equals("update")) {
-            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB);
+            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB, gettingTimestamp);
             finalOB = BitmexStreamAdapters.update(fullOB, obUpdate, new Date(), currencyPair);
         } else if (obUpdate.getAction().equals("insert")) {
-            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB);
+            fullOB = BitmexStreamAdapters.cloneOrderBook(fullOB, gettingTimestamp);
             finalOB = BitmexStreamAdapters.insert(fullOB, obUpdate, new Date(), currencyPair);
         } else {
             // skip the update

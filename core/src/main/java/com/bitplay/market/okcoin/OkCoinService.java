@@ -53,6 +53,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Dql;
@@ -205,6 +206,8 @@ public class OkCoinService extends MarketServicePreliq {
             LocalDateTime.MIN, BigDecimal.ZERO, BigDecimal.ZERO, LocalDateTime.MIN
     );
 
+    private MonObTimestamp monObTimestamp;
+
     public BigDecimal getMarkPrice() {
         return markPrice;
     }
@@ -274,6 +277,8 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
+        monObTimestamp = monitoringDataService.fetchTimestampMonitoring(getNameWithType());
+
         okexBalanceService = new OkexBalanceService(settingsRepositoryService);
         okexContractType = (OkexContractType) contractType;
         log.info("Starting okex with " + okexContractType);
@@ -501,12 +506,12 @@ public class OkCoinService extends MarketServicePreliq {
         orderBookSubscription = orderBookObservable.filter(d -> !isObExtra(d))
                 .toFlowable(BackpressureStrategy.LATEST)
                 .observeOn(stateUpdater, false, 1)
-                .subscribe(okcoinDepth -> {
+                .subscribe(d -> {
 //                    final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
 //                    Thread.sleep(1000);
-//                    log.info("u=>" + sdt.format(okcoinDepth.getTimestamp()) + "=" + sdt.format(okcoinDepth.getReceiveTimestamp()));
-                    final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
-                    OrderBook newOrderBook = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
+//                    log.info("u=>" + sdt.format(d.getTimestamp()) + "=" + sdt.format(d.getReceiveTimestamp()));
+                    final OkexContractType ct = instrIdToContractType.get(d.getInstrumentId());
+                    OrderBook newOrderBook = OkExAdapters.adaptOrderBook(d, ct.getCurrencyPair());
                     metricsDictionary.incOkexObCounter();
                     this.orderBook = newOrderBook;
                     this.setOrderBookShort(newOrderBook);
@@ -519,7 +524,15 @@ public class OkCoinService extends MarketServicePreliq {
                     this.bestBid = bestBid != null ? bestBid.getLimitPrice() : BigDecimal.ZERO;
                     log.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
-                    Instant lastObTime = Instant.now();
+                    final long ms = d.getReceiveTimestamp().toInstant().toEpochMilli() - d.getTimestamp().toInstant().toEpochMilli();
+                    boolean changed = getArbType() == ArbType.LEFT
+                            ? monObTimestamp.addLeft((int) ms)
+                            : monObTimestamp.addRight((int) ms);
+                    if (changed) {
+                        monitoringDataService.saveMonTimestamp(monObTimestamp);
+                    }
+
+                    Instant lastObTime = d.getTimestamp().toInstant();
                     getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));
                 }, throwable -> log.error("ERROR in getting order book: ", throwable));
     }
