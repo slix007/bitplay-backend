@@ -242,8 +242,6 @@ public class BitmexService extends MarketServicePreliq {
     private volatile BigDecimal cm = null; // correlation multiplier
     public static final BigDecimal DEFAULT_BTM_CM = BigDecimal.valueOf(100);
 
-    private MonObTimestamp monObTimestamp;
-
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
     }
@@ -302,6 +300,11 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public SlackNotifications getSlackNotifications() {
         return slackNotifications;
+    }
+
+    @Override
+    public MonitoringDataService getMonitoringDataService() {
+        return monitoringDataService;
     }
 
     public BigDecimal getCm() {
@@ -1381,9 +1384,7 @@ public class BitmexService extends MarketServicePreliq {
             metricsDictionary.putBitmex_plBefore_ob_saveTime_traditional10_market(ms);
 
             final long leftMs = obUpdate.getReceiveTimestamp().toInstant().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
-            if (monObTimestamp.addLeft((int) leftMs)) {
-                monitoringDataService.saveMonTimestamp(monObTimestamp);
-            }
+            addGetObDelay(leftMs);
 
         } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
             final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);

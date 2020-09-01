@@ -13,6 +13,7 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.settings.ContractType;
@@ -73,6 +74,12 @@ public class QuoineService extends MarketService {
     public SlackNotifications getSlackNotifications() {
         return null;
     }
+
+    @Override
+    public MonitoringDataService getMonitoringDataService() {
+        return null;
+    }
+
 
     @Override
     protected boolean onReadyState() {

@@ -17,44 +17,59 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @ToString
 public class MonObTimestamp extends MarketDocumentWithId {
 
-    private Integer leftGetMin; // L_Get_OB_Delay
-    private Integer leftGetMax;
-    private Integer rightGetMin; // R_Get_OB_Dela
-    private Integer rightGetMax;
+    // X(время на бирже) --> A(время получения котировки) --> B(время завершения проверки всех параметров перед сигналом)
+    // XA - это отрезок *GetOb
+    // AB - это отрезок *ObDiff
+
+    private Integer minGetOb;
+    private Integer maxGetOb;
+    private Integer minObDiff;
+    private Integer maxObDiff;
 
     public MonObTimestamp() {
     }
 
-//    L_Get_OB_Delay = L_OB_timestamp - Initial_L_OB_timestamp, где
-//            L_OB_timestamp = наш timestamp стакана, Initial_L_OB_timestamp = timestamp стакана, который присылает биржа, вместе со стаканом.
-//            R_Get_OB_Delay = R_OB_timestamp - Initial_R_OB_timestamp.
-//    Справа от range Timestamp_diff range сделать range min/max для L_Get_OB_Delay и R_Get_OB_Delay, кнопка reset для сброса.
-//    L_OB_Timestamp Diff, R_OB_Timestamp org.apache.commons.lang3.builder.Diff,
-//   L_Get_OB_Delay, R_Get_OB_Delay замеряются при каждом новом получении стакана у любой из бирж, то есть после каждого расчета дельт.
-
     @SuppressWarnings("DuplicatedCode")
-    public boolean addLeft(int val) {
+    public boolean addObDiff(int val) {
         boolean changed = false;
-        if (val > leftGetMax) {
-            leftGetMax = val;
+        if (maxObDiff == null) {
+            maxObDiff = val;
             changed = true;
         }
-        if (val < leftGetMin) {
-            leftGetMin = val;
+        if (minObDiff == null) {
+            minObDiff = val;
+            changed = true;
+        }
+
+        if (val > maxObDiff) {
+            maxObDiff = val;
+            changed = true;
+        }
+        if (val < minObDiff) {
+            minObDiff = val;
             changed = true;
         }
         return changed;
     }
 
     @SuppressWarnings("DuplicatedCode")
-    public boolean addRight(int val) {
+    public boolean addGetOb(int val) {
         boolean changed = false;
-        if (val > rightGetMax) {
-            rightGetMax = val;
+        if (maxGetOb == null) {
+            maxGetOb = val;
             changed = true;
         }
-        if (val < rightGetMin) {
-            rightGetMin = val;
+        if (minGetOb == null) {
+            minGetOb = val;
+            changed = true;
+        }
+
+        if (val > maxGetOb) {
+            maxGetOb = val;
+            changed = true;
+        }
+        if (val < minGetOb) {
+            minGetOb = val;
             changed = true;
         }
         return changed;
@@ -62,11 +77,18 @@ public class MonObTimestamp extends MarketDocumentWithId {
 
     public static MonObTimestamp createDefaults(String marketName) {
         MonObTimestamp m = new MonObTimestamp();
-        m.leftGetMax = 0;
-        m.leftGetMin = 9999;
-        m.rightGetMax = 0;
-        m.rightGetMin = 9999;
+        m.maxGetOb = 0;
+        m.minGetOb = 9999;
         m.setMarketName(marketName);
+//        m.setTypeName("ob_timestamp");
         return m;
+    }
+
+    public void reset() {
+        maxGetOb = null;
+        minGetOb = null;
+        maxObDiff = null;
+        minObDiff = null;
+
     }
 }

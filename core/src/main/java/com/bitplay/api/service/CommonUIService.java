@@ -55,6 +55,7 @@ import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
@@ -324,6 +325,13 @@ public class CommonUIService {
         final OkexFtpdService rightFtpdService = ((OkCoinService) right).getOkexFtpdService();
         final OkexFtpdJson rightFtpdJson = new OkexFtpdJson(rightFtpd.getOkexFtpdBod(), rightFtpdService.getBodMax(), rightFtpdService.getBodMin());
 
+        @SuppressWarnings("DuplicatedCode") final MonObTimestamp lt = left.getMonObTimestamp();
+        final String leftObTimestampDiff = lt == null ? "" : String.format("%s/%s", lt.getMinObDiff(), lt.getMaxObDiff());
+        final String leftGetObTimestamps = lt == null ? "" : String.format("%s/%s", lt.getMinGetOb(), lt.getMaxGetOb());
+        final MonObTimestamp rt = right.getMonObTimestamp();
+        final String rightObTimestampDiff = rt == null ? "" : String.format("%s/%s", rt.getMinObDiff(), rt.getMaxObDiff());
+        final String rightGetObTimestamps = rt == null ? "" : String.format("%s/%s", rt.getMinGetOb(), rt.getMaxGetOb());
+
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
@@ -349,7 +357,11 @@ public class CommonUIService {
                 traderPermissionsService.getSebestStatus(),
                 leftFtpdJson,
                 rightFtpdJson,
-                getTwoMarketsIndexDiff()
+                getTwoMarketsIndexDiff(),
+                leftObTimestampDiff,
+                rightObTimestampDiff,
+                leftGetObTimestamps,
+                rightGetObTimestamps
         );
     }
 
@@ -592,6 +604,12 @@ public class CommonUIService {
     public DeltasMinMaxJson resetSignalTimeParams() {
         signalTimeService.resetSignalTimeParams();
         return getDeltaParamsJson();
+    }
+
+    public ResultJson resetObTimestamps() {
+        arbitrageService.getLeftMarketService().resetGetObDelay();
+        arbitrageService.getRightMarketService().resetGetObDelay();
+        return new ResultJson();
     }
 
     public DeltasMinMaxJson getRestartMonitoringParamsJson() {

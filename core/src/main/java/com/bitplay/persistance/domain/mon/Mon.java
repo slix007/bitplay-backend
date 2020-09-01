@@ -18,8 +18,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @ToString
 public class Mon extends MarketDocumentWithId {
 
-    private String typeName;
-
     /**
      * Time from receiving orderBook to sending request 'move order'.
      */

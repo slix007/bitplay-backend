@@ -41,6 +41,10 @@ public class MarketStatesJson {
     OkexFtpdJson leftFtpdJson;
     OkexFtpdJson rightFtpdJson;
     String twoMarketsIndexDiff;
+    String leftObTimestampDiff;
+    String rightObTimestampDiff;
+    String leftGetObDelay;
+    String rightGetObDelay;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

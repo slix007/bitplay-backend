@@ -431,6 +431,12 @@ public class SettingsEndpoint {
             updateConBoPortions(settingsUpdate, settings);
         }
 
+        if (settingsUpdate.getSettingsTimestamps() != null) {
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getSettingsTimestamps(), settings.getSettingsTimestamps());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
+        // ...
         if (resetPreset) {
             persistenceService.resetSettingsPreset();
         }

@@ -27,12 +27,14 @@ import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
+import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -41,28 +43,12 @@ import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.utils.Utils;
 import io.micrometer.core.instrument.Timer.Sample;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
-import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
-import org.knowm.xchange.Exchange;
-import org.knowm.xchange.currency.Currency;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.marketdata.ContractIndex;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.marketdata.Ticker;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.service.trade.TradeService;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -83,6 +69,20 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.knowm.xchange.Exchange;
+import org.knowm.xchange.currency.Currency;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderStatus;
+import org.knowm.xchange.dto.Order.OrderType;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
+import org.knowm.xchange.dto.marketdata.ContractIndex;
+import org.knowm.xchange.dto.marketdata.OrderBook;
+import org.knowm.xchange.dto.marketdata.Ticker;
+import org.knowm.xchange.dto.trade.LimitOrder;
+import org.knowm.xchange.service.trade.TradeService;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Created by Sergey Shurmin on 4/16/17.
@@ -136,6 +136,31 @@ public abstract class MarketService extends MarketServiceWithState {
 
     public ArbType getArbType() {
         return arbType;
+    }
+
+    protected volatile MonObTimestamp monObTimestamp;
+
+    public MonObTimestamp getMonObTimestamp() {
+        return monObTimestamp;
+    }
+
+    public void addGetObDelay(long ms) {
+        if (monObTimestamp.addGetOb((int) ms)) {
+            //noinspection SynchronizeOnNonFinalField
+            synchronized (monObTimestamp) {
+                getMonitoringDataService().saveMonTimestamp(monObTimestamp);
+            }
+        }
+    }
+
+    public void resetGetObDelay() {
+        //noinspection SynchronizeOnNonFinalField
+        synchronized (monObTimestamp) {
+            monObTimestamp.reset();
+            getMonitoringDataService().saveMonTimestamp(monObTimestamp);
+        }
+        // workaround for fast update in addGetObDelay
+        monObTimestamp.reset();
     }
 
     public CompletableFuture<Void> addOoExecutorTask(Runnable task) {
@@ -193,6 +218,8 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public abstract SlackNotifications getSlackNotifications();
+
+    public abstract MonitoringDataService getMonitoringDataService();
 
     public abstract String fetchPosition() throws Exception;
 

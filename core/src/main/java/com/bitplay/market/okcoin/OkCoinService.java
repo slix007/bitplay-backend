@@ -206,8 +206,6 @@ public class OkCoinService extends MarketServicePreliq {
             LocalDateTime.MIN, BigDecimal.ZERO, BigDecimal.ZERO, LocalDateTime.MIN
     );
 
-    private MonObTimestamp monObTimestamp;
-
     public BigDecimal getMarkPrice() {
         return markPrice;
     }
@@ -273,6 +271,11 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public SlackNotifications getSlackNotifications() {
         return slackNotifications;
+    }
+
+    @Override
+    public MonitoringDataService getMonitoringDataService() {
+        return monitoringDataService;
     }
 
     @Override
@@ -525,12 +528,7 @@ public class OkCoinService extends MarketServicePreliq {
                     log.debug("ask: {}, bid: {}", this.bestAsk, this.bestBid);
 
                     final long ms = d.getReceiveTimestamp().toInstant().toEpochMilli() - d.getTimestamp().toInstant().toEpochMilli();
-                    boolean changed = getArbType() == ArbType.LEFT
-                            ? monObTimestamp.addLeft((int) ms)
-                            : monObTimestamp.addRight((int) ms);
-                    if (changed) {
-                        monitoringDataService.saveMonTimestamp(monObTimestamp);
-                    }
+                    addGetObDelay(ms);
 
                     Instant lastObTime = d.getTimestamp().toInstant();
                     getApplicationEventPublisher().publishEvent(new ObChangeEvent(new SigEvent(SigType.OKEX, getArbType(), lastObTime)));

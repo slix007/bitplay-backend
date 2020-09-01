@@ -18,6 +18,7 @@ import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
@@ -26,8 +27,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 4/15/17.
@@ -244,6 +243,15 @@ public class CommonEndpoint {
     @PreAuthorize("hasPermission(null, 'e_best_min-check')")
     public DeltasMinMaxJson resetSignalTimeParams() {
         return commonUIService.resetSignalTimeParams();
+    }
+
+    @RequestMapping(value = "/reset-ob-timestamps",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson resetObTimestamps() {
+        return commonUIService.resetObTimestamps();
     }
 
     @RequestMapping(value = "/restart-monitoring-params",

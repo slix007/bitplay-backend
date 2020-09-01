@@ -110,6 +110,8 @@ public class Settings extends AbstractDocument {
     @Transient
     private boolean restartWarnBitmexCt = false;
 
+    private SettingsTimestamps settingsTimestamps;
+
     public static Settings createDefault() {
         final Settings settings = new Settings();
         settings.manageType = ManageType.AUTO;
@@ -144,6 +146,7 @@ public class Settings extends AbstractDocument {
         settings.okexSettlement = OkexSettlement.createDefault();
         settings.conBoPortions = ConBoPortions.createDefault();
         settings.bitmexContractTypes = BitmexCtList.createDefault();
+        settings.settingsTimestamps = SettingsTimestamps.createDefault();
         settings.setId(1L);
         return settings;
     }

@@ -24,12 +24,12 @@ public class MonitoringDataService {
     private MongoTemplate mongoTemplate;
 
     public MonRestart fetchRestartMonitoring() {
-        MonRestart firstByDocumentId = mongoTemplate.findById(1L, MonRestart.class);
-        if (firstByDocumentId == null) {
-            firstByDocumentId = MonRestart.createDefaults();
-            firstByDocumentId = saveRestartMonitoring(firstByDocumentId);
+        MonRestart m = mongoTemplate.findById(1L, MonRestart.class);
+        if (m == null || m.getBTimestampDelayMax() == null || m.getOTimestampDelayMax() == null) {
+            m = MonRestart.createDefaults();
+            m = saveRestartMonitoring(m);
         }
-        return firstByDocumentId;
+        return m;
     }
 
     public MonObTimestamp fetchTimestampMonitoring(String marketName) {
@@ -113,7 +113,7 @@ public class MonitoringDataService {
     private MonObTimestamp findMonTimestamp(String marketName) {
         return mongoTemplate.findOne(
                 Query.query(Criteria.where("marketName").is(marketName)
-                        .and("typeName").is("ob_timestamp")
+                        .and("_class").is("monObTimestamp")
                 ), MonObTimestamp.class);
     }
 
