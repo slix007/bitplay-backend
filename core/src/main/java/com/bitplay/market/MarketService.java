@@ -153,6 +153,15 @@ public abstract class MarketService extends MarketServiceWithState {
         }
     }
 
+    public void addObDiff(long ms) {
+        if (monObTimestamp.addObDiff((int) ms)) {
+            //noinspection SynchronizeOnNonFinalField
+            synchronized (monObTimestamp) {
+                getMonitoringDataService().saveMonTimestamp(monObTimestamp);
+            }
+        }
+    }
+
     public void resetGetObDelay() {
         //noinspection SynchronizeOnNonFinalField
         synchronized (monObTimestamp) {

@@ -63,6 +63,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.Implied;
@@ -70,6 +71,7 @@ import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
+import com.bitplay.persistance.domain.settings.SettingsTimestamps;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
 import com.bitplay.security.TraderPermissionsService;
@@ -787,7 +789,7 @@ public class ArbitrageService {
                             final String dynDeltaLogs = composeDynBlockLogs("L_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
 //                            Instant lastObTime = Utils.getLastObTime(bitmexOrderBook, okCoinOrderBook);
-                            checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
+                            checkAndStartTradingOnDelta1(bitmexOrderBook, okCoinOrderBook, borderParams, bestQuotes, b_block, o_block,
                                     tradingSignal, dynDeltaLogs, plBeforeBtm, oPL, oPS);
                             return true;
                         } else {
@@ -802,7 +804,7 @@ public class ArbitrageService {
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                    checkAndStartTradingOnDelta1(borderParams, bestQuotes, b_block, o_block,
+                    checkAndStartTradingOnDelta1(bitmexOrderBook, okCoinOrderBook, borderParams, bestQuotes, b_block, o_block,
                             tradingSignal, null, plBeforeBtm, oPL, oPS);
                     return true;
                 }
@@ -819,7 +821,7 @@ public class ArbitrageService {
                         if (b_block.signum() > 0 && o_block.signum() > 0) {
                             final String dynDeltaLogs = composeDynBlockLogs("R_delta", bitmexOrderBook, okCoinOrderBook, b_block, o_block)
                                     + bl.getDebugLog();
-                            checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
+                            checkAndStartTradingOnDelta2(bitmexOrderBook, okCoinOrderBook, borderParams, bestQuotes, b_block, o_block,
                                     tradingSignal, dynDeltaLogs, plBeforeBtm, oPL, oPS);
                             return true;
                         } else {
@@ -834,7 +836,7 @@ public class ArbitrageService {
                 } else {
                     final BigDecimal b_block = BigDecimal.valueOf(tradingSignal.bitmexBlock);
                     final BigDecimal o_block = BigDecimal.valueOf(tradingSignal.okexBlock);
-                    checkAndStartTradingOnDelta2(borderParams, bestQuotes, b_block, o_block,
+                    checkAndStartTradingOnDelta2(bitmexOrderBook, okCoinOrderBook, borderParams, bestQuotes, b_block, o_block,
                             tradingSignal, null, plBeforeBtm, oPL, oPS);
                     return true;
                 }
@@ -876,7 +878,7 @@ public class ArbitrageService {
             if (plBlocks.getBlockOkex().signum() > 0) {
                 final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
                         plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA1_B_SELL_O_BUY, delta1, border1);
-                checkAndStartTradingOnDelta1(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
+                checkAndStartTradingOnDelta1(bitmexOrderBook, okCoinOrderBook, borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
                         tradingSignal, dynDeltaLogs, plBeforeBtm, oPL, oPS);
                 return true;
             } else {
@@ -907,7 +909,7 @@ public class ArbitrageService {
             if (plBlocks.getBlockOkex().signum() > 0) {
                 final TradingSignal tradingSignal = TradingSignal.createOnBorderV1(plBlocks.getVer(),
                         plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(), TradeType.DELTA2_B_BUY_O_SELL, delta2, border2);
-                checkAndStartTradingOnDelta2(borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
+                checkAndStartTradingOnDelta2(bitmexOrderBook, okCoinOrderBook, borderParams, bestQuotes, plBlocks.getBlockBitmex(), plBlocks.getBlockOkex(),
                         tradingSignal, dynDeltaLogs, plBeforeBtm, oPL, oPS);
                 return true;
             } else {
@@ -965,9 +967,10 @@ public class ArbitrageService {
         }
     }
 
-    private void checkAndStartTradingOnDelta1(BorderParams borderParams, final BestQuotes bestQuotes, final BigDecimal b_block_input,
-                                              final BigDecimal o_block_input, final TradingSignal tradingSignal, String dynamicDeltaLogs,
-                                              final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
+    private void checkAndStartTradingOnDelta1(OrderBook leftOb, OrderBook rightOb, BorderParams borderParams,
+            final BestQuotes bestQuotes, final BigDecimal b_block_input,
+            final BigDecimal o_block_input, final TradingSignal tradingSignal, String dynamicDeltaLogs,
+            final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
@@ -1004,11 +1007,17 @@ public class ArbitrageService {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
                                 preSignalReCheck(DeltaName.B_DELTA, tradingSignal);
                             } else {
-                                arbState = ArbState.IN_PROGRESS;
-                                final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
-                                startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
-                                        ask1_o,
-                                        bid1_p, beforeSignalMetrics, b_block_input, o_block_input);
+                                boolean violateTimestamps = isViolateTimestamps(leftOb, rightOb);
+                                if (violateTimestamps) {
+                                    // TODO no stop
+                                    stopSignalDelay(bestQuotes, tradingSignal, "violate Acceptable Timestamps");
+                                } else {
+                                    arbState = ArbState.IN_PROGRESS;
+                                    final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
+                                    startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
+                                            ask1_o,
+                                            bid1_p, beforeSignalMetrics, b_block_input, o_block_input);
+                                }
                             }
                         }
                     }
@@ -1018,6 +1027,43 @@ public class ArbitrageService {
         } else {
 //            stopSignalDelay(); - do not use. It reset the signalDelay during a signal.
         }
+    }
+
+    private boolean isViolateTimestamps(OrderBook leftOb, OrderBook rightOb) {
+        // check orderBook timestamps
+        final SettingsTimestamps st = settingsRepositoryService.getSettings().getSettingsTimestamps();
+
+        boolean leftObGetViolate;
+        boolean leftObDiffViolate;
+        final long obDiffMs;
+        final long getObDelayMs;
+        if (leftOb.getReceiveTimestamp() == null) {
+            getObDelayMs = 0;
+            obDiffMs = Instant.now().toEpochMilli() - leftOb.getTimeStamp().toInstant().toEpochMilli();
+        } else {
+            getObDelayMs = leftOb.getReceiveTimestamp().toInstant().toEpochMilli() - leftOb.getTimeStamp().toInstant().toEpochMilli();
+            obDiffMs = Instant.now().toEpochMilli() - leftOb.getReceiveTimestamp().toInstant().toEpochMilli();
+        }
+        leftObGetViolate = getObDelayMs > st.getL_Acceptable_Get_OB_Delay_ms();
+        leftObDiffViolate = obDiffMs > st.getL_Acceptable_OB_Timestamp_Diff_ms();
+        leftMarketService.addObDiff(obDiffMs);
+
+        boolean rightObGetViolate;
+        boolean rightObDiffViolate;
+        final long r_obDiffMs;
+        final long r_getObDelayMs;
+        if (rightOb.getReceiveTimestamp() == null) {
+            r_getObDelayMs = 0;
+            r_obDiffMs = Instant.now().toEpochMilli() - rightOb.getTimeStamp().toInstant().toEpochMilli();
+        } else {
+            r_getObDelayMs = rightOb.getReceiveTimestamp().toInstant().toEpochMilli() - rightOb.getTimeStamp().toInstant().toEpochMilli();
+            r_obDiffMs = Instant.now().toEpochMilli() - rightOb.getReceiveTimestamp().toInstant().toEpochMilli();
+        }
+        rightObGetViolate = r_getObDelayMs > st.getR_Acceptable_Get_OB_Delay_ms();
+        rightObDiffViolate = r_obDiffMs > st.getR_Acceptable_OB_Timestamp_Diff_ms();
+        rightMarketService.addObDiff(r_obDiffMs);
+
+        return leftObGetViolate || leftObDiffViolate || rightObGetViolate || rightObDiffViolate;
     }
 
     public void restartSignalDelay() {
@@ -1268,7 +1314,7 @@ public class ArbitrageService {
         return dealPrices;
     }
 
-    private void checkAndStartTradingOnDelta2(BorderParams borderParams,
+    private void checkAndStartTradingOnDelta2(OrderBook leftOb, OrderBook rightOb, BorderParams borderParams,
                                               final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
                                               final TradingSignal tradingSignal, String dynamicDeltaLogs,
                                               final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
@@ -1309,11 +1355,18 @@ public class ArbitrageService {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
                                 preSignalReCheck(DeltaName.O_DELTA, tradingSignal);
                             } else {
-                                arbState = ArbState.IN_PROGRESS;
-                                final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
-                                startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
-                                        ask1_p,
-                                        bid1_o, beforeSignalMetrics, b_block_input, o_block_input);
+                                boolean violateTimestamps = isViolateTimestamps(leftOb, rightOb);
+                                if (violateTimestamps) {
+                                    // TODO no stop
+                                    stopSignalDelay(bestQuotes, tradingSignal, "violate Acceptable Timestamps");
+                                } else {
+
+                                    arbState = ArbState.IN_PROGRESS;
+                                    final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
+                                    startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
+                                            ask1_p,
+                                            bid1_o, beforeSignalMetrics, b_block_input, o_block_input);
+                                }
                             }
                         }
                     }
