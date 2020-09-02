@@ -25,6 +25,8 @@ public class MonObTimestamp extends MarketDocumentWithId {
     private Integer maxGetOb;
     private Integer minObDiff;
     private Integer maxObDiff;
+    private Integer minExecDuration;
+    private Integer maxExecDuration;
 
     public MonObTimestamp() {
     }
@@ -75,12 +77,35 @@ public class MonObTimestamp extends MarketDocumentWithId {
         return changed;
     }
 
+    @SuppressWarnings("DuplicatedCode")
+    public boolean addExecDuration(int val) {
+        boolean changed = false;
+        if (maxExecDuration == null) {
+            maxExecDuration = val;
+            changed = true;
+        }
+        if (minExecDuration == null) {
+            minExecDuration = val;
+            changed = true;
+        }
+
+        if (val > maxExecDuration) {
+            maxExecDuration = val;
+            changed = true;
+        }
+        if (val < minExecDuration) {
+            minExecDuration = val;
+            changed = true;
+        }
+        return changed;
+    }
+
+
     public static MonObTimestamp createDefaults(String marketName) {
         MonObTimestamp m = new MonObTimestamp();
         m.maxGetOb = 0;
         m.minGetOb = 9999;
         m.setMarketName(marketName);
-//        m.setTypeName("ob_timestamp");
         return m;
     }
 
@@ -89,6 +114,7 @@ public class MonObTimestamp extends MarketDocumentWithId {
         minGetOb = null;
         maxObDiff = null;
         minObDiff = null;
-
+        maxExecDuration = null;
+        minExecDuration = null;
     }
 }

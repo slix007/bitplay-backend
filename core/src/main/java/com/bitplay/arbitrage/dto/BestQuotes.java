@@ -4,6 +4,7 @@ import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.Instant;
 import lombok.ToString;
 import lombok.Getter;
 import org.knowm.xchange.dto.marketdata.OrderBook;
@@ -34,6 +35,8 @@ public class BestQuotes implements Serializable {
     // no copy. Set null after using.
     @Transient
     private volatile OrderBook btmOrderBook;
+
+    private Instant signalTime;
 
     public BestQuotes(BigDecimal ask1_o, BigDecimal ask1_p, BigDecimal bid1_o, BigDecimal bid1_p) {
         this.ask1_o = ask1_o;
@@ -67,6 +70,10 @@ public class BestQuotes implements Serializable {
 
     public void setBtmOrderBook(OrderBook btmOrderBook) {
         this.btmOrderBook = btmOrderBook;
+    }
+
+    public void setSignalTime(Instant signalTime) {
+        this.signalTime = signalTime;
     }
 
     public String toStringEx() {

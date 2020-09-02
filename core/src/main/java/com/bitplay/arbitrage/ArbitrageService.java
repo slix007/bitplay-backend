@@ -1299,8 +1299,10 @@ public class ArbitrageService {
                                       BigDecimal b_block_input, BigDecimal o_block_input) {
 
         log.info("START SIGNAL 1");
-        startSignalTime = Instant.now();
-        plBeforeBtm.setSignalTime(Instant.now());
+        final Instant signalTime = Instant.now();
+        startSignalTime = signalTime;
+        plBeforeBtm.setSignalTime(signalTime);
+        bestQuotes.setSignalTime(signalTime);
 
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 
@@ -1544,8 +1546,10 @@ public class ArbitrageService {
                                       BigDecimal b_block_input, BigDecimal o_block_input) {
 
         log.info("START SIGNAL 2");
-        startSignalTime = Instant.now();
-        plBeforeBtm.setSignalTime(Instant.now());
+        final Instant signalTime = Instant.now();
+        startSignalTime = signalTime;
+        plBeforeBtm.setSignalTime(signalTime);
+        bestQuotes.setSignalTime(signalTime);
 
         printAdjWarning(b_block_input, o_block_input, b_block, o_block);
 

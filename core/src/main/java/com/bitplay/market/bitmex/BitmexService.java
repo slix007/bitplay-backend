@@ -46,7 +46,6 @@ import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
-import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.AmountType;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexContractTypeEx;
@@ -1940,6 +1939,7 @@ public class BitmexService extends MarketServicePreliq {
                 }
 
                 try {
+                    String execDuration = "n/a";
                     String orderId;
                     BigDecimal thePrice;
                     if (reconnectInProgress) {
@@ -2070,6 +2070,11 @@ public class BitmexService extends MarketServicePreliq {
                                         getArbType().s());
                                 nextMarketState = MarketState.READY;
                             }
+                            if (resultOrder.getTimestamp() != null && plBeforeBtm.getSignalTime() != null) {
+                                final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - plBeforeBtm.getSignalTime().toEpochMilli();
+                                addExecDuration(d);
+                                execDuration = String.valueOf(d);
+                            }
                         } else {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol, placeOrderArgs.isPreliqOrder());
                         }
@@ -2112,7 +2117,8 @@ public class BitmexService extends MarketServicePreliq {
                     tradeResponse.setOrderId(orderId);
                     tradeResponse.setErrorCode(null);
 
-                    final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s. %s",
+                    final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s. "
+                                    + "Exec_duration = %s (ms). %s",
                             counterName,
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -2120,6 +2126,7 @@ public class BitmexService extends MarketServicePreliq {
                             thePrice,
                             orderId,
                             getPositionAsString(),
+                            execDuration,
                             extraLog);
                     tradeLogger.info(message, contractTypeStr);
                     ordersLogger.info(message);

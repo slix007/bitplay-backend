@@ -332,6 +332,8 @@ public class CommonUIService {
         final MonObTimestamp rt = right.getMonObTimestamp();
         final String rightObTimestampDiff = rt == null ? "" : String.format("%s/%s", rt.getMinObDiff(), rt.getMaxObDiff());
         final String rightGetObTimestamps = rt == null ? "" : String.format("%s/%s", rt.getMinGetOb(), rt.getMaxGetOb());
+        final String leftExecDuration = lt == null ? "" : String.format("%s/%s", lt.getMinExecDuration(), lt.getMaxExecDuration());
+        final String rightExecDuration = rt == null ? "" : String.format("%s/%s", rt.getMinExecDuration(), rt.getMaxExecDuration());
 
         return new MarketStatesJson(
                 btmState.toString(),
@@ -362,7 +364,9 @@ public class CommonUIService {
                 leftObTimestampDiff,
                 rightObTimestampDiff,
                 leftGetObTimestamps,
-                rightGetObTimestamps
+                rightGetObTimestamps,
+                leftExecDuration,
+                rightExecDuration
         );
     }
 

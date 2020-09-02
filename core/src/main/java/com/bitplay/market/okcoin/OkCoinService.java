@@ -53,7 +53,6 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
-import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.Dql;
@@ -1060,6 +1059,15 @@ public class OkCoinService extends MarketServicePreliq {
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
 
             final Instant endReq = Instant.now();
+            final String execDuration;
+            if (bestQuotes.getSignalTime() == null) {
+                execDuration = null;
+            } else {
+                final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
+                addExecDuration(d);
+                execDuration = String.valueOf(d);
+            }
+
             final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
             monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
             if (waitingMarketMs > 5000) {
@@ -1097,7 +1105,7 @@ public class OkCoinService extends MarketServicePreliq {
             } else if (orderInfo.getStatus() == OrderStatus.FILLED) { //FILLED by any (orderInfo or cancelledOrder)
 
                 writeLogPlaceOrder(orderType, amount, "taker",
-                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion, orderResult);
+                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion, orderResult, execDuration);
 
                 tradeResponse.setOrderId(orderId);
                 tradeResponse.setLimitOrder(orderInfo);
@@ -1801,7 +1809,7 @@ public class OkCoinService extends MarketServicePreliq {
                             thePrice, orderId,
                             (resultOrder.getStatus() != null) ? resultOrder.getStatus().toString() : null,
                             counterNameWithPortion + "/" + attempt,
-                            orderResult);
+                            orderResult, null);
 
                     if (!cnlBecausePostOnly) {
                         break;
@@ -1885,11 +1893,11 @@ public class OkCoinService extends MarketServicePreliq {
         return false;
     }
 
-    private void writeLogPlaceOrder(Order.OrderType orderType, BigDecimal tradeableAmount,
-                                    String placingType, BigDecimal thePrice, String orderId,
-                                    String status, String counterForLogs, OrderResultTiny rawResult) {
+    private void writeLogPlaceOrder(OrderType orderType, BigDecimal tradeableAmount,
+            String placingType, BigDecimal thePrice, String orderId,
+            String status, String counterForLogs, OrderResultTiny rawResult, String execDuration) {
 
-        final String message = String.format("#%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s; rawResult=%s",
+        final String message = String.format("#%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s; rawResult=%s, Exec_duration = %s (ms).",
                 counterForLogs,
                 placingType, //isMoving ? "Moving3:Moved" : "maker",
                 Utils.convertOrderTypeName(orderType),
@@ -1897,7 +1905,8 @@ public class OkCoinService extends MarketServicePreliq {
                 thePrice,
                 orderId,
                 status,
-                rawResult);
+                rawResult,
+                execDuration != null ? execDuration : "n/a");
         tradeLogger.info(message);
         log.info(message);
         ordersLogger.info(message);

@@ -45,6 +45,8 @@ public class MarketStatesJson {
     String rightObTimestampDiff;
     String leftGetObDelay;
     String rightGetObDelay;
+    String leftExecDuration;
+    String rightExecDuration;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;
