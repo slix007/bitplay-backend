@@ -308,6 +308,7 @@ public class CommonUIService {
         signalPartsJson.setBtmOrderBook(Utils.isObOk(left.getOrderBook()) ? Status.OK : Status.WRONG);
         signalPartsJson.setBtmOrderBookXBTUSD(Utils.isObOk(left.getOrderBookXBTUSD()) ? Status.OK : Status.WRONG);
         signalPartsJson.setOkOrderBook(Utils.isObOk(right.getOrderBook()) ? Status.OK : Status.WRONG);
+        signalPartsJson.setObTsDiffs(arbitrageService.getIsObTsViolated() ? Status.WRONG : Status.OK);
 
         final OrderPortionsJson orderPortionsJson = new OrderPortionsJson(left.getPortionsProgressForUi(), right.getPortionsProgressForUi());
 

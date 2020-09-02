@@ -63,7 +63,6 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
-import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.Implied;
@@ -86,6 +85,7 @@ import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -96,6 +96,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -221,8 +222,16 @@ public class ArbitrageService {
     private volatile boolean isAffordableOkex = true;
     // Affordable for UI end
 
+    // orderBook timestamps
+    private int tsCountDiffLeft = 0;
+    private int tsCountDiffRight = 0;
+    private int tsCountGetLeft = 0;
+    private int tsCountGetRight = 0;
+    private static final int MAX_TS_COUNT = 30;
+    // orderBook timestamps end
+
     private volatile boolean preSignalRecheckInProgress = false;
-    public static final BigDecimal DEFAULT_CM = BigDecimal.ONE;;
+    public static final BigDecimal DEFAULT_CM = BigDecimal.ONE;
 
     public DealPrices getDealPrices() {
         return getDealPrices(tradeId);
@@ -1007,11 +1016,11 @@ public class ArbitrageService {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
                                 preSignalReCheck(DeltaName.B_DELTA, tradingSignal);
                             } else {
-                                boolean violateTimestamps = isViolateTimestamps(leftOb, rightOb);
+                                boolean violateTimestamps = isViolateTimestamps(parseObTs(leftOb, rightOb));
                                 if (violateTimestamps) {
-                                    // TODO no stop
-                                    stopSignalDelay(bestQuotes, tradingSignal, "violate Acceptable Timestamps");
+                                    stopByTimestampViolation(bestQuotes);
                                 } else {
+                                    printObTsOnStart(parseObTs(leftOb, rightOb));
                                     arbState = ArbState.IN_PROGRESS;
                                     final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                     startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
@@ -1029,39 +1038,141 @@ public class ArbitrageService {
         }
     }
 
-    private boolean isViolateTimestamps(OrderBook leftOb, OrderBook rightOb) {
+    private void printObTsOnStart(ObTs obts) {
+        resetObTsCounters();
+
+        final SettingsTimestamps st = settingsRepositoryService.getSettings().getSettingsTimestamps();
+        final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
+        printToCurrentDeltaLog(String.format("L_OB_Timestamp Diff (%s) = Current_server_time (%s) - L_OB_timestamp (%s),"
+                        + "R_OB_Timestamp Diff (%s) = Current_server_time (%s) - R_OB_timestamp (%s),"
+                        + "L_Acceptable OB_Timestamp Diff = %s, R_Acceptable OB_Timestamp Diff = %s,"
+                        + "L_Get_OB_Delay (%s) = L_OB_timestamp (%s) - Initial_L_OB_timestamp (%s),"
+                        + "R_Get_OB_Delay (%s) = R_OB_timestamp (%s) - Initial_R_OB_timestamp (%s),"
+                        + "L_Acceptable Get_OB_Delay = %s, R_Acceptable Get_OB_Delay = %s.",
+                obts.leftObDiffMs, sdt.format(new Date()), obts.leftObTimestamp,
+                obts.rightObDiffMs, sdt.format(new Date()), obts.rightObTimestamp,
+                st.getL_Acceptable_OB_Timestamp_Diff_ms(), st.getR_Acceptable_OB_Timestamp_Diff_ms(),
+                obts.leftGetObDelayMs, obts.leftObTimestamp, obts.leftObTimestampInitial,
+                obts.rightGetObDelayMs, obts.rightObTimestamp, obts.rightObTimestampInitial,
+                st.getL_Acceptable_Get_OB_Delay_ms(), st.getR_Acceptable_Get_OB_Delay_ms()
+                ));
+    }
+
+    private void resetObTsCounters() {
+        tsCountDiffLeft = 0;
+        tsCountDiffRight = 0;
+        tsCountGetLeft = 0;
+        tsCountGetRight = 0;
+    }
+
+    @Data
+    private static class ObTs { // orderBook timestamps
+
+        private final long leftObDiffMs;
+        private final long leftGetObDelayMs;
+        private final String leftObTimestamp;
+        private final long rightObDiffMs;
+        private final long rightGetObDelayMs;
+        private final String rightObTimestamp;
+        private final String leftObTimestampInitial;
+        private final String rightObTimestampInitial;
+    }
+
+    private ObTs parseObTs(OrderBook leftOb, OrderBook rightOb) {
+        final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
+        final long leftObDiffMs;
+        final long leftGetObDelayMs;
+        final String leftObTimestamp;
+        if (leftOb.getReceiveTimestamp() == null) {
+            leftGetObDelayMs = 0;
+            leftObDiffMs = Instant.now().toEpochMilli() - leftOb.getTimeStamp().toInstant().toEpochMilli();
+            leftObTimestamp = sdt.format(leftOb.getTimeStamp());
+        } else {
+            leftGetObDelayMs = leftOb.getReceiveTimestamp().toInstant().toEpochMilli() - leftOb.getTimeStamp().toInstant().toEpochMilli();
+            leftObDiffMs = Instant.now().toEpochMilli() - leftOb.getReceiveTimestamp().toInstant().toEpochMilli();
+            leftObTimestamp = sdt.format(leftOb.getReceiveTimestamp());
+        }
+        final long rightObDiffMs;
+        final long rightGetObDelayMs;
+        final String rightObTimestamp;
+        if (rightOb.getReceiveTimestamp() == null) {
+            rightGetObDelayMs = 0;
+            rightObDiffMs = Instant.now().toEpochMilli() - rightOb.getTimeStamp().toInstant().toEpochMilli();
+            rightObTimestamp = sdt.format(rightOb.getTimeStamp());
+        } else {
+            rightGetObDelayMs = rightOb.getReceiveTimestamp().toInstant().toEpochMilli() - rightOb.getTimeStamp().toInstant().toEpochMilli();
+            rightObDiffMs = Instant.now().toEpochMilli() - rightOb.getReceiveTimestamp().toInstant().toEpochMilli();
+            rightObTimestamp = sdt.format(rightOb.getReceiveTimestamp());
+        }
+        return new ObTs(leftObDiffMs, leftGetObDelayMs, leftObTimestamp, rightObDiffMs, rightGetObDelayMs, rightObTimestamp,
+                sdt.format(leftOb.getTimeStamp()), sdt.format(rightOb.getTimeStamp()));
+    }
+
+    public boolean getIsObTsViolated() {
+        return tsCountDiffLeft > 0 || tsCountDiffRight > 0 || tsCountGetLeft > 0 || tsCountGetRight > 0;
+    }
+
+    private boolean isViolateTimestamps(ObTs obts) {
         // check orderBook timestamps
         final SettingsTimestamps st = settingsRepositoryService.getSettings().getSettingsTimestamps();
+        final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
 
-        boolean leftObGetViolate;
-        boolean leftObDiffViolate;
-        final long obDiffMs;
-        final long getObDelayMs;
-        if (leftOb.getReceiveTimestamp() == null) {
-            getObDelayMs = 0;
-            obDiffMs = Instant.now().toEpochMilli() - leftOb.getTimeStamp().toInstant().toEpochMilli();
-        } else {
-            getObDelayMs = leftOb.getReceiveTimestamp().toInstant().toEpochMilli() - leftOb.getTimeStamp().toInstant().toEpochMilli();
-            obDiffMs = Instant.now().toEpochMilli() - leftOb.getReceiveTimestamp().toInstant().toEpochMilli();
-        }
-        leftObGetViolate = getObDelayMs > st.getL_Acceptable_Get_OB_Delay_ms();
-        leftObDiffViolate = obDiffMs > st.getL_Acceptable_OB_Timestamp_Diff_ms();
-        leftMarketService.addObDiff(obDiffMs);
+        final long leftObDiffMs = obts.leftObDiffMs;
+        final long leftGetObDelayMs = obts.leftGetObDelayMs;
+        final String leftObTimestamp = obts.leftObTimestamp;
+        boolean leftObGetViolate = leftGetObDelayMs > st.getL_Acceptable_Get_OB_Delay_ms();
+        boolean leftObDiffViolate = leftObDiffMs > st.getL_Acceptable_OB_Timestamp_Diff_ms();
+        leftMarketService.addObDiff(leftObDiffMs);
 
-        boolean rightObGetViolate;
-        boolean rightObDiffViolate;
-        final long r_obDiffMs;
-        final long r_getObDelayMs;
-        if (rightOb.getReceiveTimestamp() == null) {
-            r_getObDelayMs = 0;
-            r_obDiffMs = Instant.now().toEpochMilli() - rightOb.getTimeStamp().toInstant().toEpochMilli();
-        } else {
-            r_getObDelayMs = rightOb.getReceiveTimestamp().toInstant().toEpochMilli() - rightOb.getTimeStamp().toInstant().toEpochMilli();
-            r_obDiffMs = Instant.now().toEpochMilli() - rightOb.getReceiveTimestamp().toInstant().toEpochMilli();
+        final long rightObDiffMs = obts.rightObDiffMs;
+        final long rightGetObDelayMs = obts.rightGetObDelayMs;
+        final String rightObTimestamp = obts.rightObTimestamp;
+        boolean rightObGetViolate = rightGetObDelayMs > st.getR_Acceptable_Get_OB_Delay_ms();
+        boolean rightObDiffViolate = rightObDiffMs > st.getR_Acceptable_OB_Timestamp_Diff_ms();
+        rightMarketService.addObDiff(rightObDiffMs);
+
+        final String leftObTimestampInitial = obts.leftObTimestampInitial;
+        final String rightObTimestampInitial = obts.rightObTimestampInitial;
+
+        // print logs
+        if (leftObDiffViolate) {
+            if (++tsCountDiffLeft < MAX_TS_COUNT) {
+                warningLogger.info(String.format("Signal unstarted, L_OB_Timestamp Diff (%s) <= L_Acceptable Timestamp Diff (%s) is violated, "
+                                + "L_OB_timestamp = %s; R_OB_Timestamp = %s, Current_server_time = %s, log count = %s;",
+                        leftObDiffMs, st.getL_Acceptable_OB_Timestamp_Diff_ms(),
+                        leftObTimestamp, rightObTimestamp, sdt.format(new Date()), tsCountDiffLeft)
+                );
+            }
         }
-        rightObGetViolate = r_getObDelayMs > st.getR_Acceptable_Get_OB_Delay_ms();
-        rightObDiffViolate = r_obDiffMs > st.getR_Acceptable_OB_Timestamp_Diff_ms();
-        rightMarketService.addObDiff(r_obDiffMs);
+        if (rightObDiffViolate) {
+            if (++tsCountDiffRight < MAX_TS_COUNT) {
+                warningLogger.info(String.format("Signal unstarted, R_OB_Timestamp Diff (%s) <= R_Acceptable Timestamp Diff (%s) is violated, "
+                                + "L_OB_timestamp = %s, R_OB_timestamp = %s, Current_server_time = %s, log count = %s;",
+                        rightObDiffMs, st.getR_Acceptable_OB_Timestamp_Diff_ms(),
+                        leftObTimestamp, rightObTimestamp, sdt.format(new Date()), tsCountDiffRight)
+                );
+            }
+        }
+        if (leftObGetViolate) {
+            if (++tsCountGetLeft < MAX_TS_COUNT) {
+                warningLogger.info(String.format("Signal unstarted, L_Get_OB_Delay (%s) <= L_Acceptable Get_OB_Delay (%s) is violated, "
+                                + "L_OB_timestamp = %s; Initial_L_OB_timestamp = %s, R_OB_timestamp = %s; Initial_R_OB_timestamp = %s, log count = %s;",
+                        leftGetObDelayMs, st.getL_Acceptable_Get_OB_Delay_ms(),
+                        leftObTimestamp, leftObTimestampInitial,
+                        rightObTimestamp, rightObTimestampInitial, tsCountGetLeft)
+                );
+            }
+        }
+        if (rightObGetViolate) {
+            if (++tsCountGetRight < MAX_TS_COUNT) {
+                warningLogger.info(String.format("Signal unstarted, R_Get_OB_Delay (%s) <= R_Acceptable Get_OB_Delay (%s) is violated, "
+                                + "L_OB_timestamp = %s; Initial_L_OB_timestamp = %s, R_OB_timestamp = %s; Initial_R_OB_timestamp = %s, log count = %s;",
+                        rightGetObDelayMs, st.getR_Acceptable_Get_OB_Delay_ms(),
+                        leftObTimestamp, leftObTimestampInitial,
+                        rightObTimestamp, rightObTimestampInitial, tsCountGetRight)
+                );
+            }
+        }
 
         return leftObGetViolate || leftObDiffViolate || rightObGetViolate || rightObDiffViolate;
     }
@@ -1091,7 +1202,7 @@ public class ArbitrageService {
 
     public String getTimeToSignal() {
         if (futureSignal != null && signalDelayActivateTime != null) {
-            if(!futureSignal.isDone()) {
+            if (!futureSignal.isDone()) {
                 long delay = futureSignal.getDelay(TimeUnit.MILLISECONDS);
                 return String.valueOf(delay);
             } else {
@@ -1099,6 +1210,15 @@ public class ArbitrageService {
             }
         }
         return "_none_";
+    }
+
+    private void stopByTimestampViolation(BestQuotes bestQuotes) {
+        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+        if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
+            cumPersistenceService.incObRecheckUnstartedVert1(tradingMode);
+        } else {
+            cumPersistenceService.incObRecheckUnstartedVert2(tradingMode);
+        }
     }
 
     private void stopSignalDelay(BestQuotes bestQuotes, TradingSignal prevTradingSignal, String stopReason) {
@@ -1355,12 +1475,11 @@ public class ArbitrageService {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
                                 preSignalReCheck(DeltaName.O_DELTA, tradingSignal);
                             } else {
-                                boolean violateTimestamps = isViolateTimestamps(leftOb, rightOb);
+                                boolean violateTimestamps = isViolateTimestamps(parseObTs(leftOb, rightOb));
                                 if (violateTimestamps) {
-                                    // TODO no stop
-                                    stopSignalDelay(bestQuotes, tradingSignal, "violate Acceptable Timestamps");
+                                    stopByTimestampViolation(bestQuotes);
                                 } else {
-
+                                    printObTsOnStart(parseObTs(leftOb, rightOb));
                                     arbState = ArbState.IN_PROGRESS;
                                     final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                     startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,

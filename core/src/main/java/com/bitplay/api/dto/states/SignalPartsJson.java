@@ -23,5 +23,6 @@ public class SignalPartsJson {
     private Status btmOrderBook; // bid<ask
     private Status btmOrderBookXBTUSD; // bid<ask : extra OB while Eth
     private Status okOrderBook; // bid<ask
+    private Status obTsDiffs;
 
 }
