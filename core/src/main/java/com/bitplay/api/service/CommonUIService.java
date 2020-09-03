@@ -326,15 +326,6 @@ public class CommonUIService {
         final OkexFtpdService rightFtpdService = ((OkCoinService) right).getOkexFtpdService();
         final OkexFtpdJson rightFtpdJson = new OkexFtpdJson(rightFtpd.getOkexFtpdBod(), rightFtpdService.getBodMax(), rightFtpdService.getBodMin());
 
-        @SuppressWarnings("DuplicatedCode") final MonObTimestamp lt = left.getMonObTimestamp();
-        final String leftObTimestampDiff = lt == null ? "" : String.format("%s/%s", lt.getMinObDiff(), lt.getMaxObDiff());
-        final String leftGetObTimestamps = lt == null ? "" : String.format("%s/%s", lt.getMinGetOb(), lt.getMaxGetOb());
-        final MonObTimestamp rt = right.getMonObTimestamp();
-        final String rightObTimestampDiff = rt == null ? "" : String.format("%s/%s", rt.getMinObDiff(), rt.getMaxObDiff());
-        final String rightGetObTimestamps = rt == null ? "" : String.format("%s/%s", rt.getMinGetOb(), rt.getMaxGetOb());
-        final String leftExecDuration = lt == null ? "" : String.format("%s/%s", lt.getMinExecDuration(), lt.getMaxExecDuration());
-        final String rightExecDuration = rt == null ? "" : String.format("%s/%s", rt.getMinExecDuration(), rt.getMaxExecDuration());
-
         return new MarketStatesJson(
                 btmState.toString(),
                 okState.toString(),
@@ -361,12 +352,8 @@ public class CommonUIService {
                 leftFtpdJson,
                 rightFtpdJson,
                 getTwoMarketsIndexDiff(),
-                leftObTimestampDiff,
-                rightObTimestampDiff,
-                leftGetObTimestamps,
-                rightGetObTimestamps,
-                leftExecDuration,
-                rightExecDuration
+                left.getMonObTimestamp(),
+                right.getMonObTimestamp()
         );
     }
 

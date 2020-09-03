@@ -2,6 +2,7 @@ package com.bitplay.api.dto.states;
 
 import com.bitplay.api.dto.pos.PosDiffJson;
 import com.bitplay.market.model.DqlState;
+import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.security.SebestStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -41,12 +42,8 @@ public class MarketStatesJson {
     OkexFtpdJson leftFtpdJson;
     OkexFtpdJson rightFtpdJson;
     String twoMarketsIndexDiff;
-    String leftObTimestampDiff;
-    String rightObTimestampDiff;
-    String leftGetObDelay;
-    String rightGetObDelay;
-    String leftExecDuration;
-    String rightExecDuration;
+    MonObTimestamp lt;
+    MonObTimestamp rt;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;
