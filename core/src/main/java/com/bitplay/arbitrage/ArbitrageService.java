@@ -227,7 +227,8 @@ public class ArbitrageService {
     private int tsCountDiffRight = 0;
     private int tsCountGetLeft = 0;
     private int tsCountGetRight = 0;
-    private static final int MAX_TS_COUNT = 30;
+    private int unstartedCount = 0;
+    private static final int MAX_TS_COUNT = 3;
     // orderBook timestamps end
 
     private volatile boolean preSignalRecheckInProgress = false;
@@ -1018,7 +1019,7 @@ public class ArbitrageService {
                             } else {
                                 boolean violateTimestamps = isViolateTimestamps(parseObTs(leftOb, rightOb));
                                 if (violateTimestamps) {
-                                    stopByTimestampViolation(bestQuotes);
+                                    incUnstartedObTs(bestQuotes);
                                 } else {
                                     printObTsOnStart(parseObTs(leftOb, rightOb));
                                     arbState = ArbState.IN_PROGRESS;
@@ -1063,6 +1064,7 @@ public class ArbitrageService {
         tsCountDiffRight = 0;
         tsCountGetLeft = 0;
         tsCountGetRight = 0;
+        unstartedCount = 0;
     }
 
     @Data
@@ -1109,7 +1111,7 @@ public class ArbitrageService {
     }
 
     public boolean getIsObTsViolated() {
-        return tsCountDiffLeft > 0 || tsCountDiffRight > 0 || tsCountGetLeft > 0 || tsCountGetRight > 0;
+        return tsCountDiffLeft > 0 || tsCountDiffRight > 0 || tsCountGetLeft > 0 || tsCountGetRight > 0 || unstartedCount > 0;
     }
 
     private boolean isViolateTimestamps(ObTs obts) {
@@ -1136,7 +1138,7 @@ public class ArbitrageService {
 
         // print logs
         if (leftObDiffViolate) {
-            if (++tsCountDiffLeft < MAX_TS_COUNT) {
+            if (tsCountDiffLeft++ < MAX_TS_COUNT) {
                 warningLogger.info(String.format("Signal unstarted, L_OB_Timestamp Diff (%s) <= L_Acceptable Timestamp Diff (%s) is violated, "
                                 + "L_OB_timestamp = %s; R_OB_Timestamp = %s, Current_server_time = %s, log count = %s;",
                         leftObDiffMs, st.getL_Acceptable_OB_Timestamp_Diff_ms(),
@@ -1145,7 +1147,7 @@ public class ArbitrageService {
             }
         }
         if (rightObDiffViolate) {
-            if (++tsCountDiffRight < MAX_TS_COUNT) {
+            if (tsCountDiffRight++ < MAX_TS_COUNT) {
                 warningLogger.info(String.format("Signal unstarted, R_OB_Timestamp Diff (%s) <= R_Acceptable Timestamp Diff (%s) is violated, "
                                 + "L_OB_timestamp = %s, R_OB_timestamp = %s, Current_server_time = %s, log count = %s;",
                         rightObDiffMs, st.getR_Acceptable_OB_Timestamp_Diff_ms(),
@@ -1154,7 +1156,7 @@ public class ArbitrageService {
             }
         }
         if (leftObGetViolate) {
-            if (++tsCountGetLeft < MAX_TS_COUNT) {
+            if (tsCountGetLeft++ < MAX_TS_COUNT) {
                 warningLogger.info(String.format("Signal unstarted, L_Get_OB_Delay (%s) <= L_Acceptable Get_OB_Delay (%s) is violated, "
                                 + "L_OB_timestamp = %s; Initial_L_OB_timestamp = %s, R_OB_timestamp = %s; Initial_R_OB_timestamp = %s, log count = %s;",
                         leftGetObDelayMs, st.getL_Acceptable_Get_OB_Delay_ms(),
@@ -1164,7 +1166,7 @@ public class ArbitrageService {
             }
         }
         if (rightObGetViolate) {
-            if (++tsCountGetRight < MAX_TS_COUNT) {
+            if (tsCountGetRight++ < MAX_TS_COUNT) {
                 warningLogger.info(String.format("Signal unstarted, R_Get_OB_Delay (%s) <= R_Acceptable Get_OB_Delay (%s) is violated, "
                                 + "L_OB_timestamp = %s; Initial_L_OB_timestamp = %s, R_OB_timestamp = %s; Initial_R_OB_timestamp = %s, log count = %s;",
                         rightGetObDelayMs, st.getR_Acceptable_Get_OB_Delay_ms(),
@@ -1212,12 +1214,14 @@ public class ArbitrageService {
         return "_none_";
     }
 
-    private void stopByTimestampViolation(BestQuotes bestQuotes) {
-        final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
-        if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
-            cumPersistenceService.incObRecheckUnstartedVert1(tradingMode);
-        } else {
-            cumPersistenceService.incObRecheckUnstartedVert2(tradingMode);
+    private void incUnstartedObTs(BestQuotes bestQuotes) {
+        if (unstartedCount++ < MAX_TS_COUNT) {
+            final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
+            if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
+                cumPersistenceService.incObRecheckUnstartedVert1(tradingMode);
+            } else {
+                cumPersistenceService.incObRecheckUnstartedVert2(tradingMode);
+            }
         }
     }
 
@@ -1232,6 +1236,7 @@ public class ArbitrageService {
         isAffordableOkex = true;
 
         volatileModeSwitcherService.stopVmTimer();
+        resetObTsCounters();
     }
 
     private void printLogsAfterPreSignalRecheckStop(BestQuotes bestQuotes, TradingSignal prevTradingSignal, String stopReason) {
@@ -1479,7 +1484,7 @@ public class ArbitrageService {
                             } else {
                                 boolean violateTimestamps = isViolateTimestamps(parseObTs(leftOb, rightOb));
                                 if (violateTimestamps) {
-                                    stopByTimestampViolation(bestQuotes);
+                                    incUnstartedObTs(bestQuotes);
                                 } else {
                                     printObTsOnStart(parseObTs(leftOb, rightOb));
                                     arbState = ArbState.IN_PROGRESS;

@@ -1060,7 +1060,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final Instant endReq = Instant.now();
             final String execDuration;
-            if (bestQuotes.getSignalTime() == null) {
+            if (bestQuotes == null || bestQuotes.getSignalTime() == null) {
                 execDuration = null;
             } else {
                 final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
@@ -1427,6 +1427,9 @@ public class OkCoinService extends MarketServicePreliq {
                     }
                 }
                 if (attemptCount > 1) {
+                    if (bestQuotes != null) {
+                        bestQuotes.setSignalTime(null);
+                    }
                     Thread.sleep(1000);
                 }
 
@@ -2122,6 +2125,9 @@ public class OkCoinService extends MarketServicePreliq {
                             cnlOrder.getCounterName(),
                             false, cnlOrder.getPortionsQty(), cnlOrder.getPortionsQtyMax(), counterForLogs);
                 } else {
+                    if (bestQuotes != null) {
+                        bestQuotes.setSignalTime(null);
+                    }
                     tradeResponse = takerOrder(tradeId, limitOrder.getType(), newAmount, bestQuotes, signalType, cnlOrder.getCounterName(),
                             cnlOrder.getPortionsQty(), cnlOrder.getPortionsQtyMax(), counterForLogs);
                 }
