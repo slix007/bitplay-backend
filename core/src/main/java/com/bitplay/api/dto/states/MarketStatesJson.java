@@ -44,6 +44,7 @@ public class MarketStatesJson {
     String twoMarketsIndexDiff;
     MonObTimestamp lt;
     MonObTimestamp rt;
+    AutoAddBorderJson autoAddBorderJson;
 
     public MarketStatesJson(String firstMarket, String secondMarket, String firstTimeToReset, String secondTimeToReset) {
         this.firstMarket = firstMarket;

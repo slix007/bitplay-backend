@@ -23,12 +23,14 @@ import com.bitplay.persistance.domain.settings.ManageType;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
+import com.bitplay.persistance.domain.settings.Prem;
 import com.bitplay.persistance.domain.settings.RestartSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import com.bitplay.settings.SettingsPremService;
 import java.math.BigDecimal;
 import java.util.EnumSet;
 import java.util.List;
@@ -63,6 +65,7 @@ public class SettingsEndpoint {
     private final SettingsCorrEndpoint settingsCorrEndpoint;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
     private final DestinationResolverByFile destinationResolverByFile;
+    private final SettingsPremService settingsPremService;
 
     @RequestMapping(value = "/slack", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<String> getSlackSettings() {
@@ -138,6 +141,10 @@ public class SettingsEndpoint {
         }
         BigDecimal okexLeverage = ((OkCoinService) right).getLeverage();
         settings.getSettingsTransient().setRightOkexLeverage(okexLeverage);
+
+        settings.getSettingsVolatileMode().setBorderCrossDepth(settingsPremService.getBorderCrossDepth());
+        settings.getSettingsVolatileMode().setBAddBorder(settingsPremService.getLeftAddBorder());
+        settings.getSettingsVolatileMode().setOAddBorder(settingsPremService.getRightAddBorder());
     }
 
     @RequestMapping(value = "/all", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -580,14 +587,6 @@ public class SettingsEndpoint {
             settings.setAdjustByNtUsd(settingsUpdate.getAdjustByNtUsd());
             settingsRepositoryService.saveSettings(mainSettings);
         }
-        if (settingsUpdate.getBAddBorder() != null) {
-            settings.setBAddBorder(settingsUpdate.getBAddBorder());
-            settingsRepositoryService.saveSettings(mainSettings);
-        }
-        if (settingsUpdate.getOAddBorder() != null) {
-            settings.setOAddBorder(settingsUpdate.getOAddBorder());
-            settingsRepositoryService.saveSettings(mainSettings);
-        }
         if (settingsUpdate.getVolatileDurationSec() != null) {
             mainSettings = settingsRepositoryService.updateVolatileDurationSec(settingsUpdate.getVolatileDurationSec());
         }
@@ -596,9 +595,15 @@ public class SettingsEndpoint {
             settings.setVolatileDelayMs(settingsUpdate.getVolatileDelayMs());
             settingsRepositoryService.saveSettings(mainSettings);
         }
-        if (settingsUpdate.getBorderCrossDepth() != null) {
-            settings.setBorderCrossDepth(settingsUpdate.getBorderCrossDepth());
-            settingsRepositoryService.saveSettings(mainSettings);
+        if (settingsUpdate.getBorderCrossDepth() != null
+                || settingsUpdate.getBAddBorder() != null
+                || settingsUpdate.getOAddBorder() != null
+        ) {
+            settingsPremService.updateSettings(
+                    settingsUpdate.getBorderCrossDepth(),
+                    settingsUpdate.getBAddBorder(),
+                    settingsUpdate.getOAddBorder()
+            );
         }
         if (settingsUpdate.getCorrMaxTotalCount() != null) {
             settings.setCorrMaxTotalCount(settingsUpdate.getCorrMaxTotalCount());
@@ -619,6 +624,13 @@ public class SettingsEndpoint {
             if (settingsUpdate.getConBoPortions().getMaxPortionUsdOkex() != null) {
                 settings.getConBoPortions().setMaxPortionUsdOkex(settingsUpdate.getConBoPortions().getMaxPortionUsdOkex());
             }
+            settingsRepositoryService.saveSettings(mainSettings);
+        }
+        if (settingsUpdate.getPrem() != null) {
+            if (settings.getPrem() == null) {
+                settings.setPrem(Prem.createDefault());
+            }
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getPrem(), settings.getPrem());
             settingsRepositoryService.saveSettings(mainSettings);
         }
 

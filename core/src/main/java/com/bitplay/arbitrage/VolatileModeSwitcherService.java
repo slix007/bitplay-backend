@@ -9,6 +9,7 @@ import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import com.bitplay.settings.SettingsPremService;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 public class VolatileModeSwitcherService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
+    private final SettingsPremService settingsPremService;
     private final PersistenceService persistenceService;
     private final ArbitrageService arbitrageService;
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
@@ -58,7 +60,7 @@ public class VolatileModeSwitcherService {
         // если delta1 plan - border1 >= Border cross depth или delta2 plan - border2 >= Border cross depth,
         // то это триггер для переключения из Current mode в Volatile Mode.
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        final BigDecimal borderCrossDepth = settings.getSettingsVolatileMode().getBorderCrossDepth();
+        final BigDecimal borderCrossDepth = settingsPremService.getBorderCrossDepth();
         if (settings.getTradingModeAuto()
                 && borderCrossDepth.signum() > 0
                 && delta.subtract(minBorder).compareTo(borderCrossDepth) >= 0) {

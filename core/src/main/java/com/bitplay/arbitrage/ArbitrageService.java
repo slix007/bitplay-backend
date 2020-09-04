@@ -75,6 +75,7 @@ import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import com.bitplay.settings.SettingsPremService;
 import com.bitplay.utils.SchedulerUtils;
 import com.bitplay.utils.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -129,6 +130,8 @@ public class ArbitrageService {
     private BordersService bordersService;
     @Autowired
     private PlacingBlocksService placingBlocksService;
+    @Autowired
+    private SettingsPremService settingsPremService;
     @Autowired
     private PersistenceService persistenceService;
     @Autowired
@@ -713,12 +716,12 @@ public class ArbitrageService {
 
     public BigDecimal getBorder1() {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        return borderAdj(settings, settings.getSettingsVolatileMode().getBAddBorder(), params.getBorder1());
+        return borderAdj(settings, settingsPremService.getLeftAddBorder(), params.getBorder1());
     }
 
     public BigDecimal getBorder2() {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
-        return borderAdj(settings, settings.getSettingsVolatileMode().getOAddBorder(), params.getBorder2());
+        return borderAdj(settings, settingsPremService.getRightAddBorder(), params.getBorder2());
     }
 
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,

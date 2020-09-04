@@ -13,6 +13,7 @@ import com.bitplay.api.dto.SumBalJson;
 import com.bitplay.api.dto.TimersJson;
 import com.bitplay.api.dto.TradeLogJson;
 import com.bitplay.api.dto.pos.PosDiffJson;
+import com.bitplay.api.dto.states.AutoAddBorderJson;
 import com.bitplay.api.dto.states.DelayTimerBuilder;
 import com.bitplay.api.dto.states.DelayTimerJson;
 import com.bitplay.api.dto.states.MarketStatesJson;
@@ -55,13 +56,13 @@ import com.bitplay.persistance.domain.LastPriceDeviation;
 import com.bitplay.persistance.domain.SignalTimeParams;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
-import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
+import com.bitplay.settings.SettingsPremService;
 import com.bitplay.settings.TradingModeService;
 import com.bitplay.utils.Utils;
 import java.io.IOException;
@@ -106,6 +107,7 @@ public class CommonUIService {
     private final BitmexChangeOnSoService bitmexChangeOnSoService;
     private final OkexSettlementService okexSettlementService;
     private final NtUsdRecoveryService ntUsdRecoveryService;
+    private final SettingsPremService settingsPremService;
 
     public TradeLogJson getTradeLog(String marketName, String date) {
         String logName;
@@ -353,7 +355,11 @@ public class CommonUIService {
                 rightFtpdJson,
                 getTwoMarketsIndexDiff(),
                 left.getMonObTimestamp(),
-                right.getMonObTimestamp()
+                right.getMonObTimestamp(),
+                new AutoAddBorderJson(
+                        settingsPremService.getBorderCrossDepth(),
+                        settingsPremService.getLeftAddBorder(),
+                        settingsPremService.getRightAddBorder())
         );
     }
 

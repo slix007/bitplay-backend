@@ -23,6 +23,7 @@ public class SettingsVolatileMode {
     private PosAdjustment posAdjustment; // - posAdjMin, posAdjMax - установка соответствубщих значений;
     private Boolean adjustByNtUsd;
 
+    private BigDecimal borderCrossDepth;
     //- b_add_border: прибавление установленного значения к b_border (если выбрана V1 borders) или к бордерам в таблицах b_br_close, b_br_open (если выбрана V2 borders);
     //- o_add_border: прибавление установленного значения к o_border (если выбрана V1 borders) или к бордерам в таблицах o_br_close, o_br_open (если выбрана V2 borders);
     private BigDecimal bAddBorder;
@@ -34,7 +35,6 @@ public class SettingsVolatileMode {
     private Integer volatileDurationSec;
     private Integer volatileDelayMs;
 
-    private BigDecimal borderCrossDepth;
 
     private Integer corrMaxTotalCount;
     private Integer adjMaxTotalCount;
@@ -43,6 +43,7 @@ public class SettingsVolatileMode {
 
     private ConBoPortions conBoPortions;
 
+    private Prem prem;
     //TODO corr max total, corr max adj: общее количество коррекций/подгонок (0=off);
 
     public enum Field {
@@ -60,7 +61,12 @@ public class SettingsVolatileMode {
         R_wait_L_portions_maxPortionUsdOkex,
         /*deprecated*/
         conBoPortions_minNtUsdToStartOkex,
-        conBoPortions_maxPortionUsdOkex
+        conBoPortions_maxPortionUsdOkex,
+
+        /*auto params for prem*/
+        BCD_prem,
+        L_add_border_prem,
+        R_add_border_prem
     }
 
     public ConBoPortions getConBoPortions(ConBoPortions mainMode) {

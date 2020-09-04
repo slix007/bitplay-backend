@@ -32,4 +32,9 @@ public class SpringAsyncConfig {
         return Executors.newFixedThreadPool(2, new NamedThreadFactory("moving-executor"));
     }
 
+    @Bean(name = "settingsVolatileAutoParamsExecutor")
+    public Executor settingsVolatileAutoParamsExecutor() {
+        return Executors.newSingleThreadExecutor(new NamedThreadFactory("settingsVolatileAutoParamsExecutor"));
+    }
+
 }

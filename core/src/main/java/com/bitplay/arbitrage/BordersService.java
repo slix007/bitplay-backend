@@ -15,6 +15,7 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
+import com.bitplay.settings.SettingsPremService;
 import lombok.AllArgsConstructor;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.slf4j.Logger;
@@ -39,6 +40,9 @@ public class BordersService {
 
     private static final Logger logger = LoggerFactory.getLogger(BordersService.class);
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
+
+    @Autowired
+    SettingsPremService settingsPremService;
 
     @Autowired
     PersistenceService persistenceService;
@@ -71,7 +75,7 @@ public class BordersService {
             for (BorderTable borderTable : borderTableList) {
                 // b_br_open, b_br_close, o_br_open, o_br_close
                 {
-                    final BigDecimal bAddBorder = settings.getSettingsVolatileMode().getBAddBorder();
+                    final BigDecimal bAddBorder = settingsPremService.getLeftAddBorder();
                     if (bAddBorder != null && bAddBorder.signum() > 0) {
                         if (borderTable.getBorderName().equals("b_br_open") || borderTable.getBorderName().equals("b_br_close")) {
                             for (BorderItem borderItem : borderTable.getBorderItemList()) {
@@ -82,7 +86,7 @@ public class BordersService {
                         }
                     }
                 }
-                final BigDecimal oAddBorder = settings.getSettingsVolatileMode().getOAddBorder();
+                final BigDecimal oAddBorder = settingsPremService.getRightAddBorder();
                 if (oAddBorder != null && oAddBorder.signum() > 0) {
                     if (borderTable.getBorderName().equals("o_br_open") || borderTable.getBorderName().equals("o_br_close")) {
                         for (BorderItem borderItem : borderTable.getBorderItemList()) {
@@ -103,7 +107,7 @@ public class BordersService {
             for (BorderTable borderTable : borderTableList) {
                 // b_br_open, b_br_close, o_br_open, o_br_close
                 {
-                    final BigDecimal bAddBorder = settings.getSettingsVolatileMode().getBAddBorder();
+                    final BigDecimal bAddBorder = settingsPremService.getLeftAddBorder();
                     if (bAddBorder != null && bAddBorder.signum() > 0) {
                         if (borderTable.getBorderName().equals("b_br_open") || borderTable.getBorderName().equals("b_br_close")) {
                             for (BorderItem borderItem : borderTable.getBorderItemList()) {
@@ -114,7 +118,7 @@ public class BordersService {
                         }
                     }
                 }
-                final BigDecimal oAddBorder = settings.getSettingsVolatileMode().getOAddBorder();
+                final BigDecimal oAddBorder = settingsPremService.getRightAddBorder();
                 if (oAddBorder != null && oAddBorder.signum() > 0) {
                     if (borderTable.getBorderName().equals("o_br_open") || borderTable.getBorderName().equals("o_br_close")) {
                         for (BorderItem borderItem : borderTable.getBorderItemList()) {
