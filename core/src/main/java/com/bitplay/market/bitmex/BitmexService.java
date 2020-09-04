@@ -2070,7 +2070,10 @@ public class BitmexService extends MarketServicePreliq {
                                         getArbType().s());
                                 nextMarketState = MarketState.READY;
                             }
-                            if (attemptCount == 1 && resultOrder.getTimestamp() != null && plBeforeBtm.getSignalTime() != null) {
+                            if (attemptCount == 1
+                                    && resultOrder.getTimestamp() != null
+                                    && plBeforeBtm.getSignalTime() != null
+                                    && resultOrder.getStatus() == OrderStatus.FILLED) {
                                 final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - plBeforeBtm.getSignalTime().toEpochMilli();
                                 addExecDuration(d);
                                 execDuration = String.valueOf(d);

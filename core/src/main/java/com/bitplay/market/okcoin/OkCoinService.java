@@ -1060,7 +1060,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             final Instant endReq = Instant.now();
             final String execDuration;
-            if (bestQuotes == null || bestQuotes.getSignalTime() == null) {
+            if (bestQuotes == null || bestQuotes.getSignalTime() == null || !orderResult.isResult()) {
                 execDuration = null;
             } else {
                 final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
