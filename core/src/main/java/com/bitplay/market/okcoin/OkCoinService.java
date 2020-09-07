@@ -1059,15 +1059,6 @@ public class OkCoinService extends MarketServicePreliq {
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
 
             final Instant endReq = Instant.now();
-            final String execDuration;
-            if (bestQuotes == null || bestQuotes.getSignalTime() == null || !orderResult.isResult()) {
-                execDuration = null;
-            } else {
-                final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
-                addExecDuration(d);
-                execDuration = String.valueOf(d);
-            }
-
             final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
             monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
             if (waitingMarketMs > 5000) {
@@ -1096,6 +1087,16 @@ public class OkCoinService extends MarketServicePreliq {
             addOpenOrder(theUpdate);
 
             persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, orderInfo.getAveragePrice());
+
+            final String execDuration;
+            final boolean notFilled = orderInfo.getStatus() != OrderStatus.FILLED && orderInfo.getStatus() != OrderStatus.PARTIALLY_FILLED;
+            if (bestQuotes == null || bestQuotes.getSignalTime() == null || !orderResult.isResult() || notFilled) {
+                execDuration = null;
+            } else {
+                final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
+                addExecDuration(d);
+                execDuration = String.valueOf(d);
+            }
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
                 tradeResponse.setErrorCode(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE);
@@ -1393,6 +1394,9 @@ public class OkCoinService extends MarketServicePreliq {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
         final BigDecimal amount = placeOrderArgs.getAmount();
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
+        if (bestQuotes != null) {
+            bestQuotes.setSignalTime(Instant.now());
+        }
         final SignalType signalType = placeOrderArgs.getSignalType();
         PlacingType placingType = placeOrderArgs.getPlacingType();
         if (placingType == null) {

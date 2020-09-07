@@ -1852,6 +1852,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public TradeResponse placeOrder(final PlaceOrderArgs placeOrderArgs) {
+        final Instant startPlacing = Instant.now();
         prevCumulativeAmount = BigDecimal.ZERO;
 
         final TradeResponse tradeResponse = new TradeResponse();
@@ -1891,7 +1892,6 @@ public class BitmexService extends MarketServicePreliq {
         final Integer scale = btmContType.getScale();
         BtmFokAutoArgs btmFokArgs = placeOrderArgs.getBtmFokArgs(); // not null only when by signal
 
-        final Instant startPlacing = Instant.now();
         plBeforeBtm.setRequestPlacing(startPlacing);
         final Mon monPlacing = monitoringDataService.fetchMon(getName(), "placeOrder");
 
@@ -2073,8 +2073,8 @@ public class BitmexService extends MarketServicePreliq {
                             if (attemptCount == 1
                                     && resultOrder.getTimestamp() != null
                                     && plBeforeBtm.getSignalTime() != null
-                                    && resultOrder.getStatus() == OrderStatus.FILLED) {
-                                final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - plBeforeBtm.getSignalTime().toEpochMilli();
+                                    && (resultOrder.getStatus() == OrderStatus.FILLED || resultOrder.getStatus() == OrderStatus.PARTIALLY_FILLED)) {
+                                final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - startPlacing.toEpochMilli();
                                 addExecDuration(d);
                                 execDuration = String.valueOf(d);
                             }
