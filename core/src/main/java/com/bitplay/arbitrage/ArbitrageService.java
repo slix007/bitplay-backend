@@ -1221,9 +1221,9 @@ public class ArbitrageService {
         if (unstartedCount++ < MAX_TS_COUNT) {
             final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
             if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
-                cumPersistenceService.incObRecheckUnstartedVert1(tradingMode);
+                cumPersistenceService.incUnstartedVert1(tradingMode);
             } else {
-                cumPersistenceService.incObRecheckUnstartedVert2(tradingMode);
+                cumPersistenceService.incUnstartedVert2(tradingMode);
             }
         }
     }
