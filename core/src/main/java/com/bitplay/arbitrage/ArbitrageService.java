@@ -1020,16 +1020,18 @@ public class ArbitrageService {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
                                 preSignalReCheck(DeltaName.B_DELTA, tradingSignal);
                             } else {
-                                boolean violateTimestamps = isViolateTimestamps(parseObTs(leftOb, rightOb));
+                                final ObTs obts = parseObTs(leftOb, rightOb);
+                                boolean violateTimestamps = isViolateTimestamps(obts);
                                 if (violateTimestamps) {
                                     incUnstartedObTs(bestQuotes);
                                 } else {
-                                    printObTsOnStart(parseObTs(leftOb, rightOb));
+                                    resetObTsCounters();
                                     arbState = ArbState.IN_PROGRESS;
                                     final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                     startTradingOnDelta1(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
                                             ask1_o,
-                                            bid1_p, beforeSignalMetrics, b_block_input, o_block_input);
+                                            bid1_p, beforeSignalMetrics, b_block_input, o_block_input,
+                                            obts);
                                 }
                             }
                         }
@@ -1043,8 +1045,6 @@ public class ArbitrageService {
     }
 
     private void printObTsOnStart(ObTs obts) {
-        resetObTsCounters();
-
         final SettingsTimestamps st = settingsRepositoryService.getSettings().getSettingsTimestamps();
         final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
         printToCurrentDeltaLog(String.format("L_OB_Timestamp Diff (%s) = Current_server_time (%s) - L_OB_timestamp (%s),"
@@ -1302,9 +1302,9 @@ public class ArbitrageService {
     }
 
     private void startTradingOnDelta1(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
-                                      TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
-                                      PlBefore plBeforeBtm,
-                                      BigDecimal b_block_input, BigDecimal o_block_input) {
+            TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
+            PlBefore plBeforeBtm,
+            BigDecimal b_block_input, BigDecimal o_block_input, ObTs obts) {
 
         log.info("START SIGNAL 1");
         final Instant signalTime = Instant.now();
@@ -1319,7 +1319,7 @@ public class ArbitrageService {
         final TradingMode tradingMode = s.getTradingModeState().getTradingMode();
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
-        final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode);
+        final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_o, bid1_p, tradingSignal, getBorder1(), delta1, deltaName, tradingMode, obts);
         final String counterName = fplayTrade.getCounterName();
 
         final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, bid1_p, ask1_o, b_block_input,
@@ -1485,16 +1485,18 @@ public class ArbitrageService {
                             if (bestQuotes.isNeedPreSignalReCheck()) {
                                 preSignalReCheck(DeltaName.O_DELTA, tradingSignal);
                             } else {
-                                boolean violateTimestamps = isViolateTimestamps(parseObTs(leftOb, rightOb));
+                                final ObTs obts = parseObTs(leftOb, rightOb);
+                                boolean violateTimestamps = isViolateTimestamps(obts);
                                 if (violateTimestamps) {
                                     incUnstartedObTs(bestQuotes);
                                 } else {
-                                    printObTsOnStart(parseObTs(leftOb, rightOb));
+                                    resetObTsCounters();
                                     arbState = ArbState.IN_PROGRESS;
                                     final TradingSignal trSig = tradingSignal.changeBlocks(b_block, o_block);
                                     startTradingOnDelta2(borderParams, bestQuotes, b_block, o_block, trSig, dynamicDeltaLogs,
                                             ask1_p,
-                                            bid1_o, beforeSignalMetrics, b_block_input, o_block_input);
+                                            bid1_o, beforeSignalMetrics, b_block_input, o_block_input,
+                                            obts);
                                 }
                             }
                         }
@@ -1549,9 +1551,9 @@ public class ArbitrageService {
     }
 
     private void startTradingOnDelta2(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
-                                      TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
-                                      PlBefore plBeforeBtm,
-                                      BigDecimal b_block_input, BigDecimal o_block_input) {
+            TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
+            PlBefore plBeforeBtm,
+            BigDecimal b_block_input, BigDecimal o_block_input, ObTs obts) {
 
         log.info("START SIGNAL 2");
         final Instant signalTime = Instant.now();
@@ -1566,7 +1568,7 @@ public class ArbitrageService {
         final TradingMode tradingMode = s.getTradingModeState().getTradingMode();
         final BigDecimal delta1 = this.delta1;
         final BigDecimal delta2 = this.delta2;
-        final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode);
+        final FplayTrade fplayTrade = createCounterOnStartTrade(ask1_p, bid1_o, tradingSignal, getBorder2(), delta2, deltaName, tradingMode, obts);
         final String counterName = fplayTrade.getCounterName();
 
         final DealPrices dealPrices = setTradeParamsOnStart(borderParams, bestQuotes, b_block, o_block, dynamicDeltaLogs, ask1_p, bid1_o, b_block_input,
@@ -1602,7 +1604,8 @@ public class ArbitrageService {
     }
 
     private FplayTrade createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
-                                                 final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode) {
+            final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode,
+            ObTs obts) {
 
         if (deltaName.getDeltaNumber().equals("1")) {
             cumPersistenceService.incCounter1(tradingMode);
@@ -1634,6 +1637,8 @@ public class ArbitrageService {
                 counter1, counter2, counter1 + counter2,
                 cc1, cc2, cc1 + cc2,
                 iterationMarker));
+
+        printObTsOnStart(obts);
 
         fplayTradeService.info(tradeId, counterName, String.format("delta%s=%s-%s=%s; %s",
                 deltaName.getDeltaNumber(),
