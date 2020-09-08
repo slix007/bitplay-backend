@@ -1089,13 +1089,17 @@ public class OkCoinService extends MarketServicePreliq {
             persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, orderInfo.getAveragePrice());
 
             final String execDuration;
-            final boolean notFilled = orderInfo.getStatus() != OrderStatus.FILLED && orderInfo.getStatus() != OrderStatus.PARTIALLY_FILLED;
-            if (bestQuotes == null || bestQuotes.getSignalTime() == null || !orderResult.isResult() || notFilled) {
-                execDuration = null;
-            } else {
+            final boolean filledOrPartially = orderInfo.getStatus() == OrderStatus.FILLED || orderInfo.getStatus() == OrderStatus.PARTIALLY_FILLED;
+            if (bestQuotes != null
+                    && bestQuotes.getSignalTime() != null
+                    && orderResult.isResult()
+                    && filledOrPartially
+                    && signalType == SignalType.AUTOMATIC) {
                 final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
                 addExecDuration(d);
                 execDuration = String.valueOf(d);
+            } else {
+                execDuration = null;
             }
 
             if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
