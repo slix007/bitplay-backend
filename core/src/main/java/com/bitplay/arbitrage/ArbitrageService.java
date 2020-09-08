@@ -1044,10 +1044,10 @@ public class ArbitrageService {
         }
     }
 
-    private void printObTsOnStart(ObTs obts) {
+    private void printObTsOnStart(Long tradeId, String counterName, ObTs obts) {
         final SettingsTimestamps st = settingsRepositoryService.getSettings().getSettingsTimestamps();
         final SimpleDateFormat sdt = new SimpleDateFormat("HH:mm:ss SSS");
-        printToCurrentDeltaLog(String.format("L_OB_Timestamp Diff (%s) = Current_server_time (%s) - L_OB_timestamp (%s),"
+        fplayTradeService.info(tradeId, counterName, String.format("L_OB_Timestamp Diff (%s) = Current_server_time (%s) - L_OB_timestamp (%s),"
                         + "R_OB_Timestamp Diff (%s) = Current_server_time (%s) - R_OB_timestamp (%s),"
                         + "L_Acceptable OB_Timestamp Diff = %s, R_Acceptable OB_Timestamp Diff = %s,"
                         + "L_Get_OB_Delay (%s) = L_OB_timestamp (%s) - Initial_L_OB_timestamp (%s),"
@@ -1222,8 +1222,10 @@ public class ArbitrageService {
             final TradingMode tradingMode = persistenceService.getSettingsRepositoryService().getSettings().getTradingModeState().getTradingMode();
             if (bestQuotes.getDeltaName() == DeltaName.B_DELTA) {
                 cumPersistenceService.incUnstartedVert1(tradingMode);
+                cumPersistenceService.incCounter1(tradingMode);
             } else {
                 cumPersistenceService.incUnstartedVert2(tradingMode);
+                cumPersistenceService.incCounter2(tradingMode);
             }
         }
     }
@@ -1638,7 +1640,7 @@ public class ArbitrageService {
                 cc1, cc2, cc1 + cc2,
                 iterationMarker));
 
-        printObTsOnStart(obts);
+        printObTsOnStart(tradeId, counterName, obts);
 
         fplayTradeService.info(tradeId, counterName, String.format("delta%s=%s-%s=%s; %s",
                 deltaName.getDeltaNumber(),
