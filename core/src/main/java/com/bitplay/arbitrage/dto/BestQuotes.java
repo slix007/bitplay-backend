@@ -5,7 +5,6 @@ import com.bitplay.persistance.domain.settings.TradingMode;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
-import lombok.ToString;
 import lombok.Getter;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.springframework.data.annotation.Transient;
