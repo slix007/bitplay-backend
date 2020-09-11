@@ -5,7 +5,7 @@ import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.market.MarketServicePreliq;
+import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -26,9 +26,9 @@ public class ObChangeListener {
         arbitrageService.sigEventCheck(sigEvent);
     }
 
-    @Async("movingExecutor")
+    @Async("movingExecutorLeft")
     @EventListener(ObChangeEvent.class)
-    public void movingCheck(ObChangeEvent obChangeEvent) {
+    public void movingCheckLeft(ObChangeEvent obChangeEvent) {
         if (!arbitrageService.isInitialized()) {
             return;
         }
@@ -36,12 +36,19 @@ public class ObChangeListener {
         final SigEvent sigEvent = obChangeEvent.getSigEvent();
         final SigType sigType = sigEvent.getSigType();
         final ArbType arbType = sigEvent.getArbType();
-        try {
-            final MarketServicePreliq market = arbType == ArbType.LEFT
-                    ? arbitrageService.getLeftMarketService()
-                    : arbitrageService.getRightMarketService();
+        Instant startTime = sigEvent.startTime();
+        if (arbType == ArbType.RIGHT) {
+            return;
+        }
 
-            market.checkOpenOrdersForMoving(sigEvent.startTime());
+        try {
+            try {
+                arbitrageService.getLeftMarketService().checkOpenOrdersForMoving(startTime);
+            } catch (NotYetInitializedException e) {
+                // do nothing
+            } catch (Exception e) {
+                log.error("{} openOrdersMovingSubscription error", sigType, e);
+            }
         } catch (NotYetInitializedException e) {
             // do nothing
         } catch (Exception e) {
@@ -49,5 +56,27 @@ public class ObChangeListener {
         }
     }
 
+    @Async("movingExecutorRight")
+    @EventListener(ObChangeEvent.class)
+    public void movingCheckRight(ObChangeEvent obChangeEvent) {
+        if (!arbitrageService.isInitialized()) {
+            return;
+        }
+
+        final SigEvent sigEvent = obChangeEvent.getSigEvent();
+        final SigType sigType = sigEvent.getSigType();
+        final ArbType arbType = sigEvent.getArbType();
+        Instant startTime = sigEvent.startTime();
+        if (arbType == ArbType.LEFT) {
+            return;
+        }
+        try {
+            arbitrageService.getRightMarketService().checkOpenOrdersForMoving(startTime);
+        } catch (NotYetInitializedException e) {
+            // do nothing
+        } catch (Exception e) {
+            log.error("{} openOrdersMovingSubscription error", sigType, e);
+        }
+    }
 
 }

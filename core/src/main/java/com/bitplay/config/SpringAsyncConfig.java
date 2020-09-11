@@ -15,22 +15,27 @@ public class SpringAsyncConfig {
 
     @Bean(name = "ntUsdSignalCheckExecutor")
     public Executor threadPoolTaskExecutor() {
-        return createDiscardOldersTaskExecutor("ntUsdSignalCheckExecutor-");
+        return createDiscardOldestTaskExecutor("ntUsdSignalCheckExecutor-");
     }
 
     @Bean(name = "signalCheckExecutor")
     public Executor signalCheckExecutor() {
-        return createDiscardOldersTaskExecutor("signal-check-");
+        return createDiscardOldestTaskExecutor("signal-check-");
     }
 
     @Bean(name = "portionsStopCheckExecutor")
     public Executor portionsStopCheckExecutor() {
-        return createDiscardOldersTaskExecutor("portions-stop-check-");
+        return createDiscardOldestTaskExecutor("portions-stop-check-");
     }
 
-    @Bean(name = "movingExecutor")
-    public Executor movingExecutor() {
-        return Executors.newFixedThreadPool(2, new NamedThreadFactory("moving-executor"));
+    @Bean(name = "movingExecutorLeft")
+    public Executor movingExecutorLeft() {
+        return createDiscardOldestTaskExecutor("moving-executor-left");
+    }
+
+    @Bean(name = "movingExecutorRight")
+    public Executor movingExecutorRight() {
+        return createDiscardOldestTaskExecutor("moving-executor-right");
     }
 
     @Bean(name = "settingsVolatileAutoParamsExecutor")
@@ -38,7 +43,7 @@ public class SpringAsyncConfig {
         return Executors.newSingleThreadExecutor(new NamedThreadFactory("settingsVolatileAutoParamsExecutor"));
     }
 
-    private ThreadPoolTaskExecutor createDiscardOldersTaskExecutor(String threadNamePrefix) {
+    private ThreadPoolTaskExecutor createDiscardOldestTaskExecutor(String threadNamePrefix) {
         final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
         executor.setMaxPoolSize(1);
