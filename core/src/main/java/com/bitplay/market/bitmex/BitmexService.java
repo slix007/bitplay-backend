@@ -141,6 +141,7 @@ import si.mazi.rescu.InvocationResult;
 @Service("bitmex")
 @Scope(scopeName = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class BitmexService extends MarketServicePreliq {
+
     private static final Logger logger = LoggerFactory.getLogger(BitmexService.class);
     private static final Logger ordersLogger = LoggerFactory.getLogger("BITMEX_ORDERS_LOG");
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
@@ -200,7 +201,7 @@ public class BitmexService extends MarketServicePreliq {
     @Autowired
     private RestartService restartService;
     private volatile Date orderBookLastTimestamp = new Date();
-//    private volatile Date orderBookLastTimestampXBTUSD = new Date();
+    //    private volatile Date orderBookLastTimestampXBTUSD = new Date();
     protected BigDecimal bestBidXBTUSD = BigDecimal.ZERO;
     protected BigDecimal bestAskXBTUSD = BigDecimal.ZERO;
 
@@ -317,8 +318,8 @@ public class BitmexService extends MarketServicePreliq {
     public boolean isStarted() {
         return bitmexContractType != null &&
                 (!bitmexContractType.isEth()
-                ||
-                (bitmexContractType.isEth() && cm != null));
+                        ||
+                        (bitmexContractType.isEth() && cm != null));
     }
 
     @Scheduled(fixedDelay = 2000)
@@ -1182,12 +1183,12 @@ public class BitmexService extends MarketServicePreliq {
                 .subscribe(() -> {
                             logger.warn("onClientDisconnect BitmexService");
                             requestReconnectAsync();
-                },
-                throwable -> {
-                    String msg = "BitmexService onDisconnect exception. ";
-                    logger.error(msg + throwable);
-                    requestReconnectAsync();
-                });
+                        },
+                        throwable -> {
+                            String msg = "BitmexService onDisconnect exception. ";
+                            logger.error(msg + throwable);
+                            requestReconnectAsync();
+                        });
     }
 
     public void reconnect(boolean skipAfterReconnectReset) throws ReconnectFailedException {
@@ -1818,7 +1819,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                            SignalType signalType) {
+            SignalType signalType) {
         throw new IllegalArgumentException("Use placeOrderToOpenOrders instead");
     }
 
@@ -2078,7 +2079,11 @@ public class BitmexService extends MarketServicePreliq {
                                 && resultOrder.getTimestamp() != null
                                 && plBeforeBtm.getSignalTime() != null
                                 && signalType == SignalType.AUTOMATIC
-                                && (resultOrder.getStatus() == OrderStatus.FILLED || resultOrder.getStatus() == OrderStatus.PARTIALLY_FILLED)) {
+                                && (
+                                resultOrder.getStatus() == OrderStatus.FILLED
+                                        || resultOrder.getStatus() == OrderStatus.PARTIALLY_FILLED
+                                        || resultOrder.getCumulativeAmount().signum() > 0 // IOC may be CANCELLED with filledAmount>0
+                        )) {
                             final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - startPlacing.toEpochMilli();
                             addExecDuration(d);
                             execDuration = String.valueOf(d);
@@ -2250,7 +2255,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private BigDecimal createFillOrKillPrice(StringBuilder fokExtraLogs, Order.OrderType orderType, OrderBook orderBook, ContractType contractType,
-                                             BtmFokAutoArgs btmFokArgs, PlacingType placingType) {
+            BtmFokAutoArgs btmFokArgs, PlacingType placingType) {
         final String type = placingType == PlacingType.TAKER_FOK ? "FOK" : "IOC";
 
         final Settings s = settingsRepositoryService.getSettings();
@@ -2380,7 +2385,7 @@ public class BitmexService extends MarketServicePreliq {
                 }
                 prevCumulativeAmount = movedLimitOrder.getCumulativeAmount();
 
-                final LimitOrder updatedOrder = (LimitOrder)updated.getOrder();
+                final LimitOrder updatedOrder = (LimitOrder) updated.getOrder();
 
                 String diffWithSignal = setQuotesForArbLogs(updated.getTradeId(), bestMakerPrice, showDiff);
 
@@ -2457,7 +2462,8 @@ public class BitmexService extends MarketServicePreliq {
         } catch (Exception e) {
 
             final String message = e.getMessage();
-            final String logString = String.format("#%s/%s MovingError id=%s: %s", counterWithPortion, movingErrorsOverloaded.get(), limitOrder.getId(), message);
+            final String logString = String
+                    .format("#%s/%s MovingError id=%s: %s", counterWithPortion, movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);
             tradeLogger.error(logString, contractTypeStr);
             warningLogger.error(logString);
@@ -2946,8 +2952,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     /**
-     * Workaround! <br>
-     * Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
+     * Workaround! <br> Bitmex sends wrong avgPrice. Fetch detailed history for each order and calc avgPrice.
      *
      * @param dealPrices the object to be updated.
      */
@@ -3118,6 +3123,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private class HttpStatusIOExceptionHandler {
+
         private MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "default");
 
         private HttpStatusIOException e;
