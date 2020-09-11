@@ -2070,17 +2070,18 @@ public class BitmexService extends MarketServicePreliq {
                                         getArbType().s());
                                 nextMarketState = MarketState.READY;
                             }
-                            if (attemptCount == 1
-                                    && resultOrder.getTimestamp() != null
-                                    && plBeforeBtm.getSignalTime() != null
-                                    && signalType == SignalType.AUTOMATIC
-                                    && (resultOrder.getStatus() == OrderStatus.FILLED || resultOrder.getStatus() == OrderStatus.PARTIALLY_FILLED)) {
-                                final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - startPlacing.toEpochMilli();
-                                addExecDuration(d);
-                                execDuration = String.valueOf(d);
-                            }
                         } else {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol, placeOrderArgs.isPreliqOrder());
+                        }
+
+                        if (attemptCount == 1
+                                && resultOrder.getTimestamp() != null
+                                && plBeforeBtm.getSignalTime() != null
+                                && signalType == SignalType.AUTOMATIC
+                                && (resultOrder.getStatus() == OrderStatus.FILLED || resultOrder.getStatus() == OrderStatus.PARTIALLY_FILLED)) {
+                            final long d = resultOrder.getTimestamp().toInstant().toEpochMilli() - startPlacing.toEpochMilli();
+                            addExecDuration(d);
+                            execDuration = String.valueOf(d);
                         }
                         final Instant endReq = Instant.now();
                         plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
