@@ -66,7 +66,10 @@ public class SettingsPremService {
         if (v.getPrem() == null
                 || v.getPrem().getBcdPrem() == null
                 || v.getPrem().getLeftAddBorderPrem() == null
-                || v.getPrem().getRightAddBorderPrem() == null) {
+                || v.getPrem().getRightAddBorderPrem() == null
+                || arbitrageService == null
+                || arbitrageService.getLeftMarketService() == null
+        ) {
             return;
         }
         final boolean haveBcdPrem = v.getActiveFields().contains(Field.BCD_prem);
