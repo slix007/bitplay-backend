@@ -73,6 +73,12 @@ remotes {
         password = bpDemoPassword
         port = bpDemoPort as Integer
     }
+    host5051 {
+        host = bpHost5051
+        user = bpUser5051
+        password = bpPassword5051
+        port = bpPort as Integer
+    }
 }
 
 def remoteInstallDir = '/opt/bitplay/bitmex-okcoin'
@@ -99,6 +105,9 @@ task deployHost661 { doLast { sshRun(remotes.host661, remoteHomeDir, remoteInsta
 task deployTest { doLast { sshRun(remotes.test, remoteHomeDir, remoteInstallDir) } }
 task deployProd { doLast { sshRun(remotes.prod, remoteHomeDir, remoteInstallDir) } }
 task deployDemo { doLast { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir) } }
+
+// Real server
+task deployHost5051 { doLast { sshRun(remotes.host5051, '/home/ss', remoteInstallDir) } }
 
 private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
     ssh.run {

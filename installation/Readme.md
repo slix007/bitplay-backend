@@ -11,18 +11,24 @@
     * mkdir /var/www/bitplay-gui && chown $USER:users /var/www/bitplay-gui
     * gradle deployXXX -i
     * Check webserver
-* Install java 8
+* Install java 8 
+**(alternative: https://docs.datastax.com/en/jdk-install/doc/jdk-install/installOracleJdkDeb.html)**
     * sudo add-apt-repository ppa:webupd8team/java
     * sudo apt update && sudo apt install oracle-java8-installer
     * sudo apt install oracle-java8-set-default
-* Install mongodb db version v3.2.17
-    * sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
-    * echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
-    * sudo apt-get update
-    * sudo apt-get install -y mongodb-org
+* Install mongodb db
+    * use official documentation
     * change default port in /etc/mongod.conf to 26459
     * sudo systemctl start mongod
     * sudo systemctl status mongod
+    * check version
+        ```bash
+        mongo --port 26459 --eval "db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )"
+        ```    
+    * Enable Replica Set - see #update-mongodb.md
+    * copy backup from working system - see /mongobackups/*
+    
+    
 * Create folder for backend. sudo mkdir -p /opt/bitplay/bitmex-okcoin
 * Create service. cp {git:backend}/installation/bitplay2.service /etc/systemd/system/
 * do gradle deploy -i
