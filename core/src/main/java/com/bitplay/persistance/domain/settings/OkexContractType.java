@@ -114,10 +114,22 @@ public enum OkexContractType implements ContractType {
         );
     }
 
+
+    @Override
+    public boolean isBtc() {
+        return this.name().startsWith("BTC");
+    }
+
     @Override
     public boolean isEth() {
         return this.name().startsWith("ETH");
     }
+
+    @Override
+    public boolean isQuanto() {
+        return isEth();
+    }
+
 
     @Override
     public String getMarketName() {

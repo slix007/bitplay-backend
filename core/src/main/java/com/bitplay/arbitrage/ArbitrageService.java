@@ -173,7 +173,6 @@ public class ArbitrageService {
     @Autowired
     private Config config;
 
-
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
 //    private MeterRegistry meterRegistry;
 
@@ -297,7 +296,6 @@ public class ArbitrageService {
 
             final OrderBook secondOrderBook = e.getOkOrderBook() != null ? e.getOkOrderBook() : rightMarketService.getOrderBook();
 
-
             final BestQuotes bestQuotes = calcBestQuotesAndDeltas(firstOrderBook, secondOrderBook);
 
             final Boolean preSignalObReFetch = persistenceService.getSettingsRepositoryService().getSettings().getPreSignalObReFetch();
@@ -370,7 +368,7 @@ public class ArbitrageService {
         boolean conBoTryDeferredOrder = false;
 
         synchronized (arbStateLock) { // do not set arbInProgress=false until the whole block is done!
-                // The other option is "doing stateSnapshot before doing set arbInProgress=false"
+            // The other option is "doing stateSnapshot before doing set arbInProgress=false"
 
             if (fplayTrade == null) {
                 log.info(String.format("onArbDone(%s, %s) finished fplayTrade == null", doneTradeId, marketName));
@@ -627,7 +625,7 @@ public class ArbitrageService {
     }
 
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
-                              PlBefore plBeforeBtm) {
+            PlBefore plBeforeBtm) {
 
         if (leftMarketService.isMarketStopped() || rightMarketService.isMarketStopped()
                 || dqlStateService.getCommonDqlState().isActiveClose()
@@ -725,7 +723,7 @@ public class ArbitrageService {
     }
 
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
-                                    PlBefore plBeforeBtm) {
+            PlBefore plBeforeBtm) {
 
         final Pos leftPos = leftMarketService.getPos();
         final Pos rightPos = rightMarketService.getPos();
@@ -744,7 +742,8 @@ public class ArbitrageService {
 
         } else if (borderParams != null && borderParams.getActiveVersion() == Ver.V2) {
 
-            if (bordersV2(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, leftPos, oPL, oPS, borderParams, btmMaxDelta, okMaxDelta, plBeforeBtm)) {
+            if (bordersV2(bestQuotes, bitmexOrderBook, okCoinOrderBook, prevTradingSignal, leftPos, oPL, oPS, borderParams, btmMaxDelta, okMaxDelta,
+                    plBeforeBtm)) {
                 return;
             }
         } else {
@@ -755,8 +754,8 @@ public class ArbitrageService {
     }
 
     private boolean bordersV2(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, Pos leftPos,
-                              BigDecimal oPL, BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
-                              PlBefore plBeforeBtm) {
+            BigDecimal oPL, BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
+            PlBefore plBeforeBtm) {
         BigDecimal defaultMax;
         boolean withWarningLogs =
                 leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
@@ -861,8 +860,8 @@ public class ArbitrageService {
     }
 
     private boolean bordersV1(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, BigDecimal oPL,
-                              BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
-                              PlBefore plBeforeBtm) {
+            BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
+            PlBefore plBeforeBtm) {
         BigDecimal border1 = getBorder1();
         BigDecimal border2 = getBorder2();
 
@@ -1059,7 +1058,7 @@ public class ArbitrageService {
                 obts.leftGetObDelayMs, obts.leftObTimestamp, obts.leftObTimestampInitial,
                 obts.rightGetObDelayMs, obts.rightObTimestamp, obts.rightObTimestampInitial,
                 st.getL_Acceptable_Get_OB_Delay_ms(), st.getR_Acceptable_Get_OB_Delay_ms()
-                ));
+        ));
     }
 
     private void resetObTsCounters() {
@@ -1351,10 +1350,10 @@ public class ArbitrageService {
     }
 
     private DealPrices setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
-                                             BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input,
-                                             DeltaName deltaName, String counterName,
-                                             TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2,
-                                             BtmFokAutoArgs btmFokAutoArgs, FplayTrade fplayTrade) {
+            BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input,
+            DeltaName deltaName, String counterName,
+            TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2,
+            BtmFokAutoArgs btmFokAutoArgs, FplayTrade fplayTrade) {
         final Long tradeId = fplayTrade.getId();
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
@@ -1447,9 +1446,9 @@ public class ArbitrageService {
     }
 
     private void checkAndStartTradingOnDelta2(OrderBook leftOb, OrderBook rightOb, BorderParams borderParams,
-                                              final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
-                                              final TradingSignal tradingSignal, String dynamicDeltaLogs,
-                                              final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
+            final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
+            final TradingSignal tradingSignal, String dynamicDeltaLogs,
+            final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -1859,7 +1858,8 @@ public class ArbitrageService {
         BigDecimal s_e_imp_usd = s_e_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         BigDecimal s_e_avg_imp_btc = s_e_avg_btc.add(hedge_imp_pl_btc);
-        BigDecimal s_e_avg_imp_usd = s_e_avg_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);;
+        BigDecimal s_e_avg_imp_usd = s_e_avg_imp_btc.multiply(usd_qu).setScale(2, BigDecimal.ROUND_HALF_UP);
+        ;
 
         return String.format("Implied: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
                         + " s_e_imp%s_%s, s_e_best_imp%s_%s, s_e_avg_imp%s_%s, "
@@ -1937,9 +1937,9 @@ public class ArbitrageService {
                 BigDecimal oU = secondAccount.getUpl();
                 BigDecimal oA = secondAccount.getAvailable();
 
-                boolean isEth = rightMarketService.getEthBtcTicker() != null && leftMarketService.getContractType().isEth();
+                boolean isQuanto = rightMarketService.getEthBtcTicker() != null && leftMarketService.getContractType().isQuanto();
                 BigDecimal oEbestWithColdStorageEth = oEbest;
-                if (isEth) {
+                if (isQuanto) {
                     final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
                     oW = oW.add(coldStorageEth);
                     oElast = oElast.add(coldStorageEth);
@@ -2024,7 +2024,7 @@ public class ArbitrageService {
 
                 sumEBestUsdCurr = sumEBest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                final BigDecimal btmQu = isEth
+                final BigDecimal btmQu = isQuanto
                         ? Utils.calcQuAvg(leftMarketService.getOrderBookXBTUSD())
                         : Utils.calcQuAvg(leftMarketService.getOrderBook());
                 sumEBestUsd = sumEBest.multiply(btmQu).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -2111,7 +2111,7 @@ public class ArbitrageService {
         if (marketService == null || !marketService.isStarted()) {
             usdQuote = BigDecimal.ZERO;
         } else {
-            if (marketService.getContractType().isEth()) {
+            if (marketService.getContractType().isQuanto()) {
                 usdQuote = marketService.getBtcContractIndex() != null && marketService.getBtcContractIndex().getIndexPrice() != null
                         ? marketService.getBtcContractIndex().getIndexPrice()
                         : BigDecimal.ZERO;
@@ -2136,20 +2136,20 @@ public class ArbitrageService {
         final BigDecimal adj = settings.getPosAdjustment().getPosAdjustmentMin();
         final BigDecimal adjMax = settings.getPosAdjustment().getPosAdjustmentMax();
 
-        MarketService bitmexService = getLeftMarketService();
-        MarketService okcoinService = getRightMarketService();
+        MarketService leftService = getLeftMarketService();
+        MarketService rightService = getRightMarketService();
 
-        boolean isEth = bitmexService.getContractType().isEth();
+        boolean isQuanto = leftService.getContractType().isQuanto();
 
-        final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
-        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isEth, bitmexService.getPosVal(), leftMarketService.isBtm());
-        final BigDecimal rightUsd = PosDiffService.getRightUsd(isEth, okcoinService.getPosVal());
+        final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
+        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, leftService.getPosVal(), leftMarketService.isBtm());
+        final BigDecimal rightUsd = PosDiffService.getRightUsd(isQuanto, rightService.getPosVal());
         final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
 
         final String setName = settings.getContractMode().getMainSetName();
         final BigDecimal mdc = getParams().getMaxDiffCorr();
 
-        if (isEth) {
+        if (isQuanto) {
             return String.format("%s, nt_usd = -(L(%s) + R(%s) - h(%s)) = %s, mdc=%s, cm=%s, adjMin=%s, adjMax=%s. ",
                     setName,
                     Utils.withSign(leftUsd),
@@ -2173,7 +2173,7 @@ public class ArbitrageService {
     public String getExtraSetStr() {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         final MarketService left = getLeftMarketService();
-        if (left.getContractType().isEth() && left.isBtm()) {
+        if (left.getContractType().isQuanto() && left.isBtm()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal b_pos_usd = left.getHbPosUsd();
             final BigDecimal hb_usd = hedgeService.getHedgeBtc();
@@ -2210,7 +2210,7 @@ public class ArbitrageService {
         // M10, set_bu11, nt_usd = - (b(-1200) + o(+900) - h(-300)) = 0;
         // M10, set_bu11, cont: b_pos(-1200); o_pos(+900, -0).
         final MarketServicePreliq left = getLeftMarketService();
-        if (left.getContractType().isEth() && left.isBtm()) {
+        if (left.getContractType().isQuanto() && left.isBtm()) {
             final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
             final BigDecimal bP = left.getHbPosUsd();
             return String.format("%s, %s, cont: L(%s) R(+0, -0). ",

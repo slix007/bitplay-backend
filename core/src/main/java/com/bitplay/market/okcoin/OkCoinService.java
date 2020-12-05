@@ -1612,7 +1612,8 @@ public class OkCoinService extends MarketServicePreliq {
                         || message.contains("Gateway Time-out")
                         || message.contains("Bad Gateway") // 502 / Bad Gateway
                         || message.contains("32019") // futures: Order price cannot be more than 103% or less than 97%
-                        || message.contains("35014") // swap: {"error_message":"Order price is not within limit","result":"FALSE","error_code":"35014","order_id":"-1"}
+                        || message
+                        .contains("35014") // swap: {"error_message":"Order price is not within limit","result":"FALSE","error_code":"35014","order_id":"-1"}
 
                     // Code: 20018, translation: Order price differ more than 5% from the price in the last minute
                 ) { // ExchangeException
@@ -1661,13 +1662,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-                                            SignalType signalType) {
+            SignalType signalType) {
         throw new IllegalArgumentException("Use placeOrder instead");
     }
 
     private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradableAmount, BestQuotes bestQuotes,
-                                             boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
-                                             boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
+            boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
+            boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
             throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
 
@@ -1856,7 +1857,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private LimitOrder checkOrderStatus(String counterNameWithPortion, int attemptCount, OrderType orderType,
-                                        BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt, boolean postOnly) throws IOException {
+            BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt, boolean postOnly) throws IOException {
 
         final Collection<Order> order = getApiOrders(new String[]{orderId});
         final String preStr = String.format("#%s/%s checkAfterPlacing(check=%s) id=%s: ", counterNameWithPortion, attemptCount, checkAttempt, orderId);
@@ -1869,9 +1870,10 @@ public class OkCoinService extends MarketServicePreliq {
             log.info(msg);
             if (postOnly && (theOrderStatus == OrderStatus.NEW || theOrderStatus == OrderStatus.PENDING_NEW)) {
                 final String warn = String.format("%s postOnly with status %s.", preStr, theOrderStatus);
-                if (needRepeatCheckOrderStatus(checkAttempt, warn))
+                if (needRepeatCheckOrderStatus(checkAttempt, warn)) {
                     return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
                             checkAttempt + 1, postOnly);
+                }
             }
             return (LimitOrder) theOrder;
         }
@@ -2016,7 +2018,8 @@ public class OkCoinService extends MarketServicePreliq {
 
             // 3. Already closed?
             final boolean alreadyFilled = cancelledLimitOrder.getStatus() == OrderStatus.FILLED;
-            final boolean cancelFailed = !cancelOrderRes.getCancelSucceed(); // WORKAROUND: CANCELLED, but was cancelled/placedNew on a previous moving-iteration
+            final boolean cancelFailed = !cancelOrderRes
+                    .getCancelSucceed(); // WORKAROUND: CANCELLED, but was cancelled/placedNew on a previous moving-iteration
             // workaround. PlacingType == null often occurs with old orders. If res was never answered true then skip it.
             final boolean oldOrder = cancelOrderRes.res != null && !cancelOrderRes.res && cancelledFplayOrd.getPlacingType() == null;
             if (cancelFailed || alreadyFilled || oldOrder) {
@@ -2639,6 +2642,13 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public ContractType getContractType() {
         return okexContractType;
+    }
+
+    @Override
+    public BigDecimal getSCV() {
+        // USD - static 10
+        // USDT - dynamic 'to be done'
+        return okexContractType.isBtc() ? BigDecimal.valueOf(100) : BigDecimal.valueOf(10);
     }
 
     @Override

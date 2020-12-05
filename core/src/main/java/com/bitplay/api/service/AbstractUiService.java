@@ -211,7 +211,7 @@ public abstract class AbstractUiService<T extends MarketService> {
 
         final LimitsJson limitsJson = arbitrageService.getLeftMarketService().getLimitsService().getLimitsJson();
 
-        final String bxbtBal = bitmexService.getContractType().isEth()
+        final String bxbtBal = bitmexService.getContractType().isQuanto()
                 ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
                 : "";
 

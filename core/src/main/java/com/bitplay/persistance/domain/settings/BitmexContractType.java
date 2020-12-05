@@ -11,17 +11,24 @@ import java.math.BigDecimal;
 @Getter
 public enum BitmexContractType implements ContractType {
 
-    XBTUSD_Perpetual(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1),
-    XBTUSD_Quarter(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1),
-    XBTUSD_BiQuarter(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1),
-    ETHUSD_Perpetual(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2),
-    ETHUSD_Quarter(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2),
+    // primary tools
+    XBTUSD_Perpetual(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1, null),
+    XBTUSD_Quarter(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1, null),
+    XBTUSD_BiQuarter(BitmexContractTypeFirst.XBT.name(), BigDecimal.valueOf(0.5), 1, null),
+    // secondary tools
+    ETHUSD_Perpetual(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2, BigDecimal.valueOf(0.000001)),
+    ETHUSD_Quarter(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2, BigDecimal.valueOf(0.000001)),
+    LINKUSDT_Perpetual(BitmexContractTypeFirst.LINK.name(), BigDecimal.valueOf(0.0005), 4, BigDecimal.valueOf(0.0001)),
+    XRPUSD_Perpetual(BitmexContractTypeFirst.XRP.name(), BigDecimal.valueOf(0.0001), 4, BigDecimal.valueOf(0.0002)),
+    LTCUSD_Perpetual(BitmexContractTypeFirst.LTC.name(), BigDecimal.valueOf(0.01), 2, BigDecimal.valueOf(0.000002)),
+    BCHUSD_Perpetual(BitmexContractTypeFirst.BCH.name(), BigDecimal.valueOf(0.05), 2, BigDecimal.valueOf(0.000001)),
     ;
 
     //    private CurrencyPair currencyPair;
     private String firstCurrency; // XBT, ETH
     private BigDecimal tickSize;
     private Integer scale;
+    private BigDecimal bm; // bitcoin multiplier
 
     public static BitmexContractType parse(CurrencyPair orderCurrencyPair, BitmexCtList bitmexContractTypes) {
         BitmexContractType resultType = null;
@@ -53,14 +60,40 @@ public enum BitmexContractType implements ContractType {
     }
 
     public String getSymbol() {
-        if (this == XBTUSD_Perpetual) {
-            return "XBTUSD";
+        switch (this) {
+            case XBTUSD_Perpetual:
+                return "XBTUSD";
+            case ETHUSD_Perpetual:
+                return "ETHUSD";
+            case LINKUSDT_Perpetual:
+                return "LINKUSDT";
+            case XRPUSD_Perpetual:
+                return "XRPUSD";
+            case LTCUSD_Perpetual:
+                return "LTCUSD";
+            case BCHUSD_Perpetual:
+                return "BCHUSD";
         }
         return this.name();
     }
 
+
+    @Override
+    public boolean isBtc() {
+        return this.name().startsWith("XBT");
+    }
+
+    @Override
     public boolean isEth() {
-        return this.name().startsWith("ETH");
+        return isQuanto();
+    }
+
+    public boolean isQuanto() {
+        return this.name().startsWith("ETH")
+                || this == LINKUSDT_Perpetual
+                || this == XRPUSD_Perpetual
+                || this == LTCUSD_Perpetual
+                || this == BCHUSD_Perpetual;
     }
 
     @Override
@@ -75,5 +108,27 @@ public enum BitmexContractType implements ContractType {
 
     public String getFirstCurrency() {
         return firstCurrency;
+    }
+
+    public BigDecimal defaultLeverage() {
+        if (isEth()) {
+            return BigDecimal.valueOf(50);
+        }
+        switch (this) {
+            case XBTUSD_Perpetual:
+                return BigDecimal.valueOf(100);
+            case LINKUSDT_Perpetual:
+            case XRPUSD_Perpetual:
+                return BigDecimal.valueOf(50);
+            case LTCUSD_Perpetual:
+                return BigDecimal.valueOf(33.33);
+            case BCHUSD_Perpetual:
+                return BigDecimal.valueOf(25);
+        }
+        return BigDecimal.valueOf(100);
+    }
+
+    public BigDecimal getBm() {
+        return bm;
     }
 }

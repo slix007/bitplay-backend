@@ -137,7 +137,13 @@ public class SettingsRepositoryService {
         switch (btmType) {
             case XBTUSD_Perpetual:
             case ETHUSD_Perpetual:
+            case XRPUSD_Perpetual:
+            case LTCUSD_Perpetual:
+            case BCHUSD_Perpetual:
                 secondCurrency = "USD";
+                break;
+            case LINKUSDT_Perpetual:
+                secondCurrency = "USDT";
                 break;
             case XBTUSD_Quarter:
                 secondCurrency = types.getBtcUsdQuoter().substring(3);

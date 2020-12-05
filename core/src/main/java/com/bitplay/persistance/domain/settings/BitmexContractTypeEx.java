@@ -19,8 +19,19 @@ public class BitmexContractTypeEx implements ContractType {
         return currencyPair.base.getCurrencyCode() + currencyPair.counter.getCurrencyCode();
     }
 
+    @Override
+    public boolean isBtc() {
+        return bitmexContractType.isBtc();
+    }
+
+    @Override
     public boolean isEth() {
         return bitmexContractType.isEth();
+    }
+
+    @Override
+    public boolean isQuanto() {
+        return bitmexContractType.isQuanto();
     }
 
     @Override

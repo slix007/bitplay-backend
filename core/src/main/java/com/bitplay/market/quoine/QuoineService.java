@@ -93,6 +93,11 @@ public class QuoineService extends MarketService {
     }
 
     @Override
+    public BigDecimal getSCV() {
+        return null;
+    }
+
+    @Override
     protected void iterateOpenOrdersMoveAsync(Object... iterateArgs) {
 
     }

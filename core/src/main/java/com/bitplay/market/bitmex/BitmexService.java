@@ -317,9 +317,9 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public boolean isStarted() {
         return bitmexContractType != null &&
-                (!bitmexContractType.isEth()
+                (!bitmexContractType.isQuanto()
                         ||
-                        (bitmexContractType.isEth() && cm != null));
+                        (bitmexContractType.isQuanto() && cm != null));
     }
 
     @Scheduled(fixedDelay = 2000)
@@ -723,7 +723,7 @@ public class BitmexService extends MarketServicePreliq {
                 pUpdate = Pos.emptyPos();
             }
 
-            BigDecimal defaultLeverage = bitmexContractType.isEth() ? BigDecimal.valueOf(50) : BigDecimal.valueOf(100);
+            BigDecimal defaultLeverage = bitmexContractType.defaultLeverage();
             final Pos updated = new Pos(
                     pUpdate.getPositionLong(),
                     pUpdate.getPositionShort(),
@@ -784,6 +784,16 @@ public class BitmexService extends MarketServicePreliq {
     @Override
     public ContractType getContractType() {
         return bitmexContractType;
+    }
+
+    @Override
+    public BigDecimal getSCV() {
+        BigDecimal okexSCV = arbitrageService.getRightMarketService().getSCV();
+        if (cm == null || okexSCV == null) {
+            return null;
+        }
+        // Bitmex_SCV = Okex_SCV / CM
+        return okexSCV.divide(cm, 2, RoundingMode.HALF_UP);
     }
 
     public BitmexObType getBitmexObTypeCurrent() {
@@ -937,7 +947,7 @@ public class BitmexService extends MarketServicePreliq {
                         final LimitOrder lo = ord.getLimitOrder();
                         final BigDecimal amountLeft = lo.getTradableAmount().subtract(lo.getCumulativeAmount());
 
-                        final BigDecimal okexAm = PlacingBlocks.getOkexBlockByBitmexBlock(amountLeft, ord.isEth(), cm);
+                        final BigDecimal okexAm = PlacingBlocks.getOkexBlockByBitmexBlock(amountLeft, ord.isEth(), getCm());
                         if (okexAm.signum() > 0) {
                             ((OkCoinService) getArbitrageService().getRightMarketService()).updateDeferredAmount(okexAm);
                             setOverloaded(null);
@@ -1883,7 +1893,7 @@ public class BitmexService extends MarketServicePreliq {
         final Order.OrderType orderType = placeOrderArgs.getOrderType();
 //         MANUAL TEST
 //        final BigDecimal amount = BigDecimal.valueOf(10);
-        final BigDecimal amount = BitmexUtils.amountInContracts(placeOrderArgs, cm);
+        final BigDecimal amount = BitmexUtils.amountInContracts(placeOrderArgs, getCm());
         final BestQuotes bestQuotes = placeOrderArgs.getBestQuotes();
         PlacingType placingTypeInitial = placeOrderArgs.getPlacingType();
         final SignalType signalType = placeOrderArgs.getSignalType();
@@ -2644,7 +2654,7 @@ public class BitmexService extends MarketServicePreliq {
     private Disposable startFutureIndexListener() {
         List<String> symbols = new ArrayList<>();
         symbols.add(bitmexContractTypeEx.getSymbol());
-        if (bitmexContractType.isEth()) {
+        if (bitmexContractType.isQuanto()) {
             symbols.add(BitmexContractType.XBTUSD_Perpetual.getSymbol());
         }
 
@@ -2655,7 +2665,8 @@ public class BitmexService extends MarketServicePreliq {
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
                 .subscribe(contIndUpdate -> {
                     try {
-                        if (bitmexContractType.isEth() && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD_Perpetual.getSymbol())) {
+                        if (bitmexContractType.isQuanto()
+                                && contIndUpdate.getSymbol().equals(BitmexContractType.XBTUSD_Perpetual.getSymbol())) {
 
                             boolean success = false;
                             while (!success) {
@@ -2677,7 +2688,7 @@ public class BitmexService extends MarketServicePreliq {
                                     ((BitmexContractIndex) this.contractIndex.get()).getLastPrice()).timestamp(new Date()).build();
                             lastPriceDeviationService.updateAndCheckDeviationAsync();
 
-                            if (cm != null) {
+                            if (bitmexContractType.isQuanto()) {
                                 calcCM();
                             }
                         }
@@ -2695,9 +2706,34 @@ public class BitmexService extends MarketServicePreliq {
     private void calcCM() {
         if (this.contractIndex.get() instanceof BitmexContractIndex && this.btcContractIndex.get() instanceof BitmexContractIndex) {
             final BigDecimal bxbtIndex = btcContractIndex.get().getIndexPrice();
-            final BigDecimal ethUsdMark = ((BitmexContractIndex) this.contractIndex.get()).getMarkPrice();
-            // CM = round(10000000 / (ETHUSD_mark BXBT);2);
-            this.cm = BigDecimal.valueOf(10 * 1000 * 1000).divide(bxbtIndex.multiply(ethUsdMark), 2, RoundingMode.HALF_UP);
+            BitmexContractIndex bci = (BitmexContractIndex) this.contractIndex.get();
+            final BigDecimal ethUsdMark = bci.getMarkPrice();
+
+            // OLD: ETH: CM = round(10000000 / (ETHUSD_mark BXBT);2);
+            BigDecimal bm = bitmexContractType.getBm();
+            if (bm == null) { // all XBT
+                this.cm = null;
+            }
+
+            // NEW:
+            // ETH / LTC / LINK / XRP / BCH
+            // CM = round((Okex_SCV / BM) / (ETHUSD_mark * BXBT);2),
+            // CM = round((Okex_SCV / BM) / (LTCUSD_mark * BXBT);2),
+            // CM = round((Okex_SCV / BM) / (LINKUSDT_mark * BXBT);2),
+            // CM = round((Okex_SCV / BM) / (XRPUSD_mark * BXBT);2),
+            // CM = round((Okex_SCV / BM) / (BCHUSD_mark * BXBT);2),
+            //BigDecimal firstArg = (Okex_SCV / BM)
+
+//            Bitmex_SCV = Okex_SCV / CM,
+//                    где Okex_SCV - Okex single contract value - номинальная стоимость одного контракта Okex в usd.
+
+            MarketServicePreliq right = arbitrageService.getRightMarketService();
+            if (right == null || right.getSCV() == null) {
+                return;
+            }
+            BigDecimal okexSCV = right.getSCV();
+            this.cm = okexSCV.divide(bm, 8, RoundingMode.HALF_UP)
+                    .divide(bxbtIndex.multiply(ethUsdMark), 2, RoundingMode.HALF_UP);
         }
     }
 

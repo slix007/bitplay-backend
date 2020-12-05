@@ -432,7 +432,7 @@ public class AfterArbTask implements Runnable {
             warningLogger.warn(msg);
         }
 
-        cumService.getCumPersistenceService().addDiffFactBr(dealPrices.getTradingMode(), diffFactBr.getVal(), left.getContractType().isEth());
+        cumService.getCumPersistenceService().addDiffFactBr(dealPrices.getTradingMode(), diffFactBr.getVal(), left.getContractType().getScale() + 1);
 
         // ast_diff_fact = ast_delta_fact - ast_delta
         BigDecimal ast_diff_fact = ast_delta_fact.subtract(ast_delta);

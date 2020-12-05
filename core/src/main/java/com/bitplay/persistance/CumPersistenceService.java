@@ -168,8 +168,7 @@ public class CumPersistenceService {
         mongoTemplate.updateMulti(cumParamsQuery(tradingMode), new Update().inc("diffFactBrFailsCount", 1), CumParams.class);
     }
 
-    public void addDiffFactBr(TradingMode tradingMode, BigDecimal diffFactBr, boolean isEth) {
-        int scale = isEth ? 3 : 2;
+    public void addDiffFactBr(TradingMode tradingMode, BigDecimal diffFactBr, int scale) {
         final BigDecimal scaled = diffFactBr.setScale(scale, BigDecimal.ROUND_HALF_UP);
         mongoTemplate.updateMulti(cumParamsQuery(tradingMode), new Update().inc("cumDiffFactBr", scaled), CumParams.class);
     }

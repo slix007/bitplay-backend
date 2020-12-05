@@ -497,9 +497,9 @@ public abstract class MarketService extends MarketServiceWithState {
 
             MarketState marketStateToSet;
 //            synchronized (openOrdersLock) {
-                marketStateToSet = (hasOpenOrders() || placeOrderArgs != null) // moving or placing attempt
-                        ? MarketState.ARBITRAGE
-                        : MarketState.READY;
+            marketStateToSet = (hasOpenOrders() || placeOrderArgs != null) // moving or placing attempt
+                    ? MarketState.ARBITRAGE
+                    : MarketState.READY;
 //            }
 
             final String counterForLogs = getCounterName();
@@ -844,6 +844,7 @@ public abstract class MarketService extends MarketServiceWithState {
     private PublishProcessor<Integer> freeOoChecker = PublishProcessor.create();
     //    private Disposable periodicChecker = freeOoCheckerScheduler.schedulePeriodicallyDirect(this::addCheckOoToFree, 10, 2, TimeUnit.SECONDS);
     private Disposable freeOoCheckerDisposable;
+
     private void initFreeOoCheckerDisposable() {
         freeOoCheckerDisposable = Flowable.fromPublisher(freeOoChecker)
                 .observeOn(freeOoCheckerScheduler)
@@ -1018,6 +1019,11 @@ public abstract class MarketService extends MarketServiceWithState {
     abstract protected boolean onReadyState();
 
     abstract public ContractType getContractType();
+
+    /**
+     * Single Contract Value
+     */
+    abstract public BigDecimal getSCV();
 
     public CurrencyPair getCurrencyPair() {
         return getPersistenceService().getSettingsRepositoryService().getCurrencyPair(getContractType());
@@ -1503,7 +1509,6 @@ public abstract class MarketService extends MarketServiceWithState {
             return;
         }
         avgPrice.getPItems().clear(); // TODO replace one by one.
-
 
         int MAX_ATTEMPTS = 5;
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {

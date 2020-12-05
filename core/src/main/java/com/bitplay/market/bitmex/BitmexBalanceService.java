@@ -5,9 +5,11 @@ import com.bitplay.market.BalanceService;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
 import lombok.AllArgsConstructor;
+import org.glassfish.jersey.spi.Contract;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 
 import java.math.BigDecimal;
@@ -18,10 +20,6 @@ import java.math.RoundingMode;
  */
 public class BitmexBalanceService implements BalanceService {
 
-    private final BigDecimal ETH_MULTIPLIER = BigDecimal.valueOf(0.000001);
-
-    //    private volatile Instant prevTime = Instant.now();
-//    private volatile FullBalance fullBalance;
     @AllArgsConstructor
     private static class Upl {
 
@@ -45,7 +43,7 @@ public class BitmexBalanceService implements BalanceService {
         if (account.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal wallet = account.getWallet();
 
-            Upl upl = calcUpl(contractType.isEth(), pObj, orderBook);
+            Upl upl = calcUpl(contractType.isQuanto(), pObj, orderBook, contractType);
             BigDecimal uplBest = upl.uplBest;
             BigDecimal uplAvg = upl.uplAvg;
             tempValues += upl.tempValues;
@@ -54,11 +52,11 @@ public class BitmexBalanceService implements BalanceService {
             BigDecimal uplAvgXBTUSD = BigDecimal.ZERO;
 
 //            if (contractType.isEth()) {
-                tempValues += "<br>";
+            tempValues += "<br>";
 //            }
 
-            if (contractType.isEth() && positionXBTUSD != null && positionXBTUSD.getPositionLong() != null) {
-                Upl uplXBTUSD = calcUpl(false, positionXBTUSD, orderBookXBTUSD);
+            if (contractType.isQuanto() && positionXBTUSD != null && positionXBTUSD.getPositionLong() != null) {
+                Upl uplXBTUSD = calcUpl(false, positionXBTUSD, orderBookXBTUSD, contractType);
                 uplBestXBTUSD = uplXBTUSD.uplBest;
                 uplAvgXBTUSD = uplXBTUSD.uplAvg;
                 tempValues += uplXBTUSD.tempValues;
@@ -85,7 +83,10 @@ public class BitmexBalanceService implements BalanceService {
 
     }
 
-    private Upl calcUpl(boolean eth, Pos pObj, OrderBook orderBook) {
+    private Upl calcUpl(boolean isQuanto, Pos pObj, OrderBook orderBook, ContractType contractType) {
+        BitmexContractType ct = (BitmexContractType) contractType;
+        BigDecimal bm = ct.getBm();
+
         final BigDecimal pos = pObj.getPositionLong();
         String tempValues = "";
         BigDecimal uplBest = BigDecimal.ZERO;
@@ -98,7 +99,7 @@ public class BitmexBalanceService implements BalanceService {
                 int bidAmount = pObj.getPositionLong().intValue();
                 final BigDecimal bidAvgPrice = Utils.getAvgPrice(orderBook, bidAmount, 0);
 
-                if (eth) {
+                if (isQuanto) {
                     //upl_best = (Exit_price - Entry_price) * 0.000001 * cnt, где
                     //Exit_price = bid[1] для long-позиции, ask[1] - для short-позиции;
                     //Entry_price = есть на нашем UI: entry_price long/short (значение берется в соответствии с открытой позицией- long или short);
@@ -107,9 +108,8 @@ public class BitmexBalanceService implements BalanceService {
                     //Exit_price = bidAvgPrice для long-позиции, askAvgPrice - для short-позиции, есть на нашем UI. Остальное то же самое, что в upl_best.
                     //e_best = wallet + upl_best;
                     //e_avg = wallet + upl_avg.
-                    uplBest = (bid1.subtract(entryPrice)).multiply(ETH_MULTIPLIER).multiply(pos);
-                    uplAvg = (bidAvgPrice.subtract(entryPrice)).multiply(ETH_MULTIPLIER).multiply(pos);
-                    tempValues += String.format("ETHUSD:bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
+                    uplBest = (bid1.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    uplAvg = (bidAvgPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
                 } else {
                     // upl_long = pos/entry_price - pos/bid[1]
                     uplBest = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
@@ -122,8 +122,8 @@ public class BitmexBalanceService implements BalanceService {
                             .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
 
-                    tempValues += String.format("XBTUSD:bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
                 }
+                tempValues += String.format("%s:bid1=%s,bidAvgPrice=%s", ct.getFirstCurrency(), bid1, bidAvgPrice);
 
             }
         } else if (pos.signum() < 0) {
@@ -133,22 +133,22 @@ public class BitmexBalanceService implements BalanceService {
                 int askAmount = pObj.getPositionLong().abs().intValue();
                 final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
 
-                if (eth) {
-                    uplBest = (ask1.subtract(entryPrice)).multiply(ETH_MULTIPLIER).multiply(pos);
-                    uplAvg = (askAvgPrice.subtract(entryPrice)).multiply(ETH_MULTIPLIER).multiply(pos);
-                    tempValues += String.format("ETHUSD:ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
+                if (isQuanto) {
+                    uplBest = (ask1.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    uplAvg = (askAvgPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
                 } else {
                     // upl_short = pos / ask[1] - pos / entry_price
+                    BigDecimal posDivideEntry = pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP);
                     uplBest = pos.abs().divide(ask1, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .subtract(posDivideEntry)
                             .setScale(8, RoundingMode.HALF_UP);
                     // e_best = ok_bal + upl_long
 
                     uplAvg = pos.abs().divide(askAvgPrice, 16, RoundingMode.HALF_UP)
-                            .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
+                            .subtract(posDivideEntry)
                             .setScale(8, RoundingMode.HALF_UP);
-                    tempValues += String.format("XBTUSD:ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
                 }
+                tempValues += String.format("%s:ask1=%s,askAvgPrice=%s", ct.getFirstCurrency(), ask1, askAvgPrice);
 
             }
         }

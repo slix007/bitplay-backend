@@ -21,13 +21,14 @@ public class PosDiffJson {
     private String extraSetSource;
 
     private PlacingBlocks placingBlocks;
-    private String btmUsdInContract;
+    private String leftSCV; // UsdInContract == single contract value
+    private String rightSCV;
     private Boolean isEth;
     private BigDecimal cm;
 
     public static PosDiffJson notInitialized() {
         return new PosDiffJson(true, "position is not yet initialized", null,
-                false, "position is not yet initialized", null, null, null, null, null);
+                false, "position is not yet initialized", null, null, null, null, null, null);
     }
 //    private String okUsdInContract;
 
