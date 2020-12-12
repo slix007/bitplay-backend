@@ -9,7 +9,6 @@ import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.utils.Utils;
 import lombok.AllArgsConstructor;
-import org.glassfish.jersey.spi.Contract;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 
 import java.math.BigDecimal;
@@ -25,6 +24,7 @@ public class BitmexBalanceService implements BalanceService {
 
         final BigDecimal uplBest;
         final BigDecimal uplAvg;
+        final BigDecimal uplMark;
         final String tempValues;
     }
 
@@ -40,12 +40,14 @@ public class BitmexBalanceService implements BalanceService {
         //set eBest & eAvg for account
         BigDecimal eBest = null;
         BigDecimal eAvg = null;
+        BigDecimal uplMark = null;
         if (account.getWallet() != null && pObj != null && pObj.getPositionLong() != null) {
             final BigDecimal wallet = account.getWallet();
 
-            Upl upl = calcUpl(contractType.isQuanto(), pObj, orderBook, contractType);
+            Upl upl = calcUpl(contractType.isQuanto(), pObj, orderBook, contractType, account.getUpl());
             BigDecimal uplBest = upl.uplBest;
             BigDecimal uplAvg = upl.uplAvg;
+            uplMark = upl.uplMark;
             tempValues += upl.tempValues;
 
             BigDecimal uplBestXBTUSD = BigDecimal.ZERO;
@@ -56,7 +58,7 @@ public class BitmexBalanceService implements BalanceService {
 //            }
 
             if (contractType.isQuanto() && positionXBTUSD != null && positionXBTUSD.getPositionLong() != null) {
-                Upl uplXBTUSD = calcUpl(false, positionXBTUSD, orderBookXBTUSD, contractType);
+                Upl uplXBTUSD = calcUpl(false, positionXBTUSD, orderBookXBTUSD, contractType, account.getUpl());
                 uplBestXBTUSD = uplXBTUSD.uplBest;
                 uplAvgXBTUSD = uplXBTUSD.uplAvg;
                 tempValues += uplXBTUSD.tempValues;
@@ -74,7 +76,7 @@ public class BitmexBalanceService implements BalanceService {
                 eBest,
                 eAvg,
                 margin,
-                account.getUpl(),
+                uplMark,
                 account.getRpl(),
                 account.getRiskRate()
         ),
@@ -83,7 +85,7 @@ public class BitmexBalanceService implements BalanceService {
 
     }
 
-    private Upl calcUpl(boolean isQuanto, Pos pObj, OrderBook orderBook, ContractType contractType) {
+    private Upl calcUpl(boolean isQuanto, Pos pObj, OrderBook orderBook, ContractType contractType, BigDecimal uplFromMarket) {
         BitmexContractType ct = (BitmexContractType) contractType;
         BigDecimal bm = ct.getBm();
 
@@ -91,6 +93,9 @@ public class BitmexBalanceService implements BalanceService {
         String tempValues = "";
         BigDecimal uplBest = BigDecimal.ZERO;
         BigDecimal uplAvg = BigDecimal.ZERO;
+        BigDecimal uplMark = uplFromMarket;
+
+        // (MarkPrice - EntryPrice) * bm * N - for all isQuanto
 
         if (pos.signum() > 0) {
             final BigDecimal entryPrice = pObj.getPriceAvgLong();
@@ -110,6 +115,12 @@ public class BitmexBalanceService implements BalanceService {
                     //e_avg = wallet + upl_avg.
                     uplBest = (bid1.subtract(entryPrice)).multiply(bm).multiply(pos);
                     uplAvg = (bidAvgPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    // u_mark = (MarkPrice - EntryPrice) * bm * N
+                    // N - кол-во контрактов (для short pos c "-")
+                    BigDecimal markPrice = pObj.getMarkValue();
+                    if (markPrice != null && markPrice.signum() != 0) {
+                        uplMark = (markPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    }
                 } else {
                     // upl_long = pos/entry_price - pos/bid[1]
                     uplBest = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
@@ -136,6 +147,12 @@ public class BitmexBalanceService implements BalanceService {
                 if (isQuanto) {
                     uplBest = (ask1.subtract(entryPrice)).multiply(bm).multiply(pos);
                     uplAvg = (askAvgPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    // u_mark = (MarkPrice - EntryPrice) * bm * N
+                    // N - кол-во контрактов (для short pos c "-")
+                    BigDecimal markPrice = pObj.getMarkValue();
+                    if (markPrice != null && markPrice.signum() != 0) {
+                        uplMark = (markPrice.subtract(entryPrice)).multiply(bm).multiply(pos.negate());
+                    }
                 } else {
                     // upl_short = pos / ask[1] - pos / entry_price
                     BigDecimal posDivideEntry = pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP);
@@ -153,7 +170,7 @@ public class BitmexBalanceService implements BalanceService {
             }
         }
 
-        return new Upl(uplBest, uplAvg, tempValues);
+        return new Upl(uplBest, uplAvg, uplMark, tempValues);
     }
 
     @Override
