@@ -35,6 +35,7 @@ import com.bitplay.persistance.domain.fluent.FplayOrderUtils;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.MonObTimestamp;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
@@ -1216,7 +1217,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 }
                 if (limitOrder.getCurrencyPair().base.getCurrencyCode().equals("XBT")) {
                     orderBook = getOrderBookXBTUSD();
-                    contractType = BitmexService.bitmexContractTypeXBTUSD;
+                    contractType = BitmexContractType.XBTUSD_Perpetual;
                 }
             }
 

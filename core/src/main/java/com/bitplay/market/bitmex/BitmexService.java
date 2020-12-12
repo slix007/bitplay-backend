@@ -232,7 +232,6 @@ public class BitmexService extends MarketServicePreliq {
     private Disposable restartTimer;
     private volatile BitmexContractType bitmexContractType;
     private volatile BitmexContractTypeEx bitmexContractTypeEx;
-    public static final BitmexContractType bitmexContractTypeXBTUSD = BitmexContractType.XBTUSD_Perpetual;
     private Map<CurrencyPair, Integer> currencyToScale = new HashMap<>();
 
     private AtomicInteger cancelledInRow = new AtomicInteger();
@@ -340,7 +339,7 @@ public class BitmexService extends MarketServicePreliq {
         if (bitmexContractType.isQuanto()) {
             try {
                 final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
-                final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
+                final Pos pUpdate = accountService.fetchPositionInfo(BitmexContractType.XBTUSD_Perpetual.getSymbol());
                 mergeXBTUSDPos(pUpdate);
 
             } catch (HttpStatusIOException e) {
@@ -447,8 +446,8 @@ public class BitmexService extends MarketServicePreliq {
         bitmexContractTypeEx = new BitmexContractTypeEx(bitmexContractType, currencyPair);
         currencyToScale.put(getCurrencyPair(), bitmexContractType.getScale());
         if (!sameOrderBookXBTUSD()) {
-            final CurrencyPair currencyPairXBTUSD = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
-            currencyToScale.put(currencyPairXBTUSD, bitmexContractTypeXBTUSD.getScale());
+            final CurrencyPair currencyPairXBTUSD = settingsRepositoryService.getCurrencyPair(BitmexContractType.XBTUSD_Perpetual);
+            currencyToScale.put(currencyPairXBTUSD, BitmexContractType.XBTUSD_Perpetual.getScale());
         }
 
         this.usdInContract = 1; // not in use for Bitmex.
@@ -508,7 +507,7 @@ public class BitmexService extends MarketServicePreliq {
                         obXBTUSD.getAsks().size(),
                         obXBTUSD.getBids().size(),
                         obXBTUSD.getTimeStamp());
-                final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
+                final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(BitmexContractType.XBTUSD_Perpetual);
                 tradeLogger.info(msgObXBTUSD, currencyPair.toString());
                 warningLogger.info(msgObXBTUSD);
                 logger.info(msgObXBTUSD);
@@ -526,7 +525,7 @@ public class BitmexService extends MarketServicePreliq {
             List<String> symbols = new ArrayList<>();
             symbols.add(bitmexContractTypeEx.getSymbol());
             if (!sameOrderBookXBTUSD()) {
-                symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+                symbols.add(BitmexContractType.XBTUSD_Perpetual.getSymbol());
             }
 
             Throwable throwable = ((BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService())
@@ -1289,7 +1288,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private boolean sameOrderBookXBTUSD() {
-        return bitmexContractType == bitmexContractTypeXBTUSD;
+        return bitmexContractType == BitmexContractType.XBTUSD_Perpetual;
     }
 
     private boolean orderBookIsFilled() {
@@ -1396,8 +1395,8 @@ public class BitmexService extends MarketServicePreliq {
             final long leftMs = obUpdate.getReceiveTimestamp().toInstant().toEpochMilli() - obUpdate.getTimestamp().toInstant().toEpochMilli();
             addGetObDelay(leftMs);
 
-        } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
-            final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
+        } else if (symbol.equals(BitmexContractType.XBTUSD_Perpetual.getSymbol())) {
+            final CurrencyPair currencyPair = settingsRepositoryService.getCurrencyPair(BitmexContractType.XBTUSD_Perpetual);
             finalOB = BitmexStreamAdapters.adaptBitmexOrderBook(obUpdate, currencyPair);
             this.orderBookXBTUSD = finalOB;
             this.orderBookXBTUSDShort = this.orderBookXBTUSD;
@@ -1424,8 +1423,8 @@ public class BitmexService extends MarketServicePreliq {
             currencyPair = getCurrencyPair();
             fullOB = this.orderBook;
             isDefault = true;
-        } else if (symbol.equals(bitmexContractTypeXBTUSD.getSymbol())) {
-            currencyPair = settingsRepositoryService.getCurrencyPair(bitmexContractTypeXBTUSD);
+        } else if (symbol.equals(BitmexContractType.XBTUSD_Perpetual.getSymbol())) {
+            currencyPair = settingsRepositoryService.getCurrencyPair(BitmexContractType.XBTUSD_Perpetual);
             fullOB = this.orderBookXBTUSD;
         } else {
             // skip the update
@@ -1530,7 +1529,7 @@ public class BitmexService extends MarketServicePreliq {
             List<String> symbols = new ArrayList<>();
             symbols.add(bitmexContractTypeEx.getSymbol());
             if (!sameOrderBookXBTUSD()) {
-                symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+                symbols.add(BitmexContractType.XBTUSD_Perpetual.getSymbol());
             }
             final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
             final Observable<BitmexDepth> allOrderBooks = streamingMarketDataService.getOrderBookTop10(symbols)
@@ -1548,7 +1547,7 @@ public class BitmexService extends MarketServicePreliq {
                     .map(this::mergeOrderBook10);
 
             orderBookObservableExtra = allOrderBooks
-                    .filter(u -> u.getSymbol().equals(bitmexContractTypeXBTUSD.getSymbol()))
+                    .filter(u -> u.getSymbol().equals(BitmexContractType.XBTUSD_Perpetual.getSymbol()))
                     .toFlowable(BackpressureStrategy.LATEST)
                     .observeOn(stateUpdaterObExtra, false, 1)
                     .map(this::mergeOrderBook10);
@@ -1615,7 +1614,7 @@ public class BitmexService extends MarketServicePreliq {
         List<String> symbols = new ArrayList<>();
         symbols.add(bitmexContractTypeEx.getSymbol());
         if (!sameOrderBookXBTUSD()) {
-            symbols.add(bitmexContractTypeXBTUSD.getSymbol());
+            symbols.add(BitmexContractType.XBTUSD_Perpetual.getSymbol());
         }
         final BitmexStreamingMarketDataService streamingMarketDataService = (BitmexStreamingMarketDataService) exchange.getStreamingMarketDataService();
         if (obType == null || obType == BitmexObType.INCREMENTAL_25) {
@@ -1838,7 +1837,7 @@ public class BitmexService extends MarketServicePreliq {
         final Long tradeId = arbitrageService.getLastInProgressTradeId();
         final String counterName = getCounterName(signalType, tradeId);
         final BitmexContractType contractType = (bitmexContractType.isQuanto() && toolName != null && toolName.equals("XBTUSD"))
-                ? bitmexContractTypeXBTUSD
+                ? BitmexContractType.XBTUSD_Perpetual
                 : bitmexContractType;
 
         final PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()

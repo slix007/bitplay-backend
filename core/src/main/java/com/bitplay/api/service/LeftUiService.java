@@ -13,6 +13,7 @@ import com.bitplay.market.bitmex.BitmexTimeService;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.model.Pos;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import lombok.RequiredArgsConstructor;
 import org.knowm.xchange.dto.Order;
@@ -84,7 +85,7 @@ public class LeftUiService extends AbstractUiService<MarketServicePreliq> {
                     .attempt(1)
                     .tradeId(tradeId)
                     .counterName(counterName)
-                    .contractType(BitmexService.bitmexContractTypeXBTUSD)
+                    .contractType(BitmexContractType.XBTUSD_Perpetual)
                     .amountType(tradeRequestJson.getAmountType())
                     .build();
             final TradeResponse tradeResponse = left.placeOrder(placeOrderArgs);

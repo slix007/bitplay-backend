@@ -28,6 +28,7 @@ import com.bitplay.persistance.domain.GuiParams;
 import com.bitplay.persistance.domain.borders.BorderParams.Ver;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
+import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
@@ -1479,7 +1480,7 @@ public class PosDiffService {
     }
 
     private void adaptCorrAdjExtraSetByPos(final CorrObj corrObj, final BigDecimal bPXbtUsd, final BigDecimal dc) {
-        corrObj.contractType = BitmexService.bitmexContractTypeXBTUSD;
+        corrObj.contractType = BitmexContractType.XBTUSD_Perpetual;
         corrObj.marketService = arbitrageService.getLeftMarketService();
         corrObj.correctAmount = dc.abs().setScale(0, RoundingMode.DOWN);
         if (dc.signum() < 0) {

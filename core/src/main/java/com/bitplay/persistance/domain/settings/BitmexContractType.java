@@ -82,7 +82,7 @@ public enum BitmexContractType implements ContractType {
             case BCHUSD_Perpetual:
                 return "BCHUSD";
         }
-        return this.name();
+        return "";
     }
 
 

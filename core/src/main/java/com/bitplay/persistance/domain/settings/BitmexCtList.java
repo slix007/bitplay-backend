@@ -19,12 +19,6 @@ public class BitmexCtList {
 
     public String getSymbolForType(BitmexContractType bitmexContractType) {
         switch (bitmexContractType) {
-            case XBTUSD_Perpetual:
-            case LINKUSDT_Perpetual:
-            case XRPUSD_Perpetual:
-            case LTCUSD_Perpetual:
-            case BCHUSD_Perpetual:
-                return bitmexContractType.getSymbol();
             case XBTUSD_Quarter:
                 return btcUsdQuoter;
             case XBTUSD_BiQuarter:
@@ -32,6 +26,6 @@ public class BitmexCtList {
             case ETHUSD_Quarter:
                 return ethUsdQuoter;
         }
-        return null;
+        return bitmexContractType.getSymbol();
     }
 }

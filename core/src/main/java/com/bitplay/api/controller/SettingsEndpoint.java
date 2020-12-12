@@ -125,12 +125,17 @@ public class SettingsEndpoint {
         settings.setBitmexObTypeCurrent(bitmexObTypeCurrent);
         boolean restartWarnBitmexCt = false;
         if (left.isBtm()) {
-            final BitmexService btm = (BitmexService) left;
-            final BitmexContractTypeEx ex = btm.getBitmexContractTypeEx();
-            final String currSymbol = ex.getSymbol();
-            final BitmexContractType bitmexContractType = ex.getBitmexContractType();
-            final String inDb = settings.getBitmexContractTypes().getSymbolForType(bitmexContractType);
-            restartWarnBitmexCt = !inDb.equals(currSymbol);
+            try {
+                final BitmexService btm = (BitmexService) left;
+                final BitmexContractTypeEx ex = btm.getBitmexContractTypeEx();
+                final String currSymbol = ex.getSymbol();
+                final BitmexContractType bitmexContractType = ex.getBitmexContractType();
+                final String inDb = settings.getBitmexContractTypes().getSymbolForType(bitmexContractType);
+                restartWarnBitmexCt = !inDb.equals(currSymbol);
+            } catch (Exception e) {
+                logger.error("Wrong bitmexContractType ", e);
+                restartWarnBitmexCt = true;
+            }
         }
         settings.setRestartWarnBitmexCt(restartWarnBitmexCt);
 
