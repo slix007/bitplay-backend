@@ -103,7 +103,7 @@ public class PosDiffPortionsService {
         }
         final BigDecimal maxPortionUsd = conBoPortions.getMaxPortionUsdOkex();
         final BigDecimal finalUsdBlock = useMaxBlockUsd(leftFilledUsd, maxPortionUsd);
-        BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isEth());
+        BigDecimal block = PlacingBlocks.toOkexCont(finalUsdBlock, okCoinService.getContractType().isQuanto());
         final BigDecimal argsAmount = currArgs.getAmount();
         block = argsAmount.compareTo(block) > 0 ? block : argsAmount;
         final PlaceOrderArgs placeArgs = currArgs.cloneAsPortion(block);

@@ -50,6 +50,14 @@ public enum BitmexContractType implements ContractType {
                 } else if (both.equals(bitmexContractTypes.getEthUsdQuoter())) {
                     resultType = BitmexContractType.ETHUSD_Quarter;
                 }
+            } else if (first.equals(BitmexContractTypeFirst.LTC.name())) {
+                resultType = BitmexContractType.LTCUSD_Perpetual;
+            } else if (first.equals(BitmexContractTypeFirst.LINK.name())) {
+                resultType = BitmexContractType.LINKUSDT_Perpetual;
+            } else if (first.equals(BitmexContractTypeFirst.XRP.name())) {
+                resultType = BitmexContractType.XRPUSD_Perpetual;
+            } else if (first.equals(BitmexContractTypeFirst.BCH.name())) {
+                resultType = BitmexContractType.BCHUSD_Perpetual;
             }
         }
         return resultType;
@@ -111,14 +119,15 @@ public enum BitmexContractType implements ContractType {
     }
 
     public BigDecimal defaultLeverage() {
-        if (isEth()) {
-            return BigDecimal.valueOf(50);
-        }
         switch (this) {
             case XBTUSD_Perpetual:
+            case XBTUSD_BiQuarter:
+            case XBTUSD_Quarter:
                 return BigDecimal.valueOf(100);
             case LINKUSDT_Perpetual:
             case XRPUSD_Perpetual:
+            case ETHUSD_Perpetual:
+            case ETHUSD_Quarter:
                 return BigDecimal.valueOf(50);
             case LTCUSD_Perpetual:
                 return BigDecimal.valueOf(33.33);

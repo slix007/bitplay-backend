@@ -2143,7 +2143,7 @@ public class ArbitrageService {
 
         final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
         final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, leftService.getPosVal(), leftMarketService.isBtm());
-        final BigDecimal rightUsd = PosDiffService.getRightUsd(isQuanto, rightService.getPosVal());
+        final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, rightService.getPosVal());
         final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
 
         final String setName = settings.getContractMode().getMainSetName();
@@ -2265,12 +2265,17 @@ public class ArbitrageService {
         }
 
         final BigDecimal cm = settings.getPlacingBlocks().getCm();
-        boolean isEth = leftMarketService.getContractType().isEth();
+        boolean isQuanto = leftMarketService.getContractType().isQuanto();
+
+        //Bitmex_block = round(Okex_block * CM);
+        //Okex_block = round(Bitmex_block / CM).
+
+        //
 
         // convert to usd
         BigDecimal b_block_usd;
         BigDecimal o_block_usd;
-        if (isEth) {
+        if (isQuanto) {
             b_block_usd = blockSize1.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP);
             o_block_usd = blockSize2.multiply(BigDecimal.valueOf(10));
         } else {
@@ -2303,7 +2308,7 @@ public class ArbitrageService {
         // go back to contracts
         BigDecimal b_block;
         BigDecimal o_block;
-        if (isEth) {
+        if (isQuanto) {
             b_block = b_block_usd.multiply(cm).divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
             o_block = o_block_usd.divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         } else {
@@ -2317,10 +2322,10 @@ public class ArbitrageService {
         // if okex cross zero, we set okex block without ntUsd adj
         if (deltaRef == DeltaName.B_DELTA && oPS.signum() > 0 && o_block.subtract(oPS).signum() > 0) { // okex buy
             o_block = oPS;
-            b_block = getBitmexBlockByOkexBlock(cm, isEth, o_block);
+            b_block = getBitmexBlockByOkexBlock(cm, isQuanto, o_block);
         } else if (deltaRef == DeltaName.O_DELTA && oPL.signum() > 0 && o_block.subtract(oPL).signum() > 0) { // okex sell
             o_block = oPL;
-            b_block = getBitmexBlockByOkexBlock(cm, isEth, o_block);
+            b_block = getBitmexBlockByOkexBlock(cm, isQuanto, o_block);
         }
 
         return new PlBlocks(b_block, o_block);
@@ -2369,11 +2374,11 @@ public class ArbitrageService {
         MarketService left = getLeftMarketService();
         MarketService right = getRightMarketService();
 
-        boolean isEth = left.getContractType().isEth();
+        boolean isQuanto = left.getContractType().isQuanto();
 
-        final BigDecimal ha = isEth ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
-        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isEth, left.getPosVal(), leftMarketService.isBtm());
-        final BigDecimal rightUsd = PosDiffService.getRightUsd(isEth, right.getPosVal());
+        final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
+        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, left.getPosVal(), leftMarketService.isBtm());
+        final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, right.getPosVal());
         //noinspection UnnecessaryLocalVariable
         final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
         return notionalUsd;

@@ -67,20 +67,20 @@ public class PlacingBlocks {
         return toBitmexCont(usd, isEth, cm);
     }
 
-    public static BigDecimal toBitmexContPure(BigDecimal usd, boolean isEth, BigDecimal cm, boolean leftOkex) {
+    public static BigDecimal toBitmexContPure(BigDecimal usd, boolean isQuanto, BigDecimal cm, boolean leftOkex) {
         if (leftOkex) {
-            return toOkexCont(usd, isEth);
+            return toOkexCont(usd, isQuanto);
         }
 
-        if (isEth) {
+        if (isQuanto) {
             return usd.multiply(cm).divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         }
         return usd.setScale(0, RoundingMode.HALF_UP);
     }
 
-    public static BigDecimal toBitmexCont(BigDecimal usd, boolean isEth, BigDecimal cm) {
-        BigDecimal okexCont = toOkexCont(usd, isEth);
-        if (isEth) {
+    public static BigDecimal toBitmexCont(BigDecimal usd, boolean isQuanto, BigDecimal cm) {
+        BigDecimal okexCont = toOkexCont(usd, isQuanto);
+        if (isQuanto) {
             return okexCont.multiply(cm).setScale(0, RoundingMode.HALF_UP);
         }
         return okexCont.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP);
@@ -92,8 +92,8 @@ public class PlacingBlocks {
         return toOkexCont(usd, isEth);
     }
 
-    public static BigDecimal toOkexCont(BigDecimal usd, boolean isEth) {
-        if (isEth) {
+    public static BigDecimal toOkexCont(BigDecimal usd, boolean isQuanto) {
+        if (isQuanto) {
             return usd.divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         }
         return usd.divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);

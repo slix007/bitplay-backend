@@ -9,6 +9,7 @@ import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams.PosMode;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
+import com.bitplay.persistance.domain.settings.ContractType;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,12 +25,12 @@ public class DiffFactBrComputer {
     private BigDecimal o_delta_plan;
     private BigDecimal delta_fact;
     private BordersV2 bordersV2;
-    private boolean isEth;
+    private boolean isQuanto;
     private BigDecimal cm;
     private int scale = 2;
 
     public DiffFactBrComputer(PosMode pos_mode, int pos_bo, int pos_ao, BigDecimal b_delta_plan, BigDecimal o_delta_plan, BigDecimal delta_fact,
-            BordersV2 bordersV2, boolean isEth, BigDecimal cm) {
+            BordersV2 bordersV2, ContractType leftContractType, BigDecimal cm) {
         this.pos_mode = pos_mode;
         this.pos_bo = pos_bo;
         this.pos_ao = pos_ao;
@@ -37,13 +38,12 @@ public class DiffFactBrComputer {
         this.o_delta_plan = o_delta_plan;
         this.delta_fact = delta_fact;
         this.bordersV2 = bordersV2;
-        this.isEth = isEth;
+        this.isQuanto = leftContractType.isQuanto();
         this.cm = cm;
-        if (isEth) {
-            scale = 3;
-        }
+        this.scale = leftContractType.getScale() + 1;
     }
 
+    // for tests only
     DiffFactBrComputer(PosMode pos_mode, int pos_bo, int pos_ao, BigDecimal b_delta_plan, BigDecimal o_delta_plan, BigDecimal delta_fact,
             BordersV2 bordersV2) {
         this.pos_mode = pos_mode;
@@ -53,12 +53,12 @@ public class DiffFactBrComputer {
         this.o_delta_plan = o_delta_plan;
         this.delta_fact = delta_fact;
         this.bordersV2 = bordersV2;
-        this.isEth = false; // scale is default=2
+        this.isQuanto = false; // scale is default=2
         this.cm = BigDecimal.valueOf(100);
     }
 
     private int usdToCont(int limInUsd) {
-        return BordersService.usdToCont(limInUsd, pos_mode, isEth, cm);
+        return BordersService.usdToCont(limInUsd, pos_mode, isQuanto, cm);
     }
 
     WamBr comp_wam_br_for_ok_open_long() throws ToWarningLogException {

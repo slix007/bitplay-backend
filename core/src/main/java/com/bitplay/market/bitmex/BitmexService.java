@@ -337,7 +337,7 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         Instant start = Instant.now();
-        if (bitmexContractType.isEth()) {
+        if (bitmexContractType.isQuanto()) {
             try {
                 final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
                 final Pos pUpdate = accountService.fetchPositionInfo(bitmexContractTypeXBTUSD.getSymbol());
@@ -729,7 +729,7 @@ public class BitmexService extends MarketServicePreliq {
                     pUpdate.getPositionShort(),
                     BigDecimal.ZERO,
                     BigDecimal.ZERO,
-                    pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage(),
+                    pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage().setScale(2, RoundingMode.HALF_UP),
                     pUpdate.getLiquidationPrice() == null ? current.getLiquidationPrice() : pUpdate.getLiquidationPrice(),
                     pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : current.getMarkValue(),
                     pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? current.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
@@ -1797,7 +1797,7 @@ public class BitmexService extends MarketServicePreliq {
                             forShort = positionContracts;
                         }
                         affordable.setForShort(forShort);
-                    } else if (positionContracts.signum() < 0) {
+                    } else { //if (positionContracts.signum() < 0) {
                         BigDecimal forLong = (positionContracts.negate().add((equityBtc.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)))
                                 .setScale(0, BigDecimal.ROUND_DOWN);
                         if (forLong.compareTo(positionContracts) < 0) {
@@ -1837,7 +1837,7 @@ public class BitmexService extends MarketServicePreliq {
             PlacingType placingType, String toolName, AmountType amountType) {
         final Long tradeId = arbitrageService.getLastInProgressTradeId();
         final String counterName = getCounterName(signalType, tradeId);
-        final BitmexContractType contractType = (bitmexContractType.isEth() && toolName != null && toolName.equals("XBTUSD"))
+        final BitmexContractType contractType = (bitmexContractType.isQuanto() && toolName != null && toolName.equals("XBTUSD"))
                 ? bitmexContractTypeXBTUSD
                 : bitmexContractType;
 
@@ -1962,7 +1962,7 @@ public class BitmexService extends MarketServicePreliq {
                     }
 
                     final OrderBook orderBook;
-                    if (getContractType().isEth() && !btmContType.isEth()) {
+                    if (getContractType().isQuanto() && !btmContType.isQuanto()) {
                         orderBook = getOrderBookXBTUSD();
                     } else {
                         if (bestQuotes != null && bestQuotes.getBtmOrderBook() != null) {
@@ -2854,7 +2854,7 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     private void recalcLiqInfoExtra(LiqParams liqParams) {
-        if (!bitmexContractType.isEth()) {
+        if (!bitmexContractType.isQuanto()) {
             return;
         }
         final AtomicReference<ContractIndex> contractIndex = this.btcContractIndex;

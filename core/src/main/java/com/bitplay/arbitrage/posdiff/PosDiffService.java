@@ -1641,13 +1641,13 @@ public class PosDiffService {
 
     BigDecimal getDcMainSet() {
         final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
-        final boolean isEth = arbitrageService.isEth();
-        final BigDecimal okexUsd = getRightUsd(isEth, arbitrageService.getRightMarketService().getPosVal());
+        final boolean isQuanto = arbitrageService.isEth();
+        final BigDecimal rightUsd = getOkexUsd(isQuanto, arbitrageService.getRightMarketService().getPosVal());
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-        final BigDecimal bitmexUsd = getLeftUsd(arbitrageService.getCm(), isEth, left.getPosVal(), left.isBtm());
-        final BigDecimal bitmexUsdWithHedge = bitmexUsd.subtract(hedgeAmountUsd);
+        final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, left.getPosVal(), left.isBtm());
+        final BigDecimal bitmexUsdWithHedge = leftUsd.subtract(hedgeAmountUsd);
 
-        return okexUsd.add(bitmexUsdWithHedge);
+        return rightUsd.add(bitmexUsdWithHedge);
     }
 
     private BigDecimal getDcExtraSet() {
@@ -1659,22 +1659,22 @@ public class PosDiffService {
         return bitmexUsd.subtract(hedgeAmountUsd);
     }
 
-    public static BigDecimal getRightUsd(boolean isEth, BigDecimal oP) {
-        return isEth
+    public static BigDecimal getOkexUsd(boolean isQuanto, BigDecimal oP) {
+        return isQuanto
                 ? (oP).multiply(BigDecimal.valueOf(10))
                 : (oP).multiply(BigDecimal.valueOf(100));
     }
 
-    public static BigDecimal getLeftUsd(BigDecimal cm, boolean isEth, BigDecimal lP, boolean leftIsBitmex) {
-        final BigDecimal bitmexUsd;
+    public static BigDecimal getLeftUsd(BigDecimal cm, boolean isQuanto, BigDecimal lP, boolean leftIsBitmex) {
+        final BigDecimal leftUsd;
         if (leftIsBitmex) {
-            bitmexUsd = isEth
+            leftUsd = isQuanto
                     ? lP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
                     : lP;
         } else {
-            bitmexUsd = getRightUsd(isEth, lP);
+            leftUsd = getOkexUsd(isQuanto, lP);
         }
-        return bitmexUsd;
+        return leftUsd;
     }
 
     public void setPeriodToCorrection(Long periodToCorrection) {

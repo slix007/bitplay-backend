@@ -25,6 +25,6 @@ public class BitmexUtils {
         if (placeOrderArgs.getAmountType() == null || placeOrderArgs.getAmountType() == AmountType.CONT) {
             return placeOrderArgs.getAmount();
         }
-        return PlacingBlocks.toBitmexCont(placeOrderArgs.getAmount(), placeOrderArgs.getContractType().isEth(), cm);
+        return PlacingBlocks.toBitmexCont(placeOrderArgs.getAmount(), placeOrderArgs.getContractType().isQuanto(), cm);
     }
 }

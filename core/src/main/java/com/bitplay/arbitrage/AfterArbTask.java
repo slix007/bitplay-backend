@@ -407,7 +407,7 @@ public class AfterArbTask implements Runnable {
                             dealPrices.getDelta2Plan(),
                             deltaFact,
                             bordersV2,
-                            left.getContractType().isEth(),
+                            left.getContractType(),
                             arbitrageService.getCm()
                     );
                     try {

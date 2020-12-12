@@ -1209,7 +1209,7 @@ public abstract class MarketService extends MarketServiceWithState {
             OrderBook orderBook = getOrderBook();
             ContractType contractType = getContractType();
             String marketName = getName();
-            if (marketName.equals(BitmexService.NAME) && contractType.isEth()) {
+            if (marketName.equals(BitmexService.NAME) && contractType.isQuanto()) {
                 if (limitOrder.getCurrencyPair() == null) {
                     return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST,
                             "can not move when CurrencyPair is null");
