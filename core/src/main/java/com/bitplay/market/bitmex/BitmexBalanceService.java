@@ -107,6 +107,7 @@ public class BitmexBalanceService implements BalanceService {
                     //e_avg = wallet + upl_avg.
                     uplBest = (bid1.subtract(entryPrice)).multiply(bm).multiply(pos);
                     uplAvg = (bidAvgPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    tempValues += String.format("%s:bid1=%s,bidAvgPrice=%s", ct.getFirstCurrency(), bid1, bidAvgPrice);
                 } else {
                     // upl_long = pos/entry_price - pos/bid[1]
                     uplBest = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
@@ -119,8 +120,8 @@ public class BitmexBalanceService implements BalanceService {
                             .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
 
+                    tempValues += String.format("XBT:bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
                 }
-                tempValues += String.format("%s:bid1=%s,bidAvgPrice=%s", ct.getFirstCurrency(), bid1, bidAvgPrice);
 
             }
         } else if (pos.signum() < 0) {
@@ -133,6 +134,7 @@ public class BitmexBalanceService implements BalanceService {
                 if (isQuanto) {
                     uplBest = (ask1.subtract(entryPrice)).multiply(bm).multiply(pos);
                     uplAvg = (askAvgPrice.subtract(entryPrice)).multiply(bm).multiply(pos);
+                    tempValues += String.format("%s:ask1=%s,askAvgPrice=%s", ct.getFirstCurrency(), ask1, askAvgPrice);
                 } else {
                     // upl_short = pos / ask[1] - pos / entry_price
                     BigDecimal posDivideEntry = pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP);
@@ -144,8 +146,8 @@ public class BitmexBalanceService implements BalanceService {
                     uplAvg = pos.abs().divide(askAvgPrice, 16, RoundingMode.HALF_UP)
                             .subtract(posDivideEntry)
                             .setScale(8, RoundingMode.HALF_UP);
+                    tempValues += String.format("XBT:ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
                 }
-                tempValues += String.format("%s:ask1=%s,askAvgPrice=%s", ct.getFirstCurrency(), ask1, askAvgPrice);
 
             }
         }

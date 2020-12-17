@@ -2731,8 +2731,9 @@ public class BitmexService extends MarketServicePreliq {
                 return;
             }
             BigDecimal okexSCV = right.getSCV();
+            Integer scale = getContractType().getScale();
             this.cm = okexSCV.divide(bm, 8, RoundingMode.HALF_UP)
-                    .divide(bxbtIndex.multiply(ethUsdMark), 2, RoundingMode.HALF_UP);
+                    .divide(bxbtIndex.multiply(ethUsdMark), scale, RoundingMode.HALF_UP);
         }
     }
 
@@ -2759,7 +2760,14 @@ public class BitmexService extends MarketServicePreliq {
         }
         final Date timestamp = update.getTimestamp();
 
-        return new BitmexContractIndex(update.getSymbol(), indexPrice, markPrice, lastPrice, timestamp, fundingRate, fundingTimestamp);
+        int s = getContractType().getScale();
+        return new BitmexContractIndex(update.getSymbol(),
+                indexPrice.setScale(s + 1, RoundingMode.HALF_UP),
+                markPrice.setScale(s + 1, RoundingMode.HALF_UP),
+                lastPrice.setScale(s, RoundingMode.HALF_UP),
+                timestamp,
+                fundingRate.setScale(s + 2, RoundingMode.HALF_UP),
+                fundingTimestamp);
     }
 
     @Override

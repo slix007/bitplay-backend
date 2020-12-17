@@ -143,19 +143,19 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                     Instrument instrument = mapper.treeToValue(s.get("data").get(0), Instrument.class);
 
                     final BigDecimal markPrice = instrument.getMarkPrice() != null
-                            ? new BigDecimal(instrument.getMarkPrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
+                            ? new BigDecimal(instrument.getMarkPrice()).setScale(5, BigDecimal.ROUND_HALF_UP)
                             : null;
 
                     final BigDecimal lastPrice = instrument.getLastPrice() != null
-                            ? new BigDecimal(instrument.getLastPrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
+                            ? new BigDecimal(instrument.getLastPrice()).setScale(5, BigDecimal.ROUND_HALF_UP)
                             : null;
 
                     final BigDecimal indexPrice = instrument.getIndicativeSettlePrice() != null
-                            ? new BigDecimal(instrument.getIndicativeSettlePrice()).setScale(2, BigDecimal.ROUND_HALF_UP)
+                            ? new BigDecimal(instrument.getIndicativeSettlePrice()).setScale(5, BigDecimal.ROUND_HALF_UP)
                             : null;
 
                     final BigDecimal fundingRate = instrument.getFundingRate() != null
-                            ? new BigDecimal(instrument.getFundingRate()).multiply(BigDecimal.valueOf(100)).setScale(4, BigDecimal.ROUND_HALF_UP)
+                            ? new BigDecimal(instrument.getFundingRate()).multiply(BigDecimal.valueOf(100)).setScale(10, BigDecimal.ROUND_HALF_UP)
                             : null;
 
                     final OffsetDateTime fundingTimestamp = instrument.getFundingTimestamp();

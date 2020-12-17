@@ -33,6 +33,7 @@ import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
+import java.math.RoundingMode;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.Order.OrderType;
@@ -212,7 +213,7 @@ public abstract class AbstractUiService<T extends MarketService> {
         final LimitsJson limitsJson = arbitrageService.getLeftMarketService().getLimitsService().getLimitsJson();
 
         final String bxbtBal = bitmexService.getContractType().isQuanto()
-                ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice()
+                ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice().setScale(2, RoundingMode.HALF_UP)
                 : "";
 
         return new FutureIndexJson(
