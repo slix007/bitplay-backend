@@ -169,9 +169,11 @@ public class BitmexAdapters {
 
         Integer scale = 2; // max value by default
 
-        if (order.getSymbol() != null) {
-            final String first = order.getSymbol().substring(0, 3);
-            final String second = order.getSymbol().substring(3);
+        String s = order.getSymbol();
+        if (s != null) {
+            int usdInd = s.indexOf("USD");
+            final String first = s.substring(0, usdInd);
+            final String second = s.substring(usdInd);
 
             for (CurrencyPair pair : currencyToScale.keySet()) {
                 if (first.equals(pair.base.getCurrencyCode()) && second.equals(pair.counter.getCurrencyCode())) {
