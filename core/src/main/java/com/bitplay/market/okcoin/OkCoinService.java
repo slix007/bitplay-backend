@@ -7,6 +7,7 @@ import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
@@ -139,6 +140,7 @@ import si.mazi.rescu.HttpStatusIOException;
 public class OkCoinService extends MarketServicePreliq {
 
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
+    private ThrottledWarn throttledLog = new ThrottledWarn(log, 30);
 
     private final SlackNotifications slackNotifications;
     private final LastPriceDeviationService lastPriceDeviationService;
@@ -408,7 +410,7 @@ public class OkCoinService extends MarketServicePreliq {
         markPriceSubscription = startMarkPriceListener();
         tickerSubscription = startTickerListener();
         reSubscribePriceRangeListener();
-        if (okexContractType.getBaseTool().equals("ETH")) {
+        if (!okexContractType.isBtc()) {
             tickerEthSubscription = startEthTickerListener();
         }
         indexPriceSub = startIndexPriceSub();
@@ -998,8 +1000,28 @@ public class OkCoinService extends MarketServicePreliq {
 
     // spot ticker
     private Disposable startEthTickerListener() {
+        String baseTool = okexContractType.getBaseTool();
+        final CurrencyPair currencyPairForResult;
+        final String tickerNameForRequest;
+        if (baseTool.equals("ETH")) {
+            currencyPairForResult = CurrencyPair.ETH_BTC;
+            tickerNameForRequest = "ETH-BTC";
+        } else if (baseTool.equals("LINK")) {
+            currencyPairForResult = CurrencyPair.LINK_BTC;
+            tickerNameForRequest = "LINK-BTC";
+        } else if (baseTool.equals("XRP")) {
+            currencyPairForResult = CurrencyPair.XRP_BTC;
+            tickerNameForRequest = "XRP-BTC";
+        } else if (baseTool.equals("BCH")) {
+            currencyPairForResult = CurrencyPair.BCH_BTC;
+            tickerNameForRequest = "BCH-BTC";
+        } else {
+            //error
+            throttledLog.error("no baseTool=" + baseTool);
+            return null;
+        }
         return exchange.getStreamingMarketDataService()
-                .getTicker(CurrencyPair.ETH_BTC, null, "ETH-BTC")
+                .getTicker(currencyPairForResult, null, tickerNameForRequest)
                 .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())

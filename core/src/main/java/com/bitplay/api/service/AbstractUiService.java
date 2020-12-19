@@ -32,6 +32,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import info.bitrich.xchangestream.bitmex.dto.BitmexContractIndex;
 import java.math.RoundingMode;
 import org.knowm.xchange.currency.Currency;
@@ -149,8 +150,15 @@ public abstract class AbstractUiService<T extends MarketService> {
         final LimitsJson limitsJson = okexLimitsService.getLimitsJson();
 
         // bid[1] в token trading (okex spot).
-        String ethBtcBal = service.getEthBtcTicker() == null ? ""
-                : "Quote ETH/BTC: " + service.getEthBtcTicker().getBid().toPlainString();
+        String ethBtcBal = "";
+        if (service.getContractType().isQuanto()
+                && service.getEthBtcTicker() != null
+                && service.getContractType() instanceof OkexContractType) {
+            OkexContractType ct = (OkexContractType) service.getContractType();
+            ethBtcBal = String.format("Quote %s/BTC: %s",
+                    ct.getBaseTool(),
+                    service.getEthBtcTicker().getBid().toPlainString());
+        }
 
         final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
         final SwapSettlement swapSettlement = service.getSwapSettlement();
