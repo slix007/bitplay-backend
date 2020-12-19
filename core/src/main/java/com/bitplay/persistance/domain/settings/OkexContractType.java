@@ -26,7 +26,7 @@ public enum OkexContractType implements ContractType {
     ETH_Quarter(FuturesContract.Quarter, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_BiQuarter(FuturesContract.BiQuarter, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     LINK_Swap(FuturesContract.Swap, CurrencyPair.LINK_USD, BigDecimal.valueOf(0.001), 3),
-    XRP_Swap(FuturesContract.Swap, CurrencyPair.XRP_USD, BigDecimal.valueOf(0.0001), 2),
+    XRP_Swap(FuturesContract.Swap, CurrencyPair.XRP_USD, BigDecimal.valueOf(0.0001), 4),
     LTC_Swap(FuturesContract.Swap, CurrencyPair.LTC_USD, BigDecimal.valueOf(0.01), 2),
     BCH_Swap(FuturesContract.Swap, CurrencyPair.BCH_USD, BigDecimal.valueOf(0.01), 2),
     ;

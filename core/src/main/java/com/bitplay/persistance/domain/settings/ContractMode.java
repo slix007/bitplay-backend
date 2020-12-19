@@ -23,7 +23,9 @@ public class ContractMode {
 
     public static ContractType parseContractType(String contractTypeName) {
         ContractType theType;
-        if (contractTypeName.startsWith("_", 3)) { // BTC_*, ETH_* - okex
+        // BTC_* ETH_* LINK_* ... - okex
+        // BTCUSD_* ... - bitmex
+        if (contractTypeName.startsWith("_", 3) || contractTypeName.startsWith("_", 4)) {
             theType = OkexContractType.valueOf(contractTypeName);
         } else {
             try {
@@ -32,8 +34,19 @@ public class ContractMode {
                 // workaround for BitmexContractType change
                 if (contractTypeName.startsWith("XBT")) {
                     theType = BitmexContractType.XBTUSD_Perpetual;
-                } else { // ETH
+                } if (contractTypeName.startsWith("ETH")) {
                     theType = BitmexContractType.ETHUSD_Perpetual;
+                } if (contractTypeName.startsWith("LINK")) {
+                    theType = BitmexContractType.LINKUSDT_Perpetual;
+                } if (contractTypeName.startsWith("XRP")) {
+                    theType = BitmexContractType.XRPUSD_Perpetual;
+                } if (contractTypeName.startsWith("LTC")) {
+                    theType = BitmexContractType.LTCUSD_Perpetual;
+                } if (contractTypeName.startsWith("BCH")) {
+                    theType = BitmexContractType.BCHUSD_Perpetual;
+                } else {
+                    // default stub
+                    theType = BitmexContractType.XBTUSD_Perpetual;
                 }
             }
         }
