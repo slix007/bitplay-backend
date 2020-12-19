@@ -57,6 +57,7 @@ public class OkexBalanceService implements BalanceService {
                 wallet = eMark.subtract(plPos);
             }
 
+            int plPosScale = contractType.getScale() + 2;
             BigDecimal uplLong = BigDecimal.ZERO;
             BigDecimal uplShort = BigDecimal.ZERO;
             BigDecimal uplLongAvg = BigDecimal.ZERO;
@@ -70,7 +71,7 @@ public class OkexBalanceService implements BalanceService {
                     uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
-                    plPosBestLong = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, bid1);
+                    plPosBestLong = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, bid1, plPosScale);
                     // upl_long_avg = pos/entry_price - pos/bid[]
                     // e_best = ok_bal + upl_long
 
@@ -79,7 +80,7 @@ public class OkexBalanceService implements BalanceService {
                     uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
-                    plPosAvgLong = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, bidAvgPrice);
+                    plPosAvgLong = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, bidAvgPrice, plPosScale);
 
                     tempValues += String.format("bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
                 }
@@ -94,14 +95,14 @@ public class OkexBalanceService implements BalanceService {
                     uplShort = pos.abs().divide(ask1, 16, RoundingMode.HALF_UP)
                             .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
-                    plPosBestShort = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, ask1);
+                    plPosBestShort = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, ask1, plPosScale);
 
                     int askAmount = pObj.getPositionShort().abs().intValue();
                     final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
                     uplShortAvg = pos.abs().divide(askAvgPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
-                    plPosAvgShort = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, askAvgPrice);
+                    plPosAvgShort = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, askAvgPrice, plPosScale);
 
                     tempValues += String.format("ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
                 }

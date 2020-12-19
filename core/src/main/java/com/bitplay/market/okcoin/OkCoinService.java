@@ -815,12 +815,13 @@ public class OkCoinService extends MarketServicePreliq {
             return currPos;
         }
 
-        BigDecimal longPlPos = calcPlPosValue(currPos.getPositionLong(), currPos.getPriceAvgLong(), markPrice);
-        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort(), currPos.getPriceAvgShort(), markPrice);
+        int plPosScale = okexContractType.getScale() + 2;
+        BigDecimal longPlPos = calcPlPosValue(currPos.getPositionLong(), currPos.getPriceAvgLong(), markPrice, plPosScale);
+        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort(), currPos.getPriceAvgShort(), markPrice, plPosScale);
         return currPos.updatePlPos(longPlPos.add(shortPlPos));
     }
 
-    public static BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice, BigDecimal secondPrice) {
+    public static BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice, BigDecimal secondPrice, int scale) {
         //pl_pos = (1/EntryPrice - 1/MarkPrice) * 10 * N
         //pl_pos_best = (1/EntryPrice - 1/BestPrice) * 10 * N
         // N - кол-во контрактов. По модулю(не отрицательное)
@@ -833,7 +834,7 @@ public class OkCoinService extends MarketServicePreliq {
                             BigDecimal.ONE.divide(secondPrice, 16, RoundingMode.HALF_UP)
                     ))
                     .multiply(BigDecimal.valueOf(10))
-                    .multiply(n);
+                    .multiply(n).setScale(scale, RoundingMode.HALF_UP);
 
         }
         return plPos;
@@ -1014,6 +1015,9 @@ public class OkCoinService extends MarketServicePreliq {
         } else if (baseTool.equals("XRP")) {
             currencyPairForResult = CurrencyPair.XRP_BTC;
             tickerNameForRequest = "XRP-BTC";
+        } else if (baseTool.equals("LTC")) {
+            currencyPairForResult = CurrencyPair.LTC_BTC;
+            tickerNameForRequest = "LTC-BTC";
         } else if (baseTool.equals("BCH")) {
             currencyPairForResult = CurrencyPair.BCH_BTC;
             tickerNameForRequest = "BCH-BTC";

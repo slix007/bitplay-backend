@@ -34,6 +34,7 @@ public class AccountInfoJson {
     private String raw;
 
     private String plPos; // okex only:
+    private String plPosBest; // okex only:
 
     public AccountInfoJson() {
     }
@@ -48,7 +49,7 @@ public class AccountInfoJson {
             String availableForLong, String availableForShort, String longAvailToClose, String shortAvailToClose,
             String quAvg, String ethBtcBid1, String liqPrice, String eMark,
             String eLast, String eBest, String eAvg, String entryPrice, String raw,
-            String plPos) {
+            String plPos, String plPosBest) {
         this.wallet = wallet;
         this.available = available;
         this.margin = margin;
@@ -69,11 +70,12 @@ public class AccountInfoJson {
         this.entryPrice = entryPrice;
         this.raw = raw;
         this.plPos = plPos;
+        this.plPosBest = plPosBest;
     }
 
     public static AccountInfoJson error() {
         return new AccountInfoJson("error","error", "error","error", "error", "error", "error", "error", "error", "error",
-                "error", "error", "error", "error", "error", "error", "error", "error", "error", "error");
+                "error", "error", "error", "error", "error", "error", "error", "error", "error", "error", "error");
     }
 
     public String geteMark() {

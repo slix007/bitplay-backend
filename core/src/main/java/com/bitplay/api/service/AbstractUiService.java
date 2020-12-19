@@ -315,7 +315,7 @@ public abstract class AbstractUiService<T extends MarketService> {
 //            throw new IllegalStateException("Balance and/or Position are not yet defined. entryPrice=" + entryPrice);
             return new AccountInfoJson("error", "error", "error", "error", "error", "error", "error", "error", "error", "error",
                     "error", "error", "error", "error", "error", "error", "error",
-                    entryPrice, "error", "error");
+                    entryPrice, "error", "error", "error");
         }
 
         final String ethBtcBid1 = getBusinessService().getEthBtcTicker() != null ? getBusinessService().getEthBtcTicker().getBid().toPlainString() : null;
@@ -323,6 +323,7 @@ public abstract class AbstractUiService<T extends MarketService> {
         final BigDecimal longAvailToClose = position.getLongAvailToClose() != null ? position.getLongAvailToClose() : BigDecimal.ZERO;
         final BigDecimal shortAvailToClose = position.getShortAvailToClose() != null ? position.getShortAvailToClose() : BigDecimal.ZERO;
         final String plPos = position.getPlPos() != null ? position.getPlPos().toPlainString() : "";
+        final String plPosBest = position.getPlPosBest() != null ? position.getPlPosBest().toPlainString() : "";
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),
@@ -343,7 +344,7 @@ public abstract class AbstractUiService<T extends MarketService> {
                 eAvg != null ? eAvg.toPlainString() : "0",
                 entryPrice,
                 account.toString(),
-                plPos);
+                plPos, plPosBest);
     }
 
     protected String getPositionString(final Pos position) {
