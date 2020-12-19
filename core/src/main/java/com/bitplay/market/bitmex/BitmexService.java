@@ -734,7 +734,7 @@ public class BitmexService extends MarketServicePreliq {
                     pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? current.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
                     pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? current.getPriceAvgShort() : pUpdate.getPriceAvgShort(),
                     pUpdate.getTimestamp(), pUpdate.getRaw(),
-                    null);
+                    null, null);
             success = this.pos.compareAndSet(current, updated);
 
             if (++iter > 1) {
@@ -766,7 +766,7 @@ public class BitmexService extends MarketServicePreliq {
                     pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? pos.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
                     pUpdate.getPriceAvgShort() == null || pUpdate.getPriceAvgShort().signum() == 0 ? pos.getPriceAvgShort() : pUpdate.getPriceAvgShort(),
                     pUpdate.getTimestamp(), pUpdate.getRaw(),
-                    null);
+                    null, null);
             success = this.posXBTUSD.compareAndSet(pos, updated);
             if (++iter > 1) {
                 logger.warn("merge posXBTUSD iter=" + iter);

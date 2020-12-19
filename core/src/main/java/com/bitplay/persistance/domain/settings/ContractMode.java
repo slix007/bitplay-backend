@@ -34,15 +34,15 @@ public class ContractMode {
                 // workaround for BitmexContractType change
                 if (contractTypeName.startsWith("XBT")) {
                     theType = BitmexContractType.XBTUSD_Perpetual;
-                } if (contractTypeName.startsWith("ETH")) {
+                } else if (contractTypeName.startsWith("ETH")) {
                     theType = BitmexContractType.ETHUSD_Perpetual;
-                } if (contractTypeName.startsWith("LINK")) {
+                } else if (contractTypeName.startsWith("LINK")) {
                     theType = BitmexContractType.LINKUSDT_Perpetual;
-                } if (contractTypeName.startsWith("XRP")) {
+                } else if (contractTypeName.startsWith("XRP")) {
                     theType = BitmexContractType.XRPUSD_Perpetual;
-                } if (contractTypeName.startsWith("LTC")) {
+                } else if (contractTypeName.startsWith("LTC")) {
                     theType = BitmexContractType.LTCUSD_Perpetual;
-                } if (contractTypeName.startsWith("BCH")) {
+                } else if (contractTypeName.startsWith("BCH")) {
                     theType = BitmexContractType.BCHUSD_Perpetual;
                 } else {
                     // default stub
