@@ -1,17 +1,15 @@
 package com.bitplay.persistance.domain.settings;
 
 import com.bitplay.market.okcoin.OkCoinService;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.okcoin.FuturesContract;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.okcoin.FuturesContract;
 
 @AllArgsConstructor
 @Getter
@@ -27,6 +25,10 @@ public enum OkexContractType implements ContractType {
     ETH_NextWeek(FuturesContract.NextWeek, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_Quarter(FuturesContract.Quarter, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
     ETH_BiQuarter(FuturesContract.BiQuarter, CurrencyPair.ETH_USD, BigDecimal.valueOf(0.001), 3),
+    LINK_Swap(FuturesContract.Swap, CurrencyPair.LINK_USD, BigDecimal.valueOf(0.001), 3),
+    XRP_Swap(FuturesContract.Swap, CurrencyPair.XRP_USD, BigDecimal.valueOf(0.0001), 2),
+    LTC_Swap(FuturesContract.Swap, CurrencyPair.LTC_USD, BigDecimal.valueOf(0.01), 2),
+    BCH_Swap(FuturesContract.Swap, CurrencyPair.BCH_USD, BigDecimal.valueOf(0.01), 2),
     ;
 
     private FuturesContract futuresContract;
@@ -130,6 +132,18 @@ public enum OkexContractType implements ContractType {
         return isEth();
     }
 
+    public boolean isOneFromNewPerpetual() {
+        switch (this) {
+            case ETH_Swap:
+            case LINK_Swap:
+            case XRP_Swap:
+            case LTC_Swap:
+            case BCH_Swap:
+                return true;
+        }
+        return false;
+    }
+
 
     @Override
     public String getMarketName() {
@@ -139,6 +153,19 @@ public enum OkexContractType implements ContractType {
     @Override
     public String getName() {
         return name();
+    }
+
+    @Override
+    public BigDecimal defaultLeverage() {
+        switch (this) {
+            case ETH_Swap:
+            case LINK_Swap:
+            case XRP_Swap:
+            case LTC_Swap:
+            case BCH_Swap:
+                return BigDecimal.valueOf(75);
+        }
+        return BigDecimal.valueOf(20);
     }
 
     public boolean isNotSwap() {

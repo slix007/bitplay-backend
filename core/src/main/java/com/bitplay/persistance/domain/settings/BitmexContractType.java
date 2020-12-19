@@ -118,6 +118,7 @@ public enum BitmexContractType implements ContractType {
         return firstCurrency;
     }
 
+    @Override
     public BigDecimal defaultLeverage() {
         switch (this) {
             case XBTUSD_Perpetual:

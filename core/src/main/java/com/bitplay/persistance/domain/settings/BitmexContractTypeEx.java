@@ -53,4 +53,9 @@ public class BitmexContractTypeEx implements ContractType {
     public Integer getScale() {
         return bitmexContractType.getScale();
     }
+
+    @Override
+    public BigDecimal defaultLeverage() {
+        return bitmexContractType.defaultLeverage();
+    }
 }

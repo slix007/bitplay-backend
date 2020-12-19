@@ -106,4 +106,19 @@ public class Pos {
                 '}';
     }
 
+    public Pos updatePlPos(BigDecimal plPos) {
+        return new Pos(
+                this.positionLong,
+                this.positionShort,
+                this.longAvailToClose,
+                this.shortAvailToClose,
+                this.leverage,
+                this.liquidationPrice,
+                this.markValue,
+                this.priceAvgLong,
+                this.priceAvgShort,
+                this.timestamp,
+                this.raw,
+                plPos);
+    }
 }

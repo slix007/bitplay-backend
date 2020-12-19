@@ -299,6 +299,7 @@ public class OkCoinService extends MarketServicePreliq {
             instrDtos.add(extraInstr);
             instrIdToContractType.put(extraInstr.getInstrumentId(), okexContractTypeBTCUSD);
         }
+        leverage = okexContractType.defaultLeverage();
 
         apiCredentials = getApiCredentials(exArgs);
         initExchangeV3(apiCredentials);
@@ -448,7 +449,6 @@ public class OkCoinService extends MarketServicePreliq {
 
     private OkExStreamingExchange initExchange(Object... exArgs) {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
-        leverage = BigDecimal.valueOf(20); // default
 
         // init xchange-stream
         if (exArgs != null && exArgs.length == 3) {
@@ -675,8 +675,9 @@ public class OkCoinService extends MarketServicePreliq {
     public String fetchPosition() throws Exception {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
         final Pos pos = fplayOkexExchange.getPrivateApi().getPos(instrumentId);
-        final Pos finalPos = setPosLeverage(pos);
-        this.pos.set(finalPos);
+        final Pos pos1 = setPosLeverage(pos);
+        final Pos pos2 = updatePlPos(pos1);
+        this.pos.set(pos2);
         getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
         stateRecalcInStateUpdaterThread();
 
@@ -804,6 +805,35 @@ public class OkCoinService extends MarketServicePreliq {
                 n.getRaw(),
                 n.getPlPos()
         );
+    }
+
+    private Pos updatePlPos(Pos currPos) {
+        if (!okexContractType.isOneFromNewPerpetual()
+                || markPrice == null) {
+            return currPos;
+        }
+
+        BigDecimal longPlPos = calcPlPosValue(currPos.getPositionLong(), currPos.getPriceAvgLong());
+        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort(), currPos.getPriceAvgShort());
+        return currPos.updatePlPos(longPlPos.add(shortPlPos));
+    }
+
+    private BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice) {
+        //(1/EntryPrice - 1/MarkPrice) * 10 * N
+        // N - кол-во контрактов. По модулю(не отрицательное)
+        BigDecimal plPos = BigDecimal.ZERO;
+        if (n.signum() > 0
+                && markPrice != null && markPrice.signum() != 0
+                && entryPrice != null && entryPrice.signum() != 0) {
+            plPos = (BigDecimal.ONE.divide(entryPrice, 16, RoundingMode.HALF_UP)
+                    .subtract(
+                            BigDecimal.ONE.divide(markPrice, 16, RoundingMode.HALF_UP)
+                    ))
+                    .multiply(BigDecimal.valueOf(10))
+                    .multiply(n);
+
+        }
+        return plPos;
     }
 
     private Pos mergeSwapPos(PositionStream n, Pos current) {

@@ -30,4 +30,6 @@ public interface ContractType {
     String getMarketName();
 
     String getName();
+
+    BigDecimal defaultLeverage();
 }
