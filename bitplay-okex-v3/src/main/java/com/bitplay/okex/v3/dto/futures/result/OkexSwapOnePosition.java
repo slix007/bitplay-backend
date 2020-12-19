@@ -51,8 +51,8 @@ public class OkexSwapOnePosition {
                 s.getAvg_cost(),
                 timestamp,
                 holding.toString(),
-                l.getUnrealized_pnl().add(s.getUnrealized_pnl())
-        );
+                l.getUnrealized_pnl().add(s.getUnrealized_pnl()),
+                null);
     }
 
 

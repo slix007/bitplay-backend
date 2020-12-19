@@ -787,8 +787,8 @@ public class OkCoinService extends MarketServicePreliq {
                 p.getPriceAvgShort(),
                 p.getTimestamp(),
                 p.getRaw(),
-                p.getPlPos()
-        );
+                p.getPlPos(),
+                null);
     }
 
 
@@ -805,8 +805,8 @@ public class OkCoinService extends MarketServicePreliq {
                 n.getPriceAvgShort(),
                 n.getTimestamp(),
                 n.getRaw(),
-                n.getPlPos()
-        );
+                n.getPlPos(),
+                null);
     }
 
     private Pos updatePlPos(Pos currPos) {
@@ -815,21 +815,22 @@ public class OkCoinService extends MarketServicePreliq {
             return currPos;
         }
 
-        BigDecimal longPlPos = calcPlPosValue(currPos.getPositionLong(), currPos.getPriceAvgLong());
-        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort(), currPos.getPriceAvgShort());
+        BigDecimal longPlPos = calcPlPosValue(currPos.getPositionLong(), currPos.getPriceAvgLong(), markPrice);
+        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort(), currPos.getPriceAvgShort(), markPrice);
         return currPos.updatePlPos(longPlPos.add(shortPlPos));
     }
 
-    private BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice) {
-        //(1/EntryPrice - 1/MarkPrice) * 10 * N
+    public static BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice, BigDecimal secondPrice) {
+        //pl_pos = (1/EntryPrice - 1/MarkPrice) * 10 * N
+        //pl_pos_best = (1/EntryPrice - 1/BestPrice) * 10 * N
         // N - кол-во контрактов. По модулю(не отрицательное)
         BigDecimal plPos = BigDecimal.ZERO;
         if (n.signum() > 0
-                && markPrice != null && markPrice.signum() != 0
+                && secondPrice != null && secondPrice.signum() != 0
                 && entryPrice != null && entryPrice.signum() != 0) {
             plPos = (BigDecimal.ONE.divide(entryPrice, 16, RoundingMode.HALF_UP)
                     .subtract(
-                            BigDecimal.ONE.divide(markPrice, 16, RoundingMode.HALF_UP)
+                            BigDecimal.ONE.divide(secondPrice, 16, RoundingMode.HALF_UP)
                     ))
                     .multiply(BigDecimal.valueOf(10))
                     .multiply(n);
@@ -853,8 +854,8 @@ public class OkCoinService extends MarketServicePreliq {
                     current.getPriceAvgShort(),
                     n.getTimestamp(),
                     n.getRaw(),
-                    current.getPlPos()
-            );
+                    current.getPlPos(),
+                    null);
         }
         //else
         return new Pos(
@@ -869,7 +870,8 @@ public class OkCoinService extends MarketServicePreliq {
                 n.getPriceAvgShort(),
                 n.getTimestamp(),
                 n.getRaw(),
-                current.getPlPos()
+                current.getPlPos(),
+                null
         );
     }
 

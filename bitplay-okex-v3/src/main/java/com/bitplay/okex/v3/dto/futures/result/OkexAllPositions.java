@@ -2,9 +2,7 @@ package com.bitplay.okex.v3.dto.futures.result;
 
 import com.bitplay.model.Pos;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import lombok.Data;
 
 @Data
@@ -26,7 +24,7 @@ public class OkexAllPositions {
                 p.getShortQty().signum() == 0 ? BigDecimal.ZERO : p.getShortAvgCost(),
                 p.getUpdatedAt().toInstant(),
                 p.toString(),
-                p.getLongPnl().add(p.getShortPnl())
-        );
+                p.getLongPnl().add(p.getShortPnl()),
+                null);
     }
 }

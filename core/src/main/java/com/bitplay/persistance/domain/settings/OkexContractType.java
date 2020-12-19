@@ -129,7 +129,7 @@ public enum OkexContractType implements ContractType {
 
     @Override
     public boolean isQuanto() {
-        return isEth();
+        return !isBtc();
     }
 
     public boolean isOneFromNewPerpetual() {

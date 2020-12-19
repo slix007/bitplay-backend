@@ -6,6 +6,7 @@ import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class OkexBalanceService implements BalanceService {
 
         String tempValues = "";
 
+        final BigDecimal eMark = account.getEMark();
         final BigDecimal eLast = account.getELast();
         final BigDecimal available = account.getAvailable();
         final BigDecimal margin = account.getMargin();
@@ -36,15 +38,21 @@ public class OkexBalanceService implements BalanceService {
         //set eBest & eAvg for account
         BigDecimal eBest = wallet;
         BigDecimal eAvg = wallet;
-        if (account.getEMark() != null
+        if (eMark != null
                 && pObj != null
                 && pObj.getPositionLong() != null
                 && pObj.getPriceAvgLong() != null
                 && pObj.getPriceAvgShort() != null
         ) {
             final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
-            final BigDecimal eMark = account.getEMark();
             final BigDecimal plPos = pObj.getPlPos();
+
+            // pl_pos_best =	(1/EntryPrice - 1/BestPrice) * 10 * N
+            BigDecimal plPosBestLong = BigDecimal.ZERO;
+            BigDecimal plPosBestShort = BigDecimal.ZERO;
+            BigDecimal plPosAvgLong = BigDecimal.ZERO;
+            BigDecimal plPosAvgShort = BigDecimal.ZERO;
+
             if (plPos != null) {
                 wallet = eMark.subtract(plPos);
             }
@@ -62,6 +70,7 @@ public class OkexBalanceService implements BalanceService {
                     uplLong = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.divide(bid1, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
+                    plPosBestLong = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, bid1);
                     // upl_long_avg = pos/entry_price - pos/bid[]
                     // e_best = ok_bal + upl_long
 
@@ -70,6 +79,7 @@ public class OkexBalanceService implements BalanceService {
                     uplLongAvg = pos.divide(entryPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.divide(bidAvgPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
+                    plPosAvgLong = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, bidAvgPrice);
 
                     tempValues += String.format("bid1=%s,bidAvgPrice=%s", bid1, bidAvgPrice);
                 }
@@ -84,12 +94,14 @@ public class OkexBalanceService implements BalanceService {
                     uplShort = pos.abs().divide(ask1, 16, RoundingMode.HALF_UP)
                             .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
+                    plPosBestShort = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, ask1);
 
                     int askAmount = pObj.getPositionShort().abs().intValue();
                     final BigDecimal askAvgPrice = Utils.getAvgPrice(orderBook, 0, askAmount);
                     uplShortAvg = pos.abs().divide(askAvgPrice, 16, RoundingMode.HALF_UP)
                             .subtract(pos.abs().divide(entryPrice, 16, RoundingMode.HALF_UP))
                             .setScale(8, RoundingMode.HALF_UP);
+                    plPosAvgShort = OkCoinService.calcPlPosValue(pObj.getPositionLong(), entryPrice, askAvgPrice);
 
                     tempValues += String.format("ask1=%s,askAvgPrice=%s", ask1, askAvgPrice);
                 }
@@ -97,8 +109,20 @@ public class OkexBalanceService implements BalanceService {
 
             final BigDecimal upl = uplLong.add(uplShort);
             final BigDecimal uplAvg = uplLongAvg.add(uplShortAvg);
-            eBest = wallet.add(upl);
-            eAvg = wallet.add(uplAvg);
+
+            if (contractType instanceof OkexContractType
+                    && ((OkexContractType) contractType).isOneFromNewPerpetual()) {
+                BigDecimal plPosBest = plPosBestLong.add(plPosBestShort);
+                eBest = wallet.add(plPosBest);
+                BigDecimal plPosAvg = plPosAvgLong.add(plPosAvgShort);
+                eAvg = wallet.add(plPosAvg);
+                pObj = pObj.updatePlPosBest(plPosBest);
+            } else {
+                // old
+                eBest = wallet.add(upl);
+                eAvg = wallet.add(uplAvg);
+            }
+
         }
 
         final boolean okexEbestElast = settingsRepositoryService.getSettings().getOkexEbestElast() != null
@@ -109,7 +133,7 @@ public class OkexBalanceService implements BalanceService {
         return new FullBalance(new AccountBalance(
                 wallet,
                 available,
-                BigDecimal.ZERO,
+                eMark,
                 eLast,
                 eBest,
                 eAvg,

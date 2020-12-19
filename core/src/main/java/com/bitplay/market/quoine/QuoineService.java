@@ -13,6 +13,7 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
+import com.bitplay.model.AccountBalance;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -20,6 +21,7 @@ import com.bitplay.persistance.domain.settings.ContractType;
 import java.math.BigDecimal;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.account.AccountInfoContracts;
 import org.knowm.xchange.service.trade.TradeService;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
@@ -154,5 +156,10 @@ public class QuoineService extends MarketService {
     @Override
     public boolean checkLiquidationEdge(Order.OrderType orderType) {
         return false;
+    }
+
+    @Override
+    protected AccountBalance mergeAccount(AccountInfoContracts newInfo, AccountBalance current) {
+        return null;
     }
 }

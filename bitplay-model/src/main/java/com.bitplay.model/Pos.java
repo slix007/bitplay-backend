@@ -23,6 +23,7 @@ public class Pos {
     private final Instant timestamp;
     private final String raw;
     private final BigDecimal plPos; // okex only:
+    private final BigDecimal plPosBest; // okex only:
 
     private Pos(BigDecimal positionLong, BigDecimal positionShort, BigDecimal leverage, BigDecimal liquidationPrice) {
         this.positionLong = positionLong;
@@ -37,12 +38,13 @@ public class Pos {
         this.timestamp = null;
         this.raw = null;
         this.plPos = null;
+        this.plPosBest = null;
     }
 
     public static Pos emptyPos() {
         return new Pos(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 BigDecimal.ZERO, null, "position is empty",
-                null);
+                null, null);
     }
 
     //TODO refactor to emptyPos => use emptyPos on init => remove in Bitmex#mergePostition emptyPos() call
@@ -57,7 +59,7 @@ public class Pos {
     public Pos(BigDecimal positionLong, BigDecimal positionShort,
             BigDecimal longAvailToClose, BigDecimal shortAvailToClose,
             BigDecimal leverage, BigDecimal liquidationPrice, BigDecimal markValue,
-            BigDecimal priceAvgLong, BigDecimal priceAvgShort, Instant timestamp, String raw, BigDecimal plPos) {
+            BigDecimal priceAvgLong, BigDecimal priceAvgShort, Instant timestamp, String raw, BigDecimal plPos, BigDecimal plPosBest) {
         this.positionLong = positionLong;
         this.positionShort = positionShort;
         this.longAvailToClose = longAvailToClose;
@@ -70,6 +72,7 @@ public class Pos {
         this.timestamp = timestamp;
         this.raw = raw;
         this.plPos = plPos;
+        this.plPosBest = plPosBest;
     }
 
     @Override
@@ -86,6 +89,7 @@ public class Pos {
                 ", markValue=" + markValue +
                 ", timestamp=" + timestamp +
                 ", plPos=" + plPos +
+                ", plPosBest=" + plPosBest +
                 '}';
     }
 
@@ -102,6 +106,7 @@ public class Pos {
                 ", markValue=" + markValue +
                 ", timestamp=" + timestamp +
                 ", plPos=" + plPos +
+                ", plPosBest=" + plPosBest +
                 ", raw='" + raw + '\'' +
                 '}';
     }
@@ -119,6 +124,23 @@ public class Pos {
                 this.priceAvgShort,
                 this.timestamp,
                 this.raw,
-                plPos);
+                plPos,
+                this.plPosBest);
+    }
+    public Pos updatePlPosBest(BigDecimal plPosBest) {
+        return new Pos(
+                this.positionLong,
+                this.positionShort,
+                this.longAvailToClose,
+                this.shortAvailToClose,
+                this.leverage,
+                this.liquidationPrice,
+                this.markValue,
+                this.priceAvgLong,
+                this.priceAvgShort,
+                this.timestamp,
+                this.raw,
+                this.plPos,
+                plPosBest);
     }
 }
