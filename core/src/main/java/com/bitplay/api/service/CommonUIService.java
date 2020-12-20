@@ -67,7 +67,6 @@ import com.bitplay.settings.TradingModeService;
 import com.bitplay.utils.Utils;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
@@ -472,7 +471,7 @@ public class CommonUIService {
     }
 
     public ResultJson recoveryNtUsd() {
-        final Future<String> stringFuture = ntUsdRecoveryService.tryRecovery();
+        final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryByButton();
         String res = "";
         try {
             res = stringFuture.get(10, TimeUnit.SECONDS);
