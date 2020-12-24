@@ -287,7 +287,7 @@ public class OkCoinService extends MarketServicePreliq {
         okexContractType = (OkexContractType) contractType;
         log.info("Starting okex with " + okexContractType);
         tradeLogger.info("Starting okex with " + okexContractType);
-        if (okexContractType.isEth()) {
+        if (okexContractType.isQuanto()) {
             this.usdInContract = 10;
         } else {
             this.usdInContract = 100;
@@ -1040,7 +1040,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startIndexPriceSub() {
         List<CurrencyPair> pairs = new ArrayList<>();
         pairs.add(okexContractType.getCurrencyPair());
-        if (okexContractType.isEth()) {
+        if (okexContractType.isQuanto()) {
             pairs.add(okexContractTypeBTCUSD.getCurrencyPair());
         }
         return ((OkExStreamingMarketDataService) exchange.getStreamingMarketDataService())

@@ -11,8 +11,6 @@ public interface ContractType {
 
     boolean isBtc();
 
-    boolean isEth();
-
     /**
      * Quanto - works only with the main tool(BTC)<br>
      *     https://www.bitmex.com/app/perpetualContractsGuide#What-is-a-Quanto-Contract

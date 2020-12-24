@@ -2627,8 +2627,8 @@ public class ArbitrageService {
                 && leftMarketService != null
 //                && rightMarketService.getEthBtcTicker() != null // only okex has EthBtcTicker
 //                && leftMarketService.getEthBtcTicker() != null
-                && rightMarketService.getContractType().isEth()
-                && leftMarketService.getContractType().isEth();
+                && rightMarketService.getContractType().isQuanto()
+                && leftMarketService.getContractType().isQuanto();
     }
 
     public BigDecimal getCm() {

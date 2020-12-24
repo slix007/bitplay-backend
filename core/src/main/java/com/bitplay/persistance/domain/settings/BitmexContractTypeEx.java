@@ -25,11 +25,6 @@ public class BitmexContractTypeEx implements ContractType {
     }
 
     @Override
-    public boolean isEth() {
-        return bitmexContractType.isEth();
-    }
-
-    @Override
     public boolean isQuanto() {
         return bitmexContractType.isQuanto();
     }

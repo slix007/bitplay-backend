@@ -44,7 +44,7 @@ public class OkexBalanceService implements BalanceService {
                 && pObj.getPriceAvgLong() != null
                 && pObj.getPriceAvgShort() != null
         ) {
-            final BigDecimal pos_cm = contractType.isEth() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
+            final BigDecimal pos_cm = contractType.isQuanto() ? BigDecimal.valueOf(10) : BigDecimal.valueOf(100);
             final BigDecimal plPos = pObj.getPlPos();
 
             // pl_pos_best =	(1/EntryPrice - 1/BestPrice) * 10 * N

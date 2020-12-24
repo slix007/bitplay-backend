@@ -104,15 +104,15 @@ public class PlacingBlocks {
         return toOkexCont(usd, isEth);
     }
 
-    public static BigDecimal okexContToUsd(BigDecimal cont, boolean isEth) {
-        if (isEth) {
+    public static BigDecimal okexContToUsd(BigDecimal cont, boolean isQuanto) {
+        if (isQuanto) {
             return cont.multiply(BigDecimal.valueOf(10));
         }
         return cont.multiply(BigDecimal.valueOf(100));
     }
 
-    public static BigDecimal bitmexContToUsd(BigDecimal cont, boolean isEth, BigDecimal cm) {
-        if (isEth) {
+    public static BigDecimal bitmexContToUsd(BigDecimal cont, boolean isQuanto, BigDecimal cm) {
+        if (isQuanto) {
             return cont.multiply(BigDecimal.valueOf(10)).divide(cm, 0, RoundingMode.HALF_UP);
         }
         return cont.setScale(0, RoundingMode.HALF_UP);

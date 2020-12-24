@@ -62,7 +62,7 @@ public class ContractMode {
     }
 
     public boolean isEth() {
-        return left.isEth() || right.isEth();
+        return left.isQuanto() || right.isQuanto();
     }
 
     public Integer getModeScale() {

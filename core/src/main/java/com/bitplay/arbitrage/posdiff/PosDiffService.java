@@ -287,7 +287,7 @@ public class PosDiffService {
                     warningLogger.info(infoMsg + "left " + pos1);
                     warningLogger.info(infoMsg + "right "+ pos2);
 
-                    if (arbitrageService.getLeftMarketService().getContractType().isEth()) {
+                    if (arbitrageService.getLeftMarketService().getContractType().isQuanto()) {
                         final String infoMsgXBTUSD = String.format("Double check before timer-state-reset XBTUSD. %s fetchPosition:",
                                 arbitrageService.getExtraSetStr());
                         checkBitmexPosXBTUSD(infoMsgXBTUSD);
@@ -549,8 +549,8 @@ public class PosDiffService {
                     return;
                 }
 
-                boolean isEth = arbitrageService.getLeftMarketService().getContractType().isEth();
-                if (isEth) {
+                boolean isQuanto = arbitrageService.getLeftMarketService().getContractType().isQuanto();
+                if (isQuanto) {
                     if (corrExtraStartedOrFailed(corrParams)) {
                         return;
                     }
@@ -560,7 +560,7 @@ public class PosDiffService {
                     return;
                 }
 
-                if (isEth) {
+                if (isQuanto) {
                     if (adjExtraStartedOrFailed(corrParams)) {
                         return;
                     }

@@ -91,11 +91,6 @@ public enum BitmexContractType implements ContractType {
         return this.name().startsWith("XBT");
     }
 
-    @Override
-    public boolean isEth() {
-        return isQuanto();
-    }
-
     public boolean isQuanto() {
         return this.name().startsWith("ETH")
                 || this == LINKUSDT_Perpetual

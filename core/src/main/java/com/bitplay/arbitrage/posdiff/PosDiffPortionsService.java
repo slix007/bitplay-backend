@@ -124,7 +124,7 @@ public class PosDiffPortionsService {
 
     private BigDecimal useMaxBlockUsd(BigDecimal filledUsdBlock, BigDecimal maxBlockUsd) {
         final OkCoinService okCoinService = (OkCoinService) arbitrageService.getRightMarketService();
-        BigDecimal maxBlockCnt = PlacingBlocks.toOkexCont(maxBlockUsd, okCoinService.getContractType().isEth());
+        BigDecimal maxBlockCnt = PlacingBlocks.toOkexCont(maxBlockUsd, okCoinService.getContractType().isQuanto());
         if (maxBlockCnt.signum() <= 0) {
             // wrong settings
             final String msg = "wrong portions settings. maxBlockUsd=" + maxBlockUsd + "=> maxBlockCnt=" + maxBlockCnt;
@@ -140,8 +140,8 @@ public class PosDiffPortionsService {
         final BigDecimal leftFilled = left.getLeftFilledAndUpdateBPriceFact(currArgs, true);
         final BigDecimal cm = arbitrageService.getCm();
         final BigDecimal filledUsd = left.isBtm()
-                ? PlacingBlocks.bitmexContToUsd(leftFilled, left.getContractType().isEth(), cm)
-                : PlacingBlocks.okexContToUsd(leftFilled, left.getContractType().isEth());
+                ? PlacingBlocks.bitmexContToUsd(leftFilled, left.getContractType().isQuanto(), cm)
+                : PlacingBlocks.okexContToUsd(leftFilled, left.getContractType().isQuanto());
         logString.append(left.getNameWithType()).append(" READY.");
         return filledUsd;
     }
@@ -240,14 +240,14 @@ public class PosDiffPortionsService {
         PlaceOrderArgs updatedArgs = currArgs;
         final Long tradeId = currArgs.getTradeId();
         final DealPrices dealPrices = dealPricesRepositoryService.findByTradeId(tradeId);
-        final boolean isEth = left.getContractType().isEth();
+        final boolean isQuanto = left.getContractType().isQuanto();
 
         final boolean leftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
-        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isEth, arbitrageService.getCm(), leftOkex);
+        final BigDecimal btmFilledCont = PlacingBlocks.toBitmexContPure(btmFilledUsd, isQuanto, arbitrageService.getCm(), leftOkex);
 
         // when btmFilled < fullAmount
         if (btmFilledCont.compareTo(dealPrices.getBPriceFact().getFullAmount()) < 0) {
-            final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isEth);
+            final BigDecimal okexNewFullAmount = PlacingBlocks.toOkexCont(btmFilledUsd, isQuanto);
             if (currArgs.getFullAmount().compareTo(okexNewFullAmount) != 0) {
                 updatedArgs = okexService.updateFullDeferredAmount(okexNewFullAmount);
             }
