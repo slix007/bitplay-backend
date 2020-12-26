@@ -280,12 +280,16 @@ public class PosDiffService {
                 .doOnComplete(() -> {
                     final String infoMsg = String.format("Double check before timer-state-reset mainSet. %s fetchPosition:",
                             arbitrageService.getMainSetStr());
-                    if (Thread.interrupted()) return;
+                    if (Thread.interrupted()) {
+                        return;
+                    }
                     final String pos1 = arbitrageService.getLeftMarketService().fetchPosition();
-                    if (Thread.interrupted()) return;
+                    if (Thread.interrupted()) {
+                        return;
+                    }
                     final String pos2 = arbitrageService.getRightMarketService().fetchPosition();
                     warningLogger.info(infoMsg + "left " + pos1);
-                    warningLogger.info(infoMsg + "right "+ pos2);
+                    warningLogger.info(infoMsg + "right " + pos2);
 
                     if (arbitrageService.getLeftMarketService().getContractType().isQuanto()) {
                         final String infoMsgXBTUSD = String.format("Double check before timer-state-reset XBTUSD. %s fetchPosition:",
@@ -293,7 +297,9 @@ public class PosDiffService {
                         checkBitmexPosXBTUSD(infoMsgXBTUSD);
                     }
 
-                    if (Thread.interrupted()) return;
+                    if (Thread.interrupted()) {
+                        return;
+                    }
 //                    doCorrectionImmediate(SignalType.CORR_TIMER); - no correction. StopAllActions instead.
                     if (!isPosEqualByMaxAdj(getDcMainSet()) || !isPosEqualByMaxAdj(getDcExtraSet())) {
                         arbitrageService.getLeftMarketService().stopAllActions("stopAllActions");
@@ -863,7 +869,6 @@ public class PosDiffService {
                 ? getDcExtraSet().setScale(2, RoundingMode.HALF_UP)
                 : getDcMainSet().setScale(2, RoundingMode.HALF_UP);
 
-
         // --- Filling corrObj ---> market and amount
 
         final CorrObj corrObj = new CorrObj(baseSignalType, oPL, oPS);
@@ -1000,7 +1005,8 @@ public class PosDiffService {
                 final TradeResponse tradeResponse = marketService.placeOrder(placeOrderArgs);
                 if (signalType.isMainSet() && tradeResponse.errorInsufficientFunds()) {
                     // switch the market
-                    final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getNameWithType());
+                    final String switchMsg = String
+                            .format("%s switch markets. %s INSUFFICIENT_BALANCE.", corrObj.signalType, corrObj.marketService.getNameWithType());
                     warningLogger.warn(switchMsg);
                     corrObj.marketService.getTradeLogger().info(switchMsg);
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
@@ -1138,7 +1144,7 @@ public class PosDiffService {
     }
 
     void switchMarkets(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax,
-                               MarketServicePreliq theOtherService) {
+            MarketServicePreliq theOtherService) {
         corrObj.marketService = theOtherService;
         corrObj.signalType = corrObj.signalType.switchMarket();
         if (theOtherService.getArbType() == ArbType.LEFT) {
@@ -1199,7 +1205,7 @@ public class PosDiffService {
      */
     @SuppressWarnings("Duplicates")
     void adaptCorrAdjByPos(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
-                           final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean leftIsBtm) {
+            final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean leftIsBtm) {
 
         final BigDecimal okexUsd = isEth
                 ? (oPL.subtract(oPS)).multiply(BigDecimal.valueOf(10))
@@ -1646,6 +1652,19 @@ public class PosDiffService {
         final BigDecimal rightUsd = getOkexUsd(isQuanto, arbitrageService.getRightMarketService().getPosVal());
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, left.getPosVal(), left.isBtm());
+        final BigDecimal bitmexUsdWithHedge = leftUsd.subtract(hedgeAmountUsd);
+
+        return rightUsd.add(bitmexUsdWithHedge);
+    }
+
+    BigDecimal getDcMainSet(RecoveryParam rp) {
+        final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
+        final boolean isQuanto = arbitrageService.isEth();
+        final BigDecimal rightPosVal = rp.isKpRight() ? BigDecimal.ZERO : arbitrageService.getRightMarketService().getPosVal();
+        final BigDecimal rightUsd = getOkexUsd(isQuanto, rightPosVal);
+        final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+        final BigDecimal leftPosVal = rp.isKpLeft() ? BigDecimal.ZERO : left.getPosVal();
+        final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, leftPosVal, left.isBtm());
         final BigDecimal bitmexUsdWithHedge = leftUsd.subtract(hedgeAmountUsd);
 
         return rightUsd.add(bitmexUsdWithHedge);
