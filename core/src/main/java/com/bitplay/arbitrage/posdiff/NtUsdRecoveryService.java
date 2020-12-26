@@ -356,7 +356,8 @@ public class NtUsdRecoveryService {
      * marketService<br> orderType<br> correctAmount<br> contractType<br>
      */
     @SuppressWarnings("Duplicates")
-    private void adaptCorrAdjByPosAndDqlAndEBest(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS, final BigDecimal hedgeAmount,
+    private void adaptCorrAdjByPosAndDqlAndEBest(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
+            final BigDecimal hedgeAmount,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean btmSo, String predefinedMarketNameWithType) {
 
         boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
@@ -389,8 +390,9 @@ public class NtUsdRecoveryService {
             // >>> Recovery_nt_usd_increase_pos (only button) UPDATE
             StringBuilder exLog = new StringBuilder();
             if (predefinedMarketNameWithType == null) { //is NOT Auto
-                boolean increaseOnBitmex = isFirstMarket && bP.signum() >= 0;
-                boolean increaseOnOkex = !isFirstMarket && (oPL.subtract(oPS)).signum() >= 0;
+                boolean isSecondMarket = !isFirstMarket;
+                boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() > 0; //bitmex buy, включая переход через 0
+                boolean increaseOnOkex = isSecondMarket && oPS.signum() == 0; // okex buy AND okex has no 'opened-short-pos'
                 if (increaseOnBitmex || increaseOnOkex) {
                     // 1. Сравниваем DQL двух бирж:
                     BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
@@ -411,14 +413,20 @@ public class NtUsdRecoveryService {
             }
             // <<< endOf Recovery_nt_usd_increase_pos (only button) UPDATE
 
-            final String exLogStr = exLog.length() > 0 ? exLog.toString() : "auto(predefinedMarket) or byPos";
+            String extLogLabel = "RECOVERY_NTUSD: ";
+            String exLogStr = exLog.toString();
+            if (exLogStr.length() == 0) {
+                exLogStr = predefinedMarketNameWithType != null
+                        ? "auto(predefinedMarket)"
+                        : "byPos";
+            }
             if (isFirstMarket) {
                 // bitmex buy
                 posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 corrObj.marketService = arbitrageService.getLeftMarketService();
                 if (bP.signum() >= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
-                    corrObj.marketService.getTradeLogger().info("RECOVERY_NTUSD_INCREASE_POS: " + exLogStr);
+                    extLogLabel = "RECOVERY_NTUSD_INCREASE_POS: ";
                 }
             } else {
                 // okcoin buy
@@ -427,9 +435,10 @@ public class NtUsdRecoveryService {
                 corrObj.marketService = arbitrageService.getRightMarketService();
                 if ((oPL.subtract(oPS)).signum() >= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
-                    corrObj.marketService.getTradeLogger().info("RECOVERY_NTUSD_INCREASE_POS: " + exLogStr);
+                    extLogLabel = "RECOVERY_NTUSD_INCREASE_POS: ";
                 }
             }
+            corrObj.marketService.getTradeLogger().info(extLogLabel + exLogStr);
         } else {
             corrObj.orderType = OrderType.ASK;
             final boolean isSecondMarketByPos = (bEquiv.compareTo(okEquiv) < 0 || btmSo) && !posDiffService.okexAmountIsZero(corrObj, dc, isEth);
@@ -440,8 +449,10 @@ public class NtUsdRecoveryService {
             // >>> Recovery_nt_usd_increase_pos (only button) UPDATE
             StringBuilder exLog = new StringBuilder();
             if (predefinedMarketNameWithType == null) { //is NOT Auto
-                boolean increaseOnBitmex = !isSecondMarket && bP.signum() >= 0;
-                boolean increaseOnOkex = isSecondMarket && (oPL.subtract(oPS)).signum() >= 0;
+                boolean isFirstMarket = !isSecondMarket;
+                // sell when already pos-negative
+                boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() < 0; //bitmex sell, включая переход через 0
+                boolean increaseOnOkex = isSecondMarket && oPL.signum() > 0; // okex sell AND okex has no 'opened-long-pos'
                 if (increaseOnBitmex || increaseOnOkex) {
                     // 1. Сравниваем DQL двух бирж:
                     BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
@@ -462,7 +473,13 @@ public class NtUsdRecoveryService {
             }
             // <<< endOf Recovery_nt_usd_increase_pos (only button) UPDATE
 
-            final String exLogStr = exLog.length() > 0 ? exLog.toString() : "auto(predefinedMarket) or byPos";
+            String extLogLabel = "RECOVERY_NTUSD: ";
+            String exLogStr = exLog.toString();
+            if (exLogStr.length() == 0) {
+                exLogStr = predefinedMarketNameWithType != null
+                        ? "auto(predefinedMarket)"
+                        : "byPos";
+            }
             if (isSecondMarket) {
                 // okcoin sell
                 corrObj.marketService = arbitrageService.getRightMarketService();
@@ -470,7 +487,7 @@ public class NtUsdRecoveryService {
                 posDiffService.defineOkexThroughZero(corrObj);
                 if ((oPL.subtract(oPS)).signum() <= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
-                    corrObj.marketService.getTradeLogger().info("RECOVERY_NTUSD_INCREASE_POS: " + exLogStr);
+                    extLogLabel = "RECOVERY_NTUSD_INCREASE_POS: ";
                 }
             } else {
                 // bitmex sell
@@ -478,9 +495,10 @@ public class NtUsdRecoveryService {
                 posDiffService.defineCorrectAmountBitmex(corrObj, dc, cm, isEth, leftIsBtm);
                 if (bP.signum() <= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
-                    corrObj.marketService.getTradeLogger().info("RECOVERY_NTUSD_INCREASE_POS: " + exLogStr);
+                    extLogLabel = "RECOVERY_NTUSD_INCREASE_POS: ";
                 }
             }
+            corrObj.marketService.getTradeLogger().info(extLogLabel + exLogStr);
         }
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
