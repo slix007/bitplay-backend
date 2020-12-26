@@ -405,7 +405,7 @@ public abstract class AbstractUiService<T extends MarketService> {
     public LiquidationInfoJson getLiquidationInfoJson() {
         final T bs = getBusinessService();
         if (bs == null) {
-            return new LiquidationInfoJson("", "", "", "");
+            return new LiquidationInfoJson("", "", "", "", "");
         }
         final LiqInfo liqInfo = bs.getLiqInfo();
         final LiqParams liqParams = bs.getPersistenceService().fetchLiqParams(bs.getNameWithType());
@@ -414,7 +414,9 @@ public abstract class AbstractUiService<T extends MarketService> {
         if (dqlString != null && dqlString.startsWith(s + "_DQL = na")) {
             dqlString = s + "_DQL = na";
         }
-        return new LiquidationInfoJson(dqlString,
+        return new LiquidationInfoJson(
+                liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toString() : "",
+                dqlString,
                 liqInfo.getDmrlString(),
                 String.format("DQL: %s ... %s", liqParams.getDqlMin(), liqParams.getDqlMax()),
                 String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax()),
