@@ -143,7 +143,7 @@ public class PreliqService {
                 long secToReadyKillpos = dtKillpos.secToReadyPrecise(delaySecKillpos);
                 if (marketDqlState == DqlState.KILLPOS) {
                     if (secToReadyKillpos > 0) {
-                        final String counterForLogs = marketService.getCounterNameNext(getSignalType()) + "*";
+                        final String counterForLogs = marketService.getCounterNameNext(getKillposSignalType()) + "*";
                         String msg = String.format("#%s %s_KILLPOS signal mainSet. Waiting delay(sec)=%s", counterForLogs, nameSymbol, secToReadyKillpos);
                         log.info(msg);
                         warningLogger.info(msg);
@@ -170,10 +170,11 @@ public class PreliqService {
                     }
 
                     if (corrParams.getKillpos().hasSpareTotalAttempts()) {
+                        final String counterForLogs = marketService.getCounterNameNext(getKillposSignalType());
+
                         corrParams.getKillpos().incTotalCount(getName()); // counterName relates on it
                         persistenceService.saveCorrParams(corrParams);
 
-                        final String counterForLogs = marketService.getCounterNameNext(getSignalType());
                         printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "KILLPOS");
                         marketService.getKillPosService().doKillPos(counterForLogs);
                         log.info("dtKillpos stop after successful killpos");
@@ -322,7 +323,7 @@ public class PreliqService {
                 dqlCurrStr, dqlCloseMinStr, dqlKillPosStr);
     }
 
-    private SignalType getSignalType() {
+    private SignalType getKillposSignalType() {
         if (getName().equals(BitmexService.NAME)) {
             return SignalType.B_KILLPOS;
         }
