@@ -206,6 +206,9 @@ public class PreliqService {
                         printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "PRELIQ");
                         corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
                         persistenceService.saveCorrParams(corrParams);
+
+                        getTheOtherMarket().stopAllActions("preliq:stopAllActions");
+
                         doPreliqOrder(preliqParams);
                         log.info("dtPreliq stop after successful preliq");
                         dtPreliq.stop(); //after successful start
