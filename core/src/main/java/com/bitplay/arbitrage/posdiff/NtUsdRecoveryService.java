@@ -154,7 +154,7 @@ public class NtUsdRecoveryService {
             marketService.getTradeLogger().warn(resultMsg);
             log.warn(resultMsg);
         } else if (correctAmount.signum() <= 0) {
-            resultMsg = String.format("No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
+            resultMsg = String.format("No %s: amount=%s, maxLeft=%s, maxRight=%s, (-nt_usd)dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
                     corrNameWithMarket,
                     correctAmount,
                     maxBtm, maxOk, dc,
@@ -238,7 +238,7 @@ public class NtUsdRecoveryService {
             PlacingType placingType, BigDecimal leftPosVal, BigDecimal rightPosVal) {
         final boolean outsideLimits = posDiffService.outsideLimits(marketService, orderType, placingType, signalType);
         if (outsideLimits) {
-            final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
+            final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, (-nt_usd)dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
                     corrName,
                     correctAmount,
                     maxBtm, maxOk, dc,

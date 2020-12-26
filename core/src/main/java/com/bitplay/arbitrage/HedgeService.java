@@ -16,8 +16,8 @@ public class HedgeService {
     @Autowired
     private SettingsRepositoryService settingsRepositoryService;
 
-    private BigDecimal hedgeBtc;
-    private BigDecimal hedgeEth;
+    private volatile BigDecimal hedgeBtc;
+    private volatile BigDecimal hedgeEth;
 
     // если активна опция auto для hedge:
     //hb_usd = - hedge_btc * usd_qu;
