@@ -1210,9 +1210,9 @@ public class OkCoinService extends MarketServicePreliq {
                     BigDecimal affordableContractsForLong;
                     final BigDecimal usdInContract = BigDecimal.valueOf(this.usdInContract);
                     if (position.getPositionShort().signum() != 0) { // there are sells
-                        if (volPlan.compareTo(position.getPositionShort()) != 1) {
+                        if (volPlan.compareTo(position.getPositionShort()) < 1) {
                             affordableContractsForLong = (position.getPositionShort().subtract(position.getPositionLong()).add(
-                                    (equity.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(usdInContract, 0, BigDecimal.ROUND_DOWN)
+                                        (equity.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage).divide(usdInContract, 0, BigDecimal.ROUND_DOWN)
                             )).setScale(0, BigDecimal.ROUND_DOWN);
                         } else {
                             affordableContractsForLong = (available.subtract(reserveBtc)).multiply(bestAsk).multiply(leverage)
@@ -1232,7 +1232,7 @@ public class OkCoinService extends MarketServicePreliq {
 //                if (orderType.equals(Order.OrderType.ASK) || orderType.equals(Order.OrderType.EXIT_BID)) {
                     BigDecimal affordableContractsForShort;
                     if (position.getPositionLong().signum() != 0) { // we have BIDs
-                        if (volPlan.compareTo(position.getPositionLong()) != 1) { // если мы хотим закрыть меньше чем есть
+                        if (volPlan.compareTo(position.getPositionLong()) < 1) { // если мы хотим закрыть меньше чем есть
                             final BigDecimal divide = (equity.subtract(reserveBtc)).multiply(bestBid.multiply(leverage))
                                     .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                             affordableContractsForShort = (position.getPositionLong().subtract(position.getPositionShort()).add(
@@ -1242,7 +1242,7 @@ public class OkCoinService extends MarketServicePreliq {
                             affordableContractsForShort = (available.subtract(reserveBtc)).multiply(bestBid).multiply(leverage)
                                     .divide(usdInContract, 0, BigDecimal.ROUND_DOWN);
                         }
-                        if (affordableContractsForShort.compareTo(position.getPositionLong()) == -1) {
+                        if (affordableContractsForShort.compareTo(position.getPositionLong()) < 0) {
                             affordableContractsForShort = position.getPositionLong();
                         }
                     } else { // no BIDs
