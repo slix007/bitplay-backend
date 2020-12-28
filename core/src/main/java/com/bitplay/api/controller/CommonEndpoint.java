@@ -62,7 +62,8 @@ public class CommonEndpoint {
         final MarketService second = twoMarketStarter.getRightMarketService();
         final String secondName = second.getName();
         final String secondFuturesContract = second.getFuturesContractName();
-        return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract);
+        boolean isEth = first.getContractType().isQuanto();
+        return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract, isEth);
     }
 
     @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
