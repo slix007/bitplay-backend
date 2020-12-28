@@ -154,15 +154,16 @@ public class NtUsdRecoveryService {
             marketService.getTradeLogger().warn(resultMsg);
             log.warn(resultMsg);
         } else if (correctAmount.signum() <= 0) {
-            resultMsg = String.format("No %s: amount=%s, maxLeft=%s, maxRight=%s, (-nt_usd)dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
-                    corrNameWithMarket,
-                    correctAmount,
-                    maxBtm, maxOk, dc,
-                    arbitrageService.getLeftMarketService().getPos().toString(), leftPosVal,
-                    arbitrageService.getRightMarketService().getPos().toString(), rightPosVal,
-                    hedgeAmount.toPlainString(),
-                    signalType
-            );
+            resultMsg = String
+                    .format("No %s: amount=%s, maxLeft=%s, maxRight=%s, (-nt_usd)dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
+                            corrNameWithMarket,
+                            correctAmount,
+                            maxBtm, maxOk, dc,
+                            arbitrageService.getLeftMarketService().getPos().toString(), leftPosVal,
+                            arbitrageService.getRightMarketService().getPos().toString(), rightPosVal,
+                            hedgeAmount.toPlainString(),
+                            signalType
+                    );
             warningLogger.warn(resultMsg);
             marketService.getTradeLogger().warn(resultMsg);
             log.warn(resultMsg);
@@ -184,15 +185,10 @@ public class NtUsdRecoveryService {
             final boolean outsideLimits = checkOutsideLimits(corrNameWithMarket, dc, maxBtm, maxOk, corrObj, hedgeAmount,
                     marketService, orderType, correctAmount, signalType, placingType, leftPosVal, rightPosVal);
             if (outsideLimits) {
-                if (rp.isAuto()) {
-                    resultMsg = "outsideLimits. No switchMarkets because predefinedMarket=" + rp.getPredefinedMarketNameWithType();
-                    warningLogger.warn(resultMsg);
-                    marketService.getTradeLogger().warn(resultMsg);
-                    log.warn(resultMsg);
-                } else {
-                    resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, leftPosVal, rightPosVal, corrObj,
-                            placingType, counterName, tradeId, message, hedgeAmount, signalType);
-                }
+                resultMsg = "outsideLimits. predefinedMarket=" + rp.getPredefinedMarketNameWithType();
+                warningLogger.warn(resultMsg);
+                marketService.getTradeLogger().warn(resultMsg);
+                log.warn(resultMsg);
             } else {
 
                 final String setStr = arbitrageService.getMainSetStr();
@@ -219,14 +215,13 @@ public class NtUsdRecoveryService {
                     warningLogger.warn("predefinedMarketNameWithType=" + rp.getPredefinedMarketNameWithType() + " and marketService are not match");
                 }
 
-                if (tradeResponse.errorInsufficientFunds() && rp.getPredefinedMarketNameWithType() == null) {
-                    marketService.setMarketState(MarketState.READY);
-                    resultMsg = switchMarkets(resultMsg, corrName, dc, cm, isEth, maxBtm, maxOk, leftPosVal, rightPosVal, corrObj,
-                            placingType, counterName, tradeId, message, hedgeAmount, signalType);
-                } else {
-                    resultMsg += parseResMsg(tradeResponse);
-                    marketService.getArbitrageService().setBusyStackChecker();
-                }
+                String msg = String.format("tradeResponse.errorInsufficientFunds()=%s, predefinedMarketNameWithType=%s",
+                        tradeResponse.errorInsufficientFunds(),
+                        rp.getPredefinedMarketNameWithType());
+                log.warn(msg);
+                warningLogger.warn(msg);
+                resultMsg += parseResMsg(tradeResponse);
+                marketService.getArbitrageService().setBusyStackChecker();
             }
         }
 
@@ -238,89 +233,21 @@ public class NtUsdRecoveryService {
             PlacingType placingType, BigDecimal leftPosVal, BigDecimal rightPosVal) {
         final boolean outsideLimits = posDiffService.outsideLimits(marketService, orderType, placingType, signalType);
         if (outsideLimits) {
-            final String msg = String.format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, (-nt_usd)dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
-                    corrName,
-                    correctAmount,
-                    maxBtm, maxOk, dc,
-                    arbitrageService.getLeftMarketService().getPos().toString(), leftPosVal,
-                    arbitrageService.getRightMarketService().getPos().toString(), rightPosVal,
-                    hedgeAmount.toPlainString(),
-                    signalType
-            );
+            final String msg = String
+                    .format("outsideLimits. No %s: amount=%s, maxBtm=%s, maxOk=%s, (-nt_usd)dc=%s, leftPos=%s, leftPosVal=%s, rightPos=%s, rightPosVal=%s, hedge=%s, signal=%s",
+                            corrName,
+                            correctAmount,
+                            maxBtm, maxOk, dc,
+                            arbitrageService.getLeftMarketService().getPos().toString(), leftPosVal,
+                            arbitrageService.getRightMarketService().getPos().toString(), rightPosVal,
+                            hedgeAmount.toPlainString(),
+                            signalType
+                    );
             warningLogger.warn(msg);
             marketService.getTradeLogger().warn(msg);
             log.warn(msg);
         }
         return outsideLimits;
-    }
-
-    private String switchMarkets(String resultMsg, String corrName, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal maxBtm, BigDecimal maxOk,
-            BigDecimal leftPosVal, BigDecimal rightPosVal, CorrObj corrObj, PlacingType placingType, String counterName, Long tradeId,
-            String message, BigDecimal hedgeAmount, SignalType signalType) {
-        // switch the market
-        final String switchMsg = String.format("%s switch markets. %s INSUFFICIENT_BALANCE. ", corrObj.signalType, corrObj.marketService.getNameWithType());
-        warningLogger.warn(switchMsg);
-        corrObj.marketService.getTradeLogger().info(switchMsg);
-        log.info(switchMsg);
-        resultMsg += switchMsg;
-//
-        final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
-                ? arbitrageService.getRightMarketService()
-                : arbitrageService.getLeftMarketService();
-        posDiffService.switchMarkets(corrObj, dc, cm, isEth, maxBtm, maxOk, theOtherService);
-        posDiffService.defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
-        adaptCorrByDqlAfterSwitch(corrObj);
-
-        final String corrNameWithMarket = corrName + " on " + theOtherService.getNameWithType();
-
-        if (corrObj.errorDescription != null) { // DQL violation (open_min or close_min)
-            final String msg = String.format("No %s. %s.", corrNameWithMarket, corrObj.errorDescription);
-            warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
-            log.info(msg);
-            resultMsg += msg;
-            return resultMsg;
-        }
-
-        final boolean outsideLimits = checkOutsideLimits(corrNameWithMarket, dc, maxBtm, maxOk, corrObj, hedgeAmount,
-                theOtherService, corrObj.orderType, corrObj.correctAmount, corrObj.signalType, placingType, leftPosVal, rightPosVal);
-        if (outsideLimits) {
-            final String msg = String.format("No %s. switchMarket: outsideLimits", corrNameWithMarket);
-            warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
-            log.info(msg);
-            resultMsg += msg;
-            return resultMsg;
-        }
-
-        PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
-                .orderType(corrObj.orderType)
-                .amount(corrObj.correctAmount)
-                .placingType(placingType)
-                .signalType(corrObj.signalType)
-                .attempt(1)
-                .tradeId(tradeId)
-                .counterName(counterName)
-                .contractType(corrObj.contractType)
-                .build();
-        corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
-
-        arbitrageService.setSignalType(signalType);
-        corrObj.marketService.setBusy(counterName, MarketState.ARBITRAGE);
-        final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
-
-        if (theOtherResp.errorInsufficientFunds()) {
-            corrObj.marketService.setMarketState(MarketState.READY);
-            final String msg = String.format("No %s. INSUFFICIENT_BALANCE on switched market.", corrNameWithMarket);
-            warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
-            log.info(msg);
-            resultMsg += msg;
-        } else {
-            resultMsg += parseResMsg(theOtherResp);
-            corrObj.marketService.getArbitrageService().setBusyStackChecker();
-        }
-        return resultMsg;
     }
 
     private String parseResMsg(TradeResponse tradeResponse) {
@@ -384,16 +311,18 @@ public class NtUsdRecoveryService {
                     BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
                     BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
                     exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+                    BigDecimal leBest = arbitrageService.getbEbest();
+                    BigDecimal reBest = arbitrageService.getoEbest();
+                    String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
+                    String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
+                    exLog.append(leftEBest).append(rightEBest);
                     if (leftDql != null && rightDql != null
                             && leftDql.subtract(rightDql).signum() != 0) {
                         // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).
                         isFirstMarket = leftDql.subtract(rightDql).signum() > 0;
                     } else {
                         // b) Если хотя бы на одной из бирж DQL равен na или DQL числовые и равны, тогда сравниваем e_best_usd бирж. Там, где больше e_best_usd, та биржа A.
-                        BigDecimal leftEBest = arbitrageService.getbEbest();
-                        BigDecimal rightEBest = arbitrageService.getoEbest();
-                        exLog.append(",leftEBest=").append(leftEBest).append(",rightEBest=").append(rightEBest);
-                        isFirstMarket = leftEBest.subtract(rightEBest).signum() >= 0;
+                        isFirstMarket = leBest.subtract(reBest).signum() >= 0;
                     }
                 }
             }
@@ -488,16 +417,6 @@ public class NtUsdRecoveryService {
         }
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
-    }
-
-    private void adaptCorrByDqlAfterSwitch(final CorrObj corrObj) {
-        if (corrObj.signalType.isIncreasePos()) {
-            boolean theOtherMarketIsViolated = corrObj.marketService.isDqlOpenViolated();
-            if (theOtherMarketIsViolated) {
-                corrObj.correctAmount = BigDecimal.ZERO;
-                corrObj.errorDescription = "DQL_open_min is violated";
-            }
-        }
     }
 
 }

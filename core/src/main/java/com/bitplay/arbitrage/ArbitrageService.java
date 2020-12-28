@@ -192,7 +192,9 @@ public class ArbitrageService {
     private volatile BigDecimal delta2 = BigDecimal.ZERO;
     private volatile GuiParams params = new GuiParams();
     private volatile BigDecimal bEbest = BigDecimal.ZERO;
+    private volatile String bEbestUsd = "";
     private volatile BigDecimal oEbest = BigDecimal.ZERO;
+    private volatile String oEbestUsd = "";
     private volatile BigDecimal sumEBestUsdCurr = BigDecimal.valueOf(-1);
     private volatile BigDecimal sumEBestUsd = BigDecimal.valueOf(-1);
     private volatile String sumBalString = "";
@@ -1910,12 +1912,13 @@ public class ArbitrageService {
                 String leftPosString = leftMarketService.getMarketStaticData() == MarketStaticData.BITMEX
                         ? ("p" + Utils.withSign(bP))
                         : String.format("p+%s-%s", leftMarketService.getPos().getPositionLong(), leftMarketService.getPos().getPositionShort());
+                bEbestUsd = bEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString();
                 fplayTradeService.info(tradeId, counterName, String.format(
                         "#%s L_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, %s, lv%s, lg%s, st%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         bW.toPlainString(), bW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bEmark.toPlainString(), bEmark.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        bEbest.toPlainString(), bEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        bEbest.toPlainString(), bEbestUsd,
                         bEavg.toPlainString(), bEavg.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bU.toPlainString(), bU.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         bM.toPlainString(), bM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -1982,12 +1985,13 @@ public class ArbitrageService {
                 final BigDecimal oBestAsk = Utils.getBestAsks(oOrderBook, 1).get(0).getLimitPrice();
                 final BigDecimal oBestBid = Utils.getBestBids(oOrderBook, 1).get(0).getLimitPrice();
 
+                oEbestUsd = oEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString();
                 fplayTradeService.info(tradeId, counterName, String.format(
                         "#%s R_bal=w%s_%s, e_mark%s_%s, e_best%s_%s, e_avg%s_%s, u%s_%s, m%s_%s, a%s_%s, p+%s-%s, lv%s, lg%s, st%s, lgMkt%s, stMkt%s, ask[1]%s, bid[1]%s, usd_qu%s",
                         counterName,
                         oW.toPlainString(), oW.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oElast.toPlainString(), oElast.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
-                        oEbest.toPlainString(), oEbest.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
+                        oEbest.toPlainString(), oEbestUsd,
                         oEavg.toPlainString(), oEavg.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oU.toPlainString(), oU.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
                         oM.toPlainString(), oM.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP),
@@ -2514,6 +2518,13 @@ public class ArbitrageService {
         return oEbest;
     }
 
+    public String getbEbestUsd() {
+        return bEbestUsd;
+    }
+
+    public String getoEbestUsd() {
+        return oEbestUsd;
+    }
     public BigDecimal getSumEBestUsd() {
         return sumEBestUsd;
     }
