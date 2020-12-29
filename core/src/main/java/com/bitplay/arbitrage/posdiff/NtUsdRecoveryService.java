@@ -373,16 +373,18 @@ public class NtUsdRecoveryService {
                     BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
                     BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
                     exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+                    BigDecimal leBest = arbitrageService.getbEbest();
+                    BigDecimal reBest = arbitrageService.getoEbest();
+                    String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
+                    String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
+                    exLog.append(leftEBest).append(rightEBest);
                     if (leftDql != null && rightDql != null
                             && leftDql.subtract(rightDql).signum() != 0) {
                         // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).
                         isSecondMarket = !(leftDql.subtract(rightDql).signum() > 0);
                     } else {
                         // b) Если хотя бы на одной из бирж DQL равен na или DQL числовые и равны, тогда сравниваем e_best_usd бирж. Там, где больше e_best_usd, та биржа A.
-                        BigDecimal leftEBest = arbitrageService.getbEbest();
-                        BigDecimal rightEBest = arbitrageService.getoEbest();
-                        exLog.append(",leftEBest=").append(leftEBest).append(",rightEBest=").append(rightEBest);
-                        isSecondMarket = !(leftEBest.subtract(rightEBest).signum() >= 0);
+                        isSecondMarket = !(leBest.subtract(reBest).signum() >= 0);
                     }
                 }
             }
