@@ -823,7 +823,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     public static BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice, BigDecimal secondPrice, int scale) {
         //pl_pos = (1/EntryPrice - 1/MarkPrice) * 10 * N
-        // N - кол-во контрактов. По модулю(не отрицательное)
+        // N - кол-во контрактов. Для short брать отрицательное.
         BigDecimal plPos = BigDecimal.ZERO;
         if (n.signum() != 0
                 && secondPrice != null && secondPrice.signum() != 0
