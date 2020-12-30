@@ -817,16 +817,15 @@ public class OkCoinService extends MarketServicePreliq {
 
         int plPosScale = okexContractType.getScale() + 2;
         BigDecimal longPlPos = calcPlPosValue(currPos.getPositionLong(), currPos.getPriceAvgLong(), markPrice, plPosScale);
-        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort(), currPos.getPriceAvgShort(), markPrice, plPosScale);
+        BigDecimal shortPlPos = calcPlPosValue(currPos.getPositionShort().negate(), currPos.getPriceAvgShort(), markPrice, plPosScale);
         return currPos.updatePlPos(longPlPos.add(shortPlPos));
     }
 
     public static BigDecimal calcPlPosValue(BigDecimal n, BigDecimal entryPrice, BigDecimal secondPrice, int scale) {
         //pl_pos = (1/EntryPrice - 1/MarkPrice) * 10 * N
-        //pl_pos_best = (1/EntryPrice - 1/BestPrice) * 10 * N
         // N - кол-во контрактов. По модулю(не отрицательное)
         BigDecimal plPos = BigDecimal.ZERO;
-        if (n.signum() > 0
+        if (n.signum() != 0
                 && secondPrice != null && secondPrice.signum() != 0
                 && entryPrice != null && entryPrice.signum() != 0) {
             plPos = (BigDecimal.ONE.divide(entryPrice, 16, RoundingMode.HALF_UP)
