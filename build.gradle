@@ -19,6 +19,18 @@ remotes {
         password = bpPassword
         port = bpPort as Integer
     }
+    host5040 {
+        host = bpHost5040
+        user = bpUser
+        password = bpPassword
+        port = bpPort as Integer
+    }
+    host5061 {
+        host = bpHost5061
+        user = bpUser
+        password = bpPassword
+        port = bpPort as Integer
+    }
     host659 {
         host = bpHost659
         user = bpUser
@@ -100,6 +112,8 @@ task cleanLogs {
 // Test servers
 task deployHost658 { doLast { sshRun(remotes.host658, remoteHomeDir, remoteInstallDir) } }
 task deployHost5068 { doLast { sshRun(remotes.host5068, remoteHomeDir, remoteInstallDir) } }
+task deployHost5040 { doLast { sshRun(remotes.host5040, remoteHomeDir, remoteInstallDir) } }
+task deployHost5061 { doLast { sshRun(remotes.host5061, remoteHomeDir, remoteInstallDir) } }
 task deployHost660 { doLast { sshRun(remotes.host660, remoteHomeDir, remoteInstallDir) } }
 
 // Prod servers
