@@ -21,8 +21,8 @@ remotes {
     }
     host5040 {
         host = bpHost5040
-        user = bpUser
-        password = bpPassword
+        user = bpUser5040
+        password = bpPassword5040
         port = bpPort as Integer
     }
     host5061 {

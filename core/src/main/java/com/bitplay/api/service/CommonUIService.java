@@ -513,6 +513,14 @@ public class CommonUIService {
             final BigDecimal cm = placingBlocks.getCm();
             BigDecimal leftSCV = arbitrageService.getLeftMarketService().getSCV();
             BigDecimal rightSCV = arbitrageService.getRightMarketService().getSCV();
+            if (leftSCV == null) {
+                leftSCV = arbitrageService.getLeftMarketService().isBtm()
+                        ? BigDecimal.ONE
+                        : BigDecimal.valueOf(10);
+            }
+            if (rightSCV == null) {
+                rightSCV = BigDecimal.valueOf(10);
+            }
 
             posDiff = new PosDiffJson(
                     posDiffService.isMainSetEqual(),
@@ -522,8 +530,8 @@ public class CommonUIService {
                     arbitrageService.getExtraSetStr(),
                     arbitrageService.getExtraSetSource(),
                     placingBlocks,
-                    leftSCV != null ? leftSCV.toPlainString() : "",
-                    rightSCV != null ? rightSCV.toPlainString() : "",
+                    leftSCV.toPlainString(),
+                    rightSCV.toPlainString(),
                     arbitrageService.isEth(),
                     cm
             );
