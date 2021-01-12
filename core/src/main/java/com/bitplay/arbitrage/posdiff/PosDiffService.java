@@ -1649,9 +1649,11 @@ public class PosDiffService {
     BigDecimal getDcMainSet() {
         final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
         final boolean isQuanto = arbitrageService.isEth();
-        final BigDecimal rightUsd = getOkexUsd(isQuanto, arbitrageService.getRightMarketService().getPosVal());
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        final BigDecimal rightUsd = getOkexUsd(isQuanto, right.getPosVal(), right.getSCV());
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
-        final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, left.getPosVal(), left.isBtm());
+        final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, left.getPosVal(), left.isBtm(),
+                left.getSCV());
         final BigDecimal bitmexUsdWithHedge = leftUsd.subtract(hedgeAmountUsd);
 
         return rightUsd.add(bitmexUsdWithHedge);
@@ -1660,11 +1662,13 @@ public class PosDiffService {
     BigDecimal getDcMainSet(RecoveryParam rp) {
         final BigDecimal hedgeAmountUsd = getHedgeAmountMainSet();
         final boolean isQuanto = arbitrageService.isEth();
-        final BigDecimal rightPosVal = rp.isKpRight() ? BigDecimal.ZERO : arbitrageService.getRightMarketService().getPosVal();
-        final BigDecimal rightUsd = getOkexUsd(isQuanto, rightPosVal);
+        final MarketServicePreliq right = arbitrageService.getRightMarketService();
+        final BigDecimal rightPosVal = rp.isKpRight() ? BigDecimal.ZERO : right.getPosVal();
+        final BigDecimal rightUsd = getOkexUsd(isQuanto, rightPosVal, right.getSCV());
         final MarketServicePreliq left = arbitrageService.getLeftMarketService();
         final BigDecimal leftPosVal = rp.isKpLeft() ? BigDecimal.ZERO : left.getPosVal();
-        final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, leftPosVal, left.isBtm());
+        final BigDecimal leftUsd = getLeftUsd(arbitrageService.getCm(), isQuanto, leftPosVal, left.isBtm(),
+                arbitrageService.getLeftMarketService().getSCV());
         final BigDecimal bitmexUsdWithHedge = leftUsd.subtract(hedgeAmountUsd);
 
         return rightUsd.add(bitmexUsdWithHedge);
@@ -1679,20 +1683,18 @@ public class PosDiffService {
         return bitmexUsd.subtract(hedgeAmountUsd);
     }
 
-    public static BigDecimal getOkexUsd(boolean isQuanto, BigDecimal oP) {
-        return isQuanto
-                ? (oP).multiply(BigDecimal.valueOf(10))
-                : (oP).multiply(BigDecimal.valueOf(100));
+    public static BigDecimal getOkexUsd(boolean isQuanto, BigDecimal oP, BigDecimal scv) {
+        return oP.multiply(scv);
     }
 
-    public static BigDecimal getLeftUsd(BigDecimal cm, boolean isQuanto, BigDecimal lP, boolean leftIsBitmex) {
+    public static BigDecimal getLeftUsd(BigDecimal cm, boolean isQuanto, BigDecimal lP, boolean leftIsBitmex, BigDecimal scv) {
         final BigDecimal leftUsd;
         if (leftIsBitmex) {
             leftUsd = isQuanto
-                    ? lP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
+                    ? lP.multiply(scv).setScale(2, RoundingMode.HALF_UP)
                     : lP;
         } else {
-            leftUsd = getOkexUsd(isQuanto, lP);
+            leftUsd = getOkexUsd(isQuanto, lP, scv);
         }
         return leftUsd;
     }

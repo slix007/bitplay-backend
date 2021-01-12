@@ -2146,8 +2146,8 @@ public class ArbitrageService {
         boolean isQuanto = leftService.getContractType().isQuanto();
 
         final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
-        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, leftService.getPosVal(), leftMarketService.isBtm());
-        final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, rightService.getPosVal());
+        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, leftService.getPosVal(), leftMarketService.isBtm(), leftService.getSCV());
+        final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, rightService.getPosVal(), rightService.getSCV());
         final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
 
         final String setName = settings.getContractMode().getMainSetName();
@@ -2381,8 +2381,8 @@ public class ArbitrageService {
         boolean isQuanto = left.getContractType().isQuanto();
 
         final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
-        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, left.getPosVal(), leftMarketService.isBtm());
-        final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, right.getPosVal());
+        final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, left.getPosVal(), leftMarketService.isBtm(), left.getSCV());
+        final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, right.getPosVal(), right.getSCV());
         //noinspection UnnecessaryLocalVariable
         final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
         return notionalUsd;

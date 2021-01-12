@@ -792,7 +792,7 @@ public class BitmexService extends MarketServicePreliq {
             return null;
         }
         // Bitmex_SCV = Okex_SCV / CM
-        return okexSCV.divide(cm, 2, RoundingMode.HALF_UP);
+        return okexSCV.divide(cm, 8, RoundingMode.HALF_UP);
     }
 
     public BitmexObType getBitmexObTypeCurrent() {
@@ -2731,9 +2731,8 @@ public class BitmexService extends MarketServicePreliq {
                 return;
             }
             BigDecimal okexSCV = right.getSCV();
-            Integer scale = getContractType().getScale();
             this.cm = okexSCV.divide(bm, 8, RoundingMode.HALF_UP)
-                    .divide(bxbtIndex.multiply(ethUsdMark), scale, RoundingMode.HALF_UP);
+                    .divide(bxbtIndex.multiply(ethUsdMark), 8, RoundingMode.HALF_UP);
         }
     }
 
