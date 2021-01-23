@@ -31,6 +31,12 @@ remotes {
         password = bpPassword
         port = bpPort as Integer
     }
+    host5060 {
+        host = bpHost5060
+        user = bpUser5060
+        password = bpPassword5060
+        port = bpPort as Integer
+    }
     host659 {
         host = bpHost659
         user = bpUser
@@ -129,8 +135,10 @@ task deployDemo { doLast { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir)
 
 // Real server
 task deployHost5051 { doLast { sshRun(remotes.host5051, '/home/ss', remoteInstallDir) } }
+task deployHost5060 { doLast { sshRun(remotes.host5060, '/home/ss', remoteInstallDir) } }
 
 private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
+    println "===$hostName.host:$hostName.port::$hostName.user::$hostName.password==="
     ssh.run {
         session(hostName) {
 
