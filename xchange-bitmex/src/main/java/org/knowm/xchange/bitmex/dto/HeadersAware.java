@@ -19,6 +19,7 @@ public interface HeadersAware extends HttpResponseAware {
     // .get("X-RateLimit-Remaining") 149
     // .get("X-RateLimit-Reset") ?? 1549453508  - the UNIX timestamp
     // .get("Date")  Wed, 06 Feb 2019 11:45:07 GMT - the time string
+    // x-ratelimit-remaining-1s
     @Override
     default Map<String, List<String>> getResponseHeaders() {
         return headers;

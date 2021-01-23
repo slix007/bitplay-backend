@@ -34,14 +34,24 @@ public class BitmexStateService {
     private void setXrateLimit(Map<String, List<String>> headers) {
         if (headers != null) {
             final List<String> remaining = headers.get("X-RateLimit-Remaining");
-            if (remaining != null && remaining.size() > 0) {
-                final Integer xRateLimitRemaining = Integer.valueOf(remaining.get(0));
-                final List<String> reset = headers.get("X-RateLimit-Reset");
-                final Instant timestamp = (reset != null && reset.size() > 0)
-                        ? Instant.ofEpochSecond(Integer.parseInt(reset.get(0)))
-                        : null;
-                xRateLimit = new BitmexXRateLimit(xRateLimitRemaining, timestamp);
-            }
+            final List<String> remaining1s = headers.get("x-ratelimit-remaining-1s");
+            final List<String> reset = headers.get("X-RateLimit-Reset");
+
+            final boolean hasRemaining = remaining != null && remaining.size() > 0;
+            final boolean hasRemaining1s = remaining1s != null && remaining1s.size() > 0;
+            final boolean hasResetTimestamp = reset != null && reset.size() > 0;
+
+            final int xRateLimitRemaining = hasRemaining
+                    ? Integer.parseInt(remaining.get(0))
+                    : xRateLimit.getxRateLimit();
+            final int xRateLimitRemaining1 = hasRemaining1s
+                    ? Integer.parseInt(remaining1s.get(0))
+                    : xRateLimit.getxRateLimit1s();
+            final Instant timestamp = hasResetTimestamp && (hasRemaining || hasRemaining1s)
+                    ? Instant.ofEpochSecond(Integer.parseInt(reset.get(0)))
+                    : xRateLimit.getLastUpdate();
+
+            xRateLimit = new BitmexXRateLimit(xRateLimitRemaining, xRateLimitRemaining1, timestamp);
         }
     }
 
