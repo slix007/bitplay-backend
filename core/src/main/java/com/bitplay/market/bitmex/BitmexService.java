@@ -728,7 +728,8 @@ public class BitmexService extends MarketServicePreliq {
                     pUpdate.getPositionShort(),
                     BigDecimal.ZERO,
                     BigDecimal.ZERO,
-                    pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage : pUpdate.getLeverage().setScale(2, RoundingMode.HALF_UP),
+                    pUpdate.getLeverage() == null || pUpdate.getLeverage().signum() == 0 ? defaultLeverage
+                            : pUpdate.getLeverage().setScale(2, RoundingMode.HALF_UP),
                     pUpdate.getLiquidationPrice() == null ? current.getLiquidationPrice() : pUpdate.getLiquidationPrice(),
                     pUpdate.getMarkValue() != null ? pUpdate.getMarkValue() : current.getMarkValue(),
                     pUpdate.getPriceAvgLong() == null || pUpdate.getPriceAvgLong().signum() == 0 ? current.getPriceAvgLong() : pUpdate.getPriceAvgLong(),
@@ -3153,8 +3154,12 @@ public class BitmexService extends MarketServicePreliq {
     private boolean overloadByXRateLimit(boolean withResetWaitingArb) {
         final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
         boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
-        if (isExceeded) {
-            String msg = String.format(" xRateLimit=%s(updated=%s). Stop!", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+        boolean isExceeded1s = xRateLimit.getxRateLimit1s() <= 0;
+        if (isExceeded || isExceeded1s) {
+            final String msg = String.format(" xRateLimit=%s(updated=%s, resetAt=%s). xRateLimit1s=%s(updated=%s, resetAt=%s). Stop!",
+                    xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate(), xRateLimit.getResetAt(),
+                    xRateLimit.getxRateLimit1s(), xRateLimit.getLastUpdate1s(), xRateLimit.getResetAt1s()
+            );
             logger.info(msg);
             tradeLogger.info(msg);
             warningLogger.info(msg);

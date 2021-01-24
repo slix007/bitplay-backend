@@ -144,6 +144,10 @@ public class DebugEndpoints {
 
         String xrateLimitBtm = "";
         String xrateLimitBtmUpdated = "";
+        String xrateLimitBtmResetAt = "";
+        String xrateLimitBtm1s = "";
+        String xrateLimitBtmUpdated1s = "";
+        String xrateLimitBtmResetAt1s = "";
         String bitmexReconnectCount = "";
         if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
             final BitmexService bs = (BitmexService) arbitrageService.getLeftMarketService();
@@ -153,9 +157,15 @@ public class DebugEndpoints {
 
                 final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
                 xrateLimitBtmUpdated = formatter.format(bitmexXRateLimit.getLastUpdate());
+                xrateLimitBtmUpdated1s = formatter.format(bitmexXRateLimit.getLastUpdate1s());
                 final int l = bitmexXRateLimit.getxRateLimit();
                 xrateLimitBtm = (l == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
 
+                final int l1s = bitmexXRateLimit.getxRateLimit1s();
+                xrateLimitBtm1s = (l1s == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
+
+                xrateLimitBtmResetAt = formatter.format(bitmexXRateLimit.getResetAt());
+                xrateLimitBtmResetAt1s = formatter.format(bitmexXRateLimit.getResetAt1s());
             }
         }
 
@@ -173,7 +183,14 @@ public class DebugEndpoints {
         return new MonAllJson(resultJson.getResult(), monAllHtml,
                 bitmexReconnectCount,
                 monBitmexPlacing, monBitmexMoving,
-                monOkexPlacing, monOkexMoving, xrateLimitBtm, xrateLimitBtmUpdated);
+                monOkexPlacing, monOkexMoving,
+                xrateLimitBtm,
+                xrateLimitBtmUpdated,
+                xrateLimitBtmResetAt,
+                xrateLimitBtm1s,
+                xrateLimitBtmUpdated1s,
+                xrateLimitBtmResetAt1s
+                );
     }
 
     @RequestMapping(value = "/mon/reset", method = RequestMethod.POST,
