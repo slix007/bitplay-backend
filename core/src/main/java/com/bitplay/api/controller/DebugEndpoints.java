@@ -162,7 +162,7 @@ public class DebugEndpoints {
                 xrateLimitBtm = (l == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
 
                 final int l1s = bitmexXRateLimit.getxRateLimit1s();
-                xrateLimitBtm1s = (l1s == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l));
+                xrateLimitBtm1s = (l1s == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l1s));
 
                 xrateLimitBtmResetAt = formatter.format(bitmexXRateLimit.getResetAt());
                 xrateLimitBtmResetAt1s = formatter.format(bitmexXRateLimit.getResetAt1s());
