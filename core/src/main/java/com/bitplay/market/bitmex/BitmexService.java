@@ -2138,7 +2138,7 @@ public class BitmexService extends MarketServicePreliq {
                     tradeResponse.setErrorCode(null);
 
                     final String message = String.format("#%s %s %s amount=%s with quote=%s was placed.orderId=%s. pos=%s. "
-                                    + "Exec_duration = %s (ms). %s",
+                                    + "Exec_duration = %s (ms). %s. %s",
                             counterName,
                             placingType,
                             orderType.equals(Order.OrderType.BID) ? "BUY" : "SELL",
@@ -2147,7 +2147,9 @@ public class BitmexService extends MarketServicePreliq {
                             orderId,
                             getPositionAsString(),
                             execDuration,
-                            extraLog);
+                            extraLog,
+                            getxRateLimit().getString()
+                    );
                     tradeLogger.info(message, contractTypeStr);
                     ordersLogger.info(message);
 
