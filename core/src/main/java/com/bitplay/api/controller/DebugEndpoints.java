@@ -147,7 +147,6 @@ public class DebugEndpoints {
         String xrateLimitBtmResetAt = "";
         String xrateLimitBtm1s = "";
         String xrateLimitBtmUpdated1s = "";
-        String xrateLimitBtmResetAt1s = "";
         String bitmexReconnectCount = "";
         if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
             final BitmexService bs = (BitmexService) arbitrageService.getLeftMarketService();
@@ -165,7 +164,6 @@ public class DebugEndpoints {
                 xrateLimitBtm1s = (l1s == BitmexXRateLimit.UNDEFINED ? "no info" : String.valueOf(l1s));
 
                 xrateLimitBtmResetAt = formatter.format(bitmexXRateLimit.getResetAt());
-                xrateLimitBtmResetAt1s = formatter.format(bitmexXRateLimit.getResetAt1s());
             }
         }
 
@@ -188,8 +186,7 @@ public class DebugEndpoints {
                 xrateLimitBtmUpdated,
                 xrateLimitBtmResetAt,
                 xrateLimitBtm1s,
-                xrateLimitBtmUpdated1s,
-                xrateLimitBtmResetAt1s
+                xrateLimitBtmUpdated1s
                 );
     }
 

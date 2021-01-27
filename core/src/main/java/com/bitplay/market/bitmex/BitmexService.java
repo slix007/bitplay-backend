@@ -3093,7 +3093,7 @@ public class BitmexService extends MarketServicePreliq {
                 } catch (HttpStatusIOException e) {
 
                     final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-                    final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
+                    final String rateLimitStr = " " + xRateLimit.getString();
 
                     logger.info(String.format("%s %s updateAvgPriceError.", logMsg, rateLimitStr), e);
                     tradeLogger.info(String.format("%s %s updateAvgPriceError %s", logMsg, rateLimitStr, e.getMessage()),
@@ -3136,7 +3136,7 @@ public class BitmexService extends MarketServicePreliq {
     public void sleepByXrateLimit(String logStr) {
         final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
         int sleepSec = (xRateLimit.getxRateLimit() > 20) ? 1 : 5; // xRateLimit: 60 attempts in 1 min
-        final String rateLimitStr = String.format("%s. sleep=%s sec. X-RateLimit-Remaining=%s ", logStr, sleepSec, xRateLimit.getxRateLimit());
+        final String rateLimitStr = String.format("%s. sleep=%s sec. %s ", logStr, sleepSec, xRateLimit.getString());
         logger.info(rateLimitStr);
         tradeLogger.info(rateLimitStr);
         warningLogger.info(rateLimitStr);
@@ -3156,10 +3156,7 @@ public class BitmexService extends MarketServicePreliq {
         boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
         boolean isExceeded1s = xRateLimit.getxRateLimit1s() <= 0;
         if (isExceeded || isExceeded1s) {
-            final String msg = String.format(" xRateLimit=%s(updated=%s, resetAt=%s). xRateLimit1s=%s(updated=%s, resetAt=%s). Stop!",
-                    xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate(), xRateLimit.getResetAt(),
-                    xRateLimit.getxRateLimit1s(), xRateLimit.getLastUpdate1s(), xRateLimit.getResetAt1s()
-            );
+            final String msg = " " + xRateLimit.getString() + ". Stop!";
             logger.info(msg);
             tradeLogger.info(msg);
             warningLogger.info(msg);
@@ -3196,7 +3193,7 @@ public class BitmexService extends MarketServicePreliq {
             try {
 
                 final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-                final String rateLimitStr = String.format(" X-RateLimit-Remaining=%s ", xRateLimit.getxRateLimit());
+                final String rateLimitStr = String.format(" %s ", xRateLimit.getString());
 
                 final String marketResponseMessage;
                 final String httpBody = e.getHttpBody();

@@ -27,6 +27,5 @@ public class MonAllJson {
     private String xrateLimitBtmResetAt;
     private String xrateLimitBtm1s;
     private String xrateLimitBtmUpdated1s;
-    private String xrateLimitBtmResetAt1s;
 
 }

@@ -54,9 +54,6 @@ public class BitmexStateService {
             final Instant lastUpdate = hasRemaining
                     ? Instant.now()
                     : xRateLimit.getLastUpdate();
-            final Instant resetAt1s = hasResetTimestamp && hasRemaining1s
-                    ? Instant.ofEpochSecond(Integer.parseInt(reset.get(0)))
-                    : xRateLimit.getResetAt1s();
             final Instant lastUpdate1s = hasRemaining1s
                     ? Instant.now()
                     : xRateLimit.getLastUpdate1s();
@@ -66,7 +63,6 @@ public class BitmexStateService {
                     resetAt,
                     lastUpdate,
                     xRateLimitRemaining1s,
-                    resetAt1s,
                     lastUpdate1s
                     );
         }
