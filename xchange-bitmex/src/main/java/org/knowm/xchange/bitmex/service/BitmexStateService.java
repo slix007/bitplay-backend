@@ -6,9 +6,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.knowm.xchange.bitmex.dto.BitmexXRateLimit;
 import org.knowm.xchange.bitmex.dto.HeadersAware;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import si.mazi.rescu.HttpStatusIOException;
 
 public class BitmexStateService {
+
+    final private Logger logger = LoggerFactory.getLogger("LEFT_TRADE_LOG");
 
     private final AtomicReference<BitmexXRateLimit> ref = new AtomicReference<>(BitmexXRateLimit.initValue());
 
@@ -55,17 +59,16 @@ public class BitmexStateService {
                     ? Instant.now()
                     : xRateLimit.getLastUpdate1s();
 
-            ref.set(new BitmexXRateLimit(
+            final BitmexXRateLimit newValue = new BitmexXRateLimit(
                     xRateLimitRemaining,
                     resetAt,
                     lastUpdate,
                     xRateLimitRemaining1s,
                     lastUpdate1s
-            ));
+            );
+            ref.set(newValue);
+            logger.info(newValue.getString());
         }
     }
 
-    public void resetXrateLimit() {
-        ref.set(BitmexXRateLimit.initValue());
-    }
 }

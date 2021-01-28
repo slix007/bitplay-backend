@@ -2541,7 +2541,7 @@ public class BitmexService extends MarketServicePreliq {
         }
         if (cancelledCount > 20) {
             final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-            String msg = String.format("xRateLimit=%s(updated=%s).", xRateLimit.getxRateLimit(), xRateLimit.getLastUpdate());
+            String msg = xRateLimit.getString();
             logger.info(msg);
             tradeLogger.info(msg);
         }
@@ -2993,7 +2993,7 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     protected void postOverload() {
-        exchange.getBitmexStateService().resetXrateLimit();
+//        exchange.getBitmexStateService().resetXrateLimit();
     }
 
     /**
