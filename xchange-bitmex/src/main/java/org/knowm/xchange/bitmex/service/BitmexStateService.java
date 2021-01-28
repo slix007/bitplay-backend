@@ -12,8 +12,6 @@ import si.mazi.rescu.HttpStatusIOException;
 
 public class BitmexStateService {
 
-    final private Logger logger = LoggerFactory.getLogger("LEFT_TRADE_LOG");
-
     private final AtomicReference<BitmexXRateLimit> ref = new AtomicReference<>(BitmexXRateLimit.initValue());
 
     public BitmexXRateLimit getxRateLimit() {
@@ -67,7 +65,6 @@ public class BitmexStateService {
                     lastUpdate1s
             );
             ref.set(newValue);
-            logger.info(newValue.getString());
         }
     }
 

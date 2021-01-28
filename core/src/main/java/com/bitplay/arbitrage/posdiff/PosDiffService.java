@@ -191,7 +191,7 @@ public class PosDiffService {
             final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
             final String counterName = prevCounterName != null ? prevCounterName : signalType.getCounterName();
             final String attemptsStr = obj != null ? obj.toString() : "";
-            final String mainSetStr = arbitrageService.getMainSetStr();
+            final String mainSetStr = arbitrageService.getMainSetStr() + arbitrageService.getxRateLimitString();
             final String extraSetStr = arbitrageService.getExtraSetStr();
             tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, attemptsStr));
             tradeService.info(tradeId, counterName, String.format("#%s fail. %s", counterName, mainSetStr));
@@ -245,7 +245,7 @@ public class PosDiffService {
             final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
             final String counterName = prevCounterName != null ? prevCounterName : "";
             final String currAttemptsStr = obj != null ? obj.toString() : "";
-            final String mainSetStr = arbitrageService.getMainSetStr();
+            final String mainSetStr = arbitrageService.getMainSetStr() + arbitrageService.getxRateLimitString();
             final String extraSetStr = arbitrageService.getExtraSetStr();
             final String attemptStr = String.format("#%s success. %s", counterName, currAttemptsStr);
             final String mainStr = String.format("#%s success. %s", counterName, mainSetStr);
@@ -278,8 +278,8 @@ public class PosDiffService {
         final Long periodToCorrection = arbitrageService.getParams().getPeriodToCorrection();
         theTimerToImmediateCorr = Completable.timer(periodToCorrection, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
-                    final String infoMsg = String.format("Double check before timer-state-reset mainSet. %s fetchPosition:",
-                            arbitrageService.getMainSetStr());
+                    final String infoMsg = String.format("Double check before timer-state-reset mainSet. %s. %s. fetchPosition:",
+                            arbitrageService.getMainSetStr(), arbitrageService.getxRateLimitString());
                     if (Thread.interrupted()) {
                         return;
                     }
@@ -405,7 +405,8 @@ public class PosDiffService {
                 log.info(msg);
                 warningLogger.info(msg);
             } else {
-                String infoMsg = String.format("Double check before %s. %s fetchPosition:", name, arbitrageService.getMainSetStr());
+                String infoMsg = String.format("Double check before %s. %s. %s fetchPosition:", name, arbitrageService.getMainSetStr(),
+                        arbitrageService.getxRateLimitString());
                 final String pos1 = arbitrageService.getLeftMarketService().fetchPosition();
                 final String pos2 = arbitrageService.getRightMarketService().fetchPosition();
                 warningLogger.info(infoMsg + "left " + pos1);
@@ -601,8 +602,8 @@ public class PosDiffService {
                 // do nothing
             } else {
 
-                String infoMsg = String.format("Double check before adjustment mainSet. %s fetchPosition:",
-                        arbitrageService.getMainSetStr());
+                String infoMsg = String.format("Double check before adjustment mainSet. %s. %s fetchPosition:",
+                        arbitrageService.getMainSetStr(), arbitrageService.getxRateLimitString());
                 if (doubleFetchPositionFailed(infoMsg, false)) {
                     return true;
                 }
@@ -715,8 +716,8 @@ public class PosDiffService {
                 // do nothing
             } else {
 
-                String infoMsg = String.format("Double check before correction mainSet. %s fetchPosition:",
-                        arbitrageService.getMainSetStr());
+                String infoMsg = String.format("Double check before correction mainSet. %s. %s. fetchPosition:",
+                        arbitrageService.getMainSetStr(), arbitrageService.getxRateLimitString());
                 if (doubleFetchPositionFailed(infoMsg, false)) {
                     return true; // failed
                 }
@@ -985,7 +986,7 @@ public class PosDiffService {
 
                 final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
                 final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
-                tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
+                tradeService.info(tradeId, counterName, String.format("#%s %s %s", signalTypeEx.getCounterName(), setStr, arbitrageService.getxRateLimitString()));
                 tradeService.info(tradeId, counterName, message);
                 prevTradeId = tradeId;
                 prevCounterName = counterName;

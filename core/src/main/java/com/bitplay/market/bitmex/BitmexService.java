@@ -2001,6 +2001,8 @@ public class BitmexService extends MarketServicePreliq {
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
                                 participateDoNotInitiate, symbol, scale, placeOrderArgs.isPreliqOrder());
                         final Instant endReq = Instant.now();
+                        tradeLogger.info(getxRateLimit().getString());
+
                         plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
                         plBeforeBtm.setGetAnswerFromPlacing(endReq);
                         final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
@@ -2084,6 +2086,7 @@ public class BitmexService extends MarketServicePreliq {
                         } else {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol, placeOrderArgs.isPreliqOrder());
                         }
+                        tradeLogger.info(getxRateLimit().getString());
 
                         if (attemptCount == 1
                                 && resultOrder.getTimestamp() != null
@@ -2192,7 +2195,7 @@ public class BitmexService extends MarketServicePreliq {
                         break; // any unknown exception - no retry
                     }
                 } catch (Exception e) {
-                    final String message = e.getMessage();
+                    final String message = e.getMessage() + " " + getxRateLimit().getString();
                     tradeResponse.setErrorCode(message);
 
                     final String logString = String.format("#%s/%s PlaceOrderError: %s", counterName, attemptCount, message);
@@ -2384,6 +2387,7 @@ public class BitmexService extends MarketServicePreliq {
             final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
             endReq = Instant.now();
             metricsDictionary.putBitmexUpdateOrder(Duration.between(startReq, endReq));
+            tradeLogger.info(getxRateLimit().getString());
 
             if (movedLimitOrder != null) {
 
@@ -2473,7 +2477,7 @@ public class BitmexService extends MarketServicePreliq {
 
         } catch (Exception e) {
 
-            final String message = e.getMessage();
+            final String message = e.getMessage() + " " + getxRateLimit().getString();
             final String logString = String
                     .format("#%s/%s MovingError id=%s: %s", counterWithPortion, movingErrorsOverloaded.get(), limitOrder.getId(), message);
             logger.error(logString, e);

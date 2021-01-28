@@ -1260,8 +1260,8 @@ public class ArbitrageService {
 
                 // Vertical was not started, b_delta (xx) <> b_border (xx), o_delta (xx) <> o_border (xx)
                 // (писать знаки > или < в соответствии с реальными значениями).
-                String msg = String.format("After 'Recheck OB after SD' Vertical was not started %s. Stop reason: %s ",
-                        bestQuotes.toStringEx(), stopReason);
+                String msg = String.format("After 'Recheck OB after SD' Vertical was not started %s. Stop reason: %s. %s ",
+                        bestQuotes.toStringEx(), stopReason, getxRateLimitString());
 //                BorderParams borderParams = bordersService.getBorderParams();
 //                msg += borderParams.getBordersV2().toStringTables();
                 if (prevTradingSignal != null) {
@@ -1524,9 +1524,9 @@ public class ArbitrageService {
             bestQuotes.setBtmOrderBook(btmOb);
             final Instant end = Instant.now();
             final long ms = Duration.between(start, end).toMillis();
-            final String msg = String.format("Recheck OB after SD %s ms. %s, L_OB_timestamp=%s, R_OB_timestamp=%s",
+            final String msg = String.format("Recheck OB after SD %s ms. %s, L_OB_timestamp=%s, R_OB_timestamp=%s. %s",
                     ms, bestQuotes.toStringEx(),
-                    Utils.dateToString(btmOb.getTimeStamp()), Utils.dateToString(okOb.getTimeStamp()));
+                    Utils.dateToString(btmOb.getTimeStamp()), Utils.dateToString(okOb.getTimeStamp()), getxRateLimitString());
             log.info(msg);
             warningLogger.info(msg);
         } finally {
@@ -1539,6 +1539,13 @@ public class ArbitrageService {
 //        params.setLastOBChange(new Date());
 //        resetArbStatePreliq();
 //        doComparison(bestQuotes, btmOb, okOb, prevTradingSignal);
+    }
+
+    public String getxRateLimitString() {
+        if (leftMarketService.isBtm()) {
+            return " " + ((BitmexService) leftMarketService).getxRateLimit().getString();
+        }
+        return "";
     }
 
     private void printAdjWarning(BigDecimal b_block_input, BigDecimal o_block_input, BigDecimal b_block, BigDecimal o_block) {
@@ -2525,6 +2532,7 @@ public class ArbitrageService {
     public String getoEbestUsd() {
         return oEbestUsd;
     }
+
     public BigDecimal getSumEBestUsd() {
         return sumEBestUsd;
     }
