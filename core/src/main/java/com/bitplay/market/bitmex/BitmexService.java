@@ -2001,7 +2001,7 @@ public class BitmexService extends MarketServicePreliq {
                                 new LimitOrder(orderType, amount, currencyPair, "0", new Date(), thePrice),
                                 participateDoNotInitiate, symbol, scale, placeOrderArgs.isPreliqOrder());
                         final Instant endReq = Instant.now();
-                        tradeLogger.info(getxRateLimit().getString());
+                        tradeLogger.info("placingNonTaker " + getxRateLimit().getString());
 
                         plBeforeBtm.setMarketTransactTime(resultOrder.getTimestamp().toInstant());
                         plBeforeBtm.setGetAnswerFromPlacing(endReq);
@@ -2086,7 +2086,7 @@ public class BitmexService extends MarketServicePreliq {
                         } else {
                             resultOrder = bitmexTradeService.placeMarketOrderBitmex(marketOrder, symbol, placeOrderArgs.isPreliqOrder());
                         }
-                        tradeLogger.info(getxRateLimit().getString());
+                        tradeLogger.info("placingTaker " + getxRateLimit().getString());
 
                         if (attemptCount == 1
                                 && resultOrder.getTimestamp() != null
@@ -2387,7 +2387,7 @@ public class BitmexService extends MarketServicePreliq {
             final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
             endReq = Instant.now();
             metricsDictionary.putBitmexUpdateOrder(Duration.between(startReq, endReq));
-            tradeLogger.info(getxRateLimit().getString());
+            tradeLogger.info("moveOrder " + getxRateLimit().getString());
 
             if (movedLimitOrder != null) {
 
