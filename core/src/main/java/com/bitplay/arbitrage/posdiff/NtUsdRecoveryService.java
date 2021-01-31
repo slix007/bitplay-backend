@@ -106,7 +106,6 @@ public class NtUsdRecoveryService {
 
         BigDecimal dc = posDiffService.getDcMainSet(rp).setScale(2, RoundingMode.HALF_UP);
 
-        // TODO
         BigDecimal cm = arbitrageService.getCm();
         boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
         boolean leftOkex = !leftIsBtm;

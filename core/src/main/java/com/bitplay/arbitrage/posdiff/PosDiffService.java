@@ -923,9 +923,10 @@ public class PosDiffService {
 
         } // end corr
 
-        defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
-
         // ------
+        corrIncreasePosImprovements(oPS, cm, isEth, dc, corrObj, corrParams);
+
+        defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
 
         final MarketServicePreliq marketService = corrObj.marketService;
         final Order.OrderType orderType = corrObj.orderType;
@@ -986,7 +987,8 @@ public class PosDiffService {
 
                 final String message = String.format("#%s %s %s amount=%s c=%s. ", counterName, placingType, orderType, correctAmount, contractType);
                 final String setStr = signalType.getCounterName().contains("btc") ? arbitrageService.getExtraSetStr() : arbitrageService.getMainSetStr();
-                tradeService.info(tradeId, counterName, String.format("#%s %s %s", signalTypeEx.getCounterName(), setStr, arbitrageService.getxRateLimitString()));
+                tradeService
+                        .info(tradeId, counterName, String.format("#%s %s %s", signalTypeEx.getCounterName(), setStr, arbitrageService.getxRateLimitString()));
                 tradeService.info(tradeId, counterName, message);
                 prevTradeId = tradeId;
                 prevCounterName = counterName;
@@ -1047,6 +1049,68 @@ public class PosDiffService {
             }
         }
 
+    }
+
+    private void corrIncreasePosImprovements(BigDecimal oPS, BigDecimal cm, boolean isEth, BigDecimal dc, CorrObj corrObj, CorrParams corrParams) {
+        boolean isFirstMarket = corrObj.marketService.getArbType() == ArbType.LEFT;
+        boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
+        final BigDecimal bP = arbitrageService.getLeftMarketService().getPosVal();
+        final BigDecimal bitmexUsd;
+        if (leftIsBtm) {
+            bitmexUsd = isEth
+                    ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
+                    : bP;
+        } else {
+            bitmexUsd = isEth
+                    ? (bP).multiply(BigDecimal.valueOf(10))
+                    : (bP).multiply(BigDecimal.valueOf(100));
+        }
+        // >>> Corr_increase_pos improvement as Recovery_nt_usd_increase_pos (only button) UPDATE
+        StringBuilder exLog = new StringBuilder();
+        boolean isSecondMarket = !isFirstMarket;
+        boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() > 0; //bitmex buy, включая переход через 0
+        boolean increaseOnOkex = isSecondMarket && oPS.signum() == 0; // okex buy AND okex has no 'opened-short-pos'
+        if (increaseOnBitmex || increaseOnOkex) {
+            // 1. Сравниваем DQL двух бирж:
+            BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
+            BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
+            exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+            BigDecimal leBest = arbitrageService.getbEbest();
+            BigDecimal reBest = arbitrageService.getoEbest();
+            String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
+            String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
+            exLog.append(leftEBest).append(rightEBest);
+            if (leftDql != null && rightDql != null
+                    && leftDql.subtract(rightDql).signum() != 0) {
+                // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).
+                isFirstMarket = leftDql.subtract(rightDql).signum() > 0;
+            } else {
+                // b) Если хотя бы на одной из бирж DQL равен na или DQL числовые и равны, тогда сравниваем e_best_usd бирж. Там, где больше e_best_usd, та биржа A.
+                isFirstMarket = leBest.subtract(reBest).signum() >= 0;
+            }
+        }
+        // <<< endOf Corr_increase_pos improvement as Recovery_nt_usd_increase_pos (only button) UPDATE
+        // logs
+        String exLogStr = exLog.toString();
+        if (exLogStr.length() != 0) {
+            final String msg = "corrIncreasePosImprovements: " + corrObj.getSignalType() + ": " + exLogStr;
+            printTradeLog(msg, corrObj);
+        }
+        // do the changes
+        final boolean alreadyFirst = corrObj.marketService.getArbType() == ArbType.LEFT && isFirstMarket;
+        final boolean alreadySecond = corrObj.marketService.getArbType() == ArbType.RIGHT && isSecondMarket;
+        if (alreadyFirst || alreadySecond) {
+            //do nothing
+        } else {
+            final MarketServicePreliq left = arbitrageService.getLeftMarketService();
+            boolean isLeftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
+            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
+            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+            final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
+                    ? arbitrageService.getRightMarketService()
+                    : arbitrageService.getLeftMarketService();
+            switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
+        }
     }
 
     private String getSoMark(CorrObj corrObj) {
@@ -1478,11 +1542,18 @@ public class PosDiffService {
                     borderVal.subtract(deltaVal.add(comVal)),
                     corrObj
             );
+            printTradeLog(msg, corrObj);
+        } else {
+            warningLogger.info("adaptAdjByPos failed. " + corrObj);
+        }
+    }
+
+    private void printTradeLog(String msg, CorrObj corrObj) {
+        if (corrObj.marketService != null) {
+            final String counterName = corrObj.marketService.getCounterNameNext(corrObj.signalType);
             final Long tradeId = prevTradeId != null ? prevTradeId : arbitrageService.getLastTradeId();
             tradeService.info(tradeId, counterName, msg);
             corrObj.marketService.getTradeLogger().info(msg);
-        } else {
-            warningLogger.info("adaptAdjByPos failed. " + corrObj);
         }
     }
 
