@@ -2379,63 +2379,65 @@ public class BitmexService extends MarketServicePreliq {
         try {
             BigDecimal bestMakerPrice = newPrice.setScale(cntType.getScale(), BigDecimal.ROUND_HALF_UP);
 
-            assert bestMakerPrice.signum() != 0;
-            assert bestMakerPrice.compareTo(limitOrder.getLimitPrice()) != 0;
-
-            startReq = Instant.now();
-            throwTestingException();
-            final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
-            endReq = Instant.now();
-            metricsDictionary.putBitmexUpdateOrder(Duration.between(startReq, endReq));
-            tradeLogger.info("moveOrder " + getxRateLimit().getString());
-
-            if (movedLimitOrder != null) {
-
-                FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
-                orderRepositoryService.updateSync(updated);
-
-                boolean showDiff = false;
-                if (prevCumulativeAmount != null && movedLimitOrder.getCumulativeAmount() != null
-                        && movedLimitOrder.getCumulativeAmount().compareTo(prevCumulativeAmount) > 0) {
-                    showDiff = true;
-                }
-                prevCumulativeAmount = movedLimitOrder.getCumulativeAmount();
-
-                final LimitOrder updatedOrder = (LimitOrder) updated.getOrder();
-
-                String diffWithSignal = setQuotesForArbLogs(updated.getTradeId(), bestMakerPrice, showDiff);
-
-                final String logString = String.format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.",
-                        counterWithPortion,
-                        limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
-                        limitOrder.getLimitPrice(),
-                        bestMakerPrice.toPlainString(),
-                        updatedOrder.getLimitPrice(),
-                        updatedOrder.getStatus(),
-                        limitOrder.getTradableAmount(),
-                        limitOrder.getCumulativeAmount(),
-                        limitOrder.getAveragePrice(),
-                        limitOrder.getId(),
-                        getPositionAsString(),
-                        diffWithSignal,
-                        updatedOrder.getStatus() == OrderStatus.CANCELED ? "CANCELED order had execInst ParticipateDoNotInitiate" : "");
-                logger.info(logString);
-                tradeLogger.info(logString, contractTypeStr);
-                ordersLogger.info(logString);
-
-                if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
-                    incCancelledInRow(contractTypeStr);
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
-                } else {
-                    cancelledInRow.set(0);
-                    moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, updatedOrder, updated);
-                }
-
+            if (bestMakerPrice.signum() == 0 || bestMakerPrice.compareTo(limitOrder.getLimitPrice()) == 0) {
+                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving. newPrice==oldPrice");
             } else {
-                logger.info("Moving response is null");
-                tradeLogger.info("Moving response is null", contractTypeStr);
-            }
 
+                startReq = Instant.now();
+                throwTestingException();
+                final LimitOrder movedLimitOrder = ((BitmexTradeService) exchange.getTradeService()).moveLimitOrder(limitOrder, bestMakerPrice);
+                endReq = Instant.now();
+                metricsDictionary.putBitmexUpdateOrder(Duration.between(startReq, endReq));
+                tradeLogger.info("moveOrder " + getxRateLimit().getString());
+
+                if (movedLimitOrder == null) {
+                    logger.info("Moving response is null");
+                    tradeLogger.info("Moving response is null", contractTypeStr);
+                } else {
+
+                    FplayOrder updated = FplayOrderUtils.updateFplayOrder(fplayOrder, movedLimitOrder);
+                    orderRepositoryService.updateSync(updated);
+
+                    boolean showDiff = false;
+                    if (prevCumulativeAmount != null && movedLimitOrder.getCumulativeAmount() != null
+                            && movedLimitOrder.getCumulativeAmount().compareTo(prevCumulativeAmount) > 0) {
+                        showDiff = true;
+                    }
+                    prevCumulativeAmount = movedLimitOrder.getCumulativeAmount();
+
+                    final LimitOrder updatedOrder = (LimitOrder) updated.getOrder();
+
+                    String diffWithSignal = setQuotesForArbLogs(updated.getTradeId(), bestMakerPrice, showDiff);
+
+                    final String logString = String
+                            .format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.",
+                                    counterWithPortion,
+                                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                                    limitOrder.getLimitPrice(),
+                                    bestMakerPrice.toPlainString(),
+                                    updatedOrder.getLimitPrice(),
+                                    updatedOrder.getStatus(),
+                                    limitOrder.getTradableAmount(),
+                                    limitOrder.getCumulativeAmount(),
+                                    limitOrder.getAveragePrice(),
+                                    limitOrder.getId(),
+                                    getPositionAsString(),
+                                    diffWithSignal,
+                                    updatedOrder.getStatus() == OrderStatus.CANCELED ? "CANCELED order had execInst ParticipateDoNotInitiate" : "");
+                    logger.info(logString);
+                    tradeLogger.info(logString, contractTypeStr);
+                    ordersLogger.info(logString);
+
+                    if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                        incCancelledInRow(contractTypeStr);
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
+                    } else {
+                        cancelledInRow.set(0);
+                        moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, logString, updatedOrder, updated);
+                    }
+
+                } // end movedLimitOrder != null
+            } // end bestMakerPrice is changed
         } catch (HttpStatusIOException e) {
 
             HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(
