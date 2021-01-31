@@ -2545,7 +2545,7 @@ public class BitmexService extends MarketServicePreliq {
         }
         if (cancelledCount > 20) {
             final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-            String msg = xRateLimit.getString();
+            String msg = "CANCELED more 20 in a row. " + xRateLimit.getString();
             logger.info(msg);
             tradeLogger.info(msg);
         }
@@ -3162,7 +3162,7 @@ public class BitmexService extends MarketServicePreliq {
         boolean isExceeded = xRateLimit.getxRateLimit() <= 0;
         boolean isExceeded1s = xRateLimit.getxRateLimit1s() <= 0;
         if (isExceeded || isExceeded1s) {
-            final String msg = " " + xRateLimit.getString() + ". Stop!";
+            final String msg = "overloadByXRateLimit " + xRateLimit.getString() + ". Stop!";
             logger.info(msg);
             tradeLogger.info(msg);
             warningLogger.info(msg);
