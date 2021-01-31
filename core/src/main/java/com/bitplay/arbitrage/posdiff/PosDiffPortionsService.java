@@ -230,7 +230,13 @@ public class PosDiffPortionsService {
     private void placeDeferredPortion(PlaceOrderArgs args, BigDecimal block) {
         final OkCoinService okexService = (OkCoinService) arbitrageService.getRightMarketService();
         okexService.beforeDeferredPlacing(args);
-        okexService.changeDeferredAmountSubstract(block, args.getPortionsQty());
+        final PlaceOrderArgs changedOrder = okexService.changeDeferredAmountSubstract(block, args.getPortionsQty());
+        if (changedOrder != null) {
+            final String msg = "still has deferred. Deferred order not full. Before: " + args + " After:" + changedOrder;
+            log.info(msg);
+            okexService.getTradeLogger().info(msg);
+        }
+
         okexService.placeOrder(args);
     }
 

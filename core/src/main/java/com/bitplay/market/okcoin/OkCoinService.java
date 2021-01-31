@@ -1281,8 +1281,8 @@ public class OkCoinService extends MarketServicePreliq {
         });
     }
 
-    public void changeDeferredAmountSubstract(BigDecimal placedBlock, Integer portionsQty) {
-        placeOrderArgsRef.getAndUpdate(currArgs -> {
+    public PlaceOrderArgs changeDeferredAmountSubstract(BigDecimal placedBlock, Integer portionsQty) {
+        return placeOrderArgsRef.updateAndGet(currArgs -> {
             if (currArgs == null) {
                 return null;
             }
@@ -1356,6 +1356,12 @@ public class OkCoinService extends MarketServicePreliq {
                 }
                 // do deferred placing
                 beforeDeferredPlacing(currArgs);
+                final PlaceOrderArgs afterPlacing = placeOrderArgsRef.get();
+                if (afterPlacing != null) {
+                    final String msg = "ERROR still has deferred. Before: " + currArgs + " After:" + afterPlacing;
+                    log.info(msg);
+                    getTradeLogger().info(msg);
+                }
                 placeOrder(currArgs);
 
             } else {
