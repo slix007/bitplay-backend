@@ -885,16 +885,16 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
-            final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+//            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
+//            final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
+//            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             fillCorrObjForAdj(corrObj, hedgeAmount, leftPosVal, oPL, oPS, cm, isEth, dc, true);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
-            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+//            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
+//            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+//            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
@@ -903,9 +903,9 @@ public class PosDiffService {
             adaptCorrAdjExtraSetByPos(corrObj, bPXbtUsd, dc);
             final CorrParams corrParamsExtra = persistenceService.fetchCorrParams();
             corrParamsExtra.getCorr().setIsEth(false);
-            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
-            final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+//            final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
+//            final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
+//            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex);
@@ -917,9 +917,9 @@ public class PosDiffService {
             } else {
                 adaptCorrAdjByPos(corrObj, leftPosVal, oPL, oPS, hedgeAmount, dc, cm, isEth, !isLeftOkex);
             }
-            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
-            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+//            final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
+//            final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+//            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
 
         } // end corr
 
@@ -1014,12 +1014,12 @@ public class PosDiffService {
                     corrObj.marketService.getTradeLogger().info(switchMsg);
                     slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
 
-                    final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
-                            ? right
-                            : left;
-                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
-                    final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
-                    switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
+//                    final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
+//                            ? right
+//                            : left;
+//                    final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
+//                    final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
+//                    switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
                     defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
                     PlacingType pl = placingType.isTaker() ? PlacingType.TAKER : placingType;
                     PlaceOrderArgs theOtherMarketArgs = PlaceOrderArgs.builder()
@@ -1051,6 +1051,7 @@ public class PosDiffService {
 
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private void corrIncreasePosImprovements(BigDecimal oPS, BigDecimal cm, boolean isEth, BigDecimal dc, CorrObj corrObj, CorrParams corrParams) {
         boolean isFirstMarket = corrObj.marketService.getArbType() == ArbType.LEFT;
         boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
@@ -1070,16 +1071,16 @@ public class PosDiffService {
         boolean isSecondMarket = !isFirstMarket;
         boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() > 0; //bitmex buy, включая переход через 0
         boolean increaseOnOkex = isSecondMarket && oPS.signum() == 0; // okex buy AND okex has no 'opened-short-pos'
+        // 1. Сравниваем DQL двух бирж:
+        BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
+        BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
+        exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+        BigDecimal leBest = arbitrageService.getbEbest();
+        BigDecimal reBest = arbitrageService.getoEbest();
+        String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
+        String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
+        exLog.append(leftEBest).append(rightEBest);
         if (increaseOnBitmex || increaseOnOkex) {
-            // 1. Сравниваем DQL двух бирж:
-            BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
-            BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
-            exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
-            BigDecimal leBest = arbitrageService.getbEbest();
-            BigDecimal reBest = arbitrageService.getoEbest();
-            String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
-            String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
-            exLog.append(leftEBest).append(rightEBest);
             if (leftDql != null && rightDql != null
                     && leftDql.subtract(rightDql).signum() != 0) {
                 // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).

@@ -133,7 +133,9 @@ public class NtUsdRecoveryService {
             warningLogger.warn("adaptCorrAdjByPos: predefinedMarketNameWithType=" + rp.getPredefinedMarketNameWithType() + " and marketService are not match");
         }
 
-        posDiffService.adaptCorrAdjByMaxVolCorrAndDql(corrObj, maxBtm, maxOk, dc, cm, isEth);
+        if (rp.isAuto()) {
+            posDiffService.adaptCorrAdjByMaxVolCorrAndDql(corrObj, maxBtm, maxOk, dc, cm, isEth);
+        }
 
         posDiffService.defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
 
@@ -305,16 +307,16 @@ public class NtUsdRecoveryService {
                 boolean isSecondMarket = !isFirstMarket;
                 boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() > 0; //bitmex buy, включая переход через 0
                 boolean increaseOnOkex = isSecondMarket && oPS.signum() == 0; // okex buy AND okex has no 'opened-short-pos'
+                // 1. Сравниваем DQL двух бирж:
+                BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
+                BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
+                exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+                BigDecimal leBest = arbitrageService.getbEbest();
+                BigDecimal reBest = arbitrageService.getoEbest();
+                String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
+                String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
+                exLog.append(leftEBest).append(rightEBest);
                 if (increaseOnBitmex || increaseOnOkex) {
-                    // 1. Сравниваем DQL двух бирж:
-                    BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
-                    BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
-                    exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
-                    BigDecimal leBest = arbitrageService.getbEbest();
-                    BigDecimal reBest = arbitrageService.getoEbest();
-                    String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
-                    String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
-                    exLog.append(leftEBest).append(rightEBest);
                     if (leftDql != null && rightDql != null
                             && leftDql.subtract(rightDql).signum() != 0) {
                         // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).
@@ -367,16 +369,16 @@ public class NtUsdRecoveryService {
                 // sell when already pos-negative
                 boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() < 0; //bitmex sell, включая переход через 0
                 boolean increaseOnOkex = isSecondMarket && oPL.signum() > 0; // okex sell AND okex has no 'opened-long-pos'
+                // 1. Сравниваем DQL двух бирж:
+                BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
+                BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
+                exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+                BigDecimal leBest = arbitrageService.getbEbest();
+                BigDecimal reBest = arbitrageService.getoEbest();
+                String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
+                String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
+                exLog.append(leftEBest).append(rightEBest);
                 if (increaseOnBitmex || increaseOnOkex) {
-                    // 1. Сравниваем DQL двух бирж:
-                    BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
-                    BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
-                    exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
-                    BigDecimal leBest = arbitrageService.getbEbest();
-                    BigDecimal reBest = arbitrageService.getoEbest();
-                    String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
-                    String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
-                    exLog.append(leftEBest).append(rightEBest);
                     if (leftDql != null && rightDql != null
                             && leftDql.subtract(rightDql).signum() != 0) {
                         // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).
