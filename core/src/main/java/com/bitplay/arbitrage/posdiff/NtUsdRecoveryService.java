@@ -127,17 +127,18 @@ public class NtUsdRecoveryService {
         final BigDecimal hedgeAmount = posDiffService.getHedgeAmountMainSet();
 
         final boolean btmSo = arbitrageService.getLeftMarketService().getMarketState() == MarketState.SYSTEM_OVERLOADED;
-        adaptCorrAdjByPosAndDqlAndEBest(corrObj, leftPosVal, oPL, oPS, hedgeAmount, dc, cm, isEth, btmSo, rp.getPredefinedMarketNameWithType());
+        trySwitchByPosAndDqlAndEBest(corrObj, leftPosVal, oPL, oPS, hedgeAmount, dc, cm, isEth, btmSo, rp.getPredefinedMarketNameWithType());
         if (rp.isAuto() && !corrObj.marketService.getNameWithType().equals(rp.getPredefinedMarketNameWithType())) {
             log.warn("adaptCorrAdjByPos: predefinedMarketNameWithType=" + rp.getPredefinedMarketNameWithType() + " and marketService are not match");
             warningLogger.warn("adaptCorrAdjByPos: predefinedMarketNameWithType=" + rp.getPredefinedMarketNameWithType() + " and marketService are not match");
         }
 
-        if (rp.isAuto()) {
-            posDiffService.adaptCorrAdjByMaxVolCorrAndDql(corrObj, maxBtm, maxOk, dc, cm, isEth);
-        }
-
+        // marketService should be defined
         posDiffService.defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
+
+        if (rp.isAuto()) {
+            posDiffService.validateIncreaseByDqlAndAdaptMaxVol(corrObj, maxBtm, maxOk, dc, cm, isEth);
+        }
 
         final MarketServicePreliq marketService = corrObj.marketService;
         final OrderType orderType = corrObj.orderType;
@@ -270,7 +271,7 @@ public class NtUsdRecoveryService {
      * marketService<br> orderType<br> correctAmount<br> contractType<br>
      */
     @SuppressWarnings("Duplicates")
-    private void adaptCorrAdjByPosAndDqlAndEBest(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
+    private void trySwitchByPosAndDqlAndEBest(final CorrObj corrObj, final BigDecimal bP, final BigDecimal oPL, final BigDecimal oPS,
             final BigDecimal hedgeAmount,
             final BigDecimal dc, final BigDecimal cm, final boolean isEth, boolean btmSo, String predefinedMarketNameWithType) {
 

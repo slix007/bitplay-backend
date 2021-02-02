@@ -879,6 +879,11 @@ public class PosDiffService {
         Integer maxOkex = null;// = corrParams.getCorr().getMaxVolCorrOkex();
         String corrName = baseSignalType.getCounterName();
 
+        // ------
+        trySwitchByDqlOrEBestMin(oPS, cm, isEth, dc, corrObj, corrParams);
+
+        defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
+
         if (baseSignalType == SignalType.ADJ_BTC) {
 
             BigDecimal bPXbtUsd = left.getPositionXBTUSD().getPositionLong();
@@ -887,14 +892,14 @@ public class PosDiffService {
             corrParamsExtra.getCorr().setIsEth(false);
             final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+            validateIncreaseByDqlAndAdaptMaxVol(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.ADJ) {
 
             fillCorrObjForAdj(corrObj, hedgeAmount, leftPosVal, oPL, oPS, cm, isEth, dc, true);
             final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+            validateIncreaseByDqlAndAdaptMaxVol(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else if (baseSignalType == SignalType.CORR_BTC || baseSignalType == SignalType.CORR_BTC_MDC) {
 
@@ -905,7 +910,7 @@ public class PosDiffService {
             corrParamsExtra.getCorr().setIsEth(false);
             final BigDecimal bMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParamsExtra.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+            validateIncreaseByDqlAndAdaptMaxVol(corrObj, bMax, okMax, dc, cm, isEth);
 
         } else { // corr
             maxBtm = corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex);
@@ -919,14 +924,9 @@ public class PosDiffService {
             }
             final BigDecimal bMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrBitmex(isLeftOkex));
             final BigDecimal okMax = BigDecimal.valueOf(corrParams.getCorr().getMaxVolCorrOkex());
-            adaptCorrAdjByMaxVolCorrAndDql(corrObj, bMax, okMax, dc, cm, isEth);
+            validateIncreaseByDqlAndAdaptMaxVol(corrObj, bMax, okMax, dc, cm, isEth);
 
         } // end corr
-
-        // ------
-        corrIncreasePosImprovements(oPS, cm, isEth, dc, corrObj, corrParams);
-
-        defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
 
         final MarketServicePreliq marketService = corrObj.marketService;
         final Order.OrderType orderType = corrObj.orderType;
@@ -1052,7 +1052,7 @@ public class PosDiffService {
     }
 
     @SuppressWarnings("DuplicatedCode")
-    private void corrIncreasePosImprovements(BigDecimal oPS, BigDecimal cm, boolean isEth, BigDecimal dc, CorrObj corrObj, CorrParams corrParams) {
+    private void trySwitchByDqlOrEBestMin(BigDecimal oPS, BigDecimal cm, boolean isEth, BigDecimal dc, CorrObj corrObj, CorrParams corrParams) {
         boolean isFirstMarket = corrObj.marketService.getArbType() == ArbType.LEFT;
         boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
         final BigDecimal bP = arbitrageService.getLeftMarketService().getPosVal();
@@ -1156,9 +1156,9 @@ public class PosDiffService {
         return adjLimit || corrLimit;
     }
 
-    void adaptCorrAdjByMaxVolCorrAndDql(final CorrObj corrObj, BigDecimal bMax, BigDecimal okMax, BigDecimal dc, BigDecimal cm, boolean isEth) {
+    void validateIncreaseByDqlAndAdaptMaxVol(final CorrObj corrObj, BigDecimal bMax, BigDecimal okMax, BigDecimal dc, BigDecimal cm, boolean isEth) {
         maxVolCorrAdapt(corrObj, bMax, okMax);
-        adaptCorrByDql(corrObj, dc, cm, isEth, bMax, okMax);
+        validateIncreasePosByDql(corrObj, dc, cm, isEth, bMax, okMax);
     }
 
     private void maxVolCorrAdapt(CorrObj corrObj, BigDecimal bMax, BigDecimal okMax) {
@@ -1173,7 +1173,7 @@ public class PosDiffService {
         }
     }
 
-    private void adaptCorrByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
+    private void validateIncreasePosByDql(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         if (corrObj.signalType.isIncreasePos()) {
             if (corrObj.signalType.isMainSet() && !corrObj.signalType.isAdj()) {
                 dqlOpenMinAdjust(corrObj, dc, cm, isEth, bMax, okMax);
