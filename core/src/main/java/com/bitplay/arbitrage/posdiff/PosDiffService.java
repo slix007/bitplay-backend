@@ -927,6 +927,7 @@ public class PosDiffService {
         trySwitchByDqlOrEBestMin(oPS, cm, isEth, dc, corrObj, corrParams);
 
         reupdateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
+        corrObj.noSwitch = true;
         validateIncreaseByDqlAndAdaptMaxVol(corrObj, dc, cm, isEth, bMax, okMax);
 
         // use corrObj.*
