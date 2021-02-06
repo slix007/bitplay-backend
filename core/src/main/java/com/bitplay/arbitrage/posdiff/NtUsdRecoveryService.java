@@ -307,7 +307,7 @@ public class NtUsdRecoveryService {
             StringBuilder exLog = new StringBuilder();
             if (predefinedMarketNameWithType == null) { //is NOT Auto
                 boolean isSecondMarket = !isFirstMarket;
-                boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() > 0; //bitmex buy, включая переход через 0
+                boolean increaseOnBitmex = isFirstMarket && (bitmexUsd.signum() > 0 || bitmexUsd.add(dc.negate()).signum() > 0); //bitmex buy, включая переход через 0
                 boolean increaseOnOkex = isSecondMarket && oPS.signum() == 0; // okex buy AND okex has no 'opened-short-pos'
                 // 1. Сравниваем DQL двух бирж:
                 BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
@@ -369,8 +369,8 @@ public class NtUsdRecoveryService {
             if (predefinedMarketNameWithType == null) { //is NOT Auto
                 boolean isFirstMarket = !isSecondMarket;
                 // sell when already pos-negative
-                boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() < 0; //bitmex sell, включая переход через 0
-                boolean increaseOnOkex = isSecondMarket && oPL.signum() > 0; // okex sell AND okex has no 'opened-long-pos'
+                boolean increaseOnBitmex = isFirstMarket && (bitmexUsd.signum() < 0 || bitmexUsd.subtract(dc).signum() < 0); //bitmex sell, dc>0, включая переход через 0
+                boolean increaseOnOkex = isSecondMarket && oPL.signum() == 0; // okex sell AND okex has no 'opened-long-pos'
                 // 1. Сравниваем DQL двух бирж:
                 BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
                 BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
