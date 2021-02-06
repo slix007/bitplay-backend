@@ -85,10 +85,14 @@ public class SettingsPremService {
             final BigDecimal r_bid1 = rightOb.getBids().get(0).getLimitPrice();
             final BigDecimal right_best_sam = (r_ask1.add(r_bid1)).divide(BigDecimal.valueOf(2), 3, RoundingMode.HALF_UP);
             final FeeSettings fee = s.getFeeSettings();
+            final int fractionDigits =
+                    (arbitrageService.getLeftMarketService().getContractType().getName().startsWith("XRP")
+                            || arbitrageService.getRightMarketService().getContractType().getName().startsWith("XRP"))
+                            ? 4 : 3;
             final BigDecimal left_taker_com_pts = fee.getLeftTakerComRate().multiply(left_best_sam)
-                    .divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
+                    .divide(BigDecimal.valueOf(100), fractionDigits, RoundingMode.HALF_UP);
             final BigDecimal right_taker_com_pts = fee.getRightTakerComRate().multiply(right_best_sam)
-                    .divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
+                    .divide(BigDecimal.valueOf(100), fractionDigits, RoundingMode.HALF_UP);
             final BigDecimal sum_taker_com_pts = left_taker_com_pts.add(right_taker_com_pts);
             //Auto Border cross depth = sum_taker_com_pts + BCD_prem;
             //Auto L_add_border = sum_taker_com_pts + L_add_border_prem.
