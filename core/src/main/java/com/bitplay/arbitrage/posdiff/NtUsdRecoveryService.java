@@ -134,10 +134,11 @@ public class NtUsdRecoveryService {
         }
 
         // marketService should be defined
-        posDiffService.defineSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
+        posDiffService.updateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
 
         if (rp.isAuto()) {
-            posDiffService.validateIncreaseByDqlAndAdaptMaxVol(corrObj, maxBtm, maxOk, dc, cm, isEth);
+            corrObj.noSwitch = true;
+            posDiffService.validateIncreaseByDqlAndAdaptMaxVol(corrObj, dc, cm, isEth, maxBtm, maxOk);
         }
 
         final MarketServicePreliq marketService = corrObj.marketService;
