@@ -926,7 +926,7 @@ public class PosDiffService {
         assert corrObj.marketService != null;
         trySwitchByDqlOrEBestMin(oPS, cm, isEth, dc, corrObj, corrParams);
 
-        updateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
+        reupdateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
         validateIncreaseByDqlAndAdaptMaxVol(corrObj, dc, cm, isEth, bMax, okMax);
 
         // use corrObj.*
@@ -1071,8 +1071,8 @@ public class PosDiffService {
         // >>> Corr_increase_pos improvement as Recovery_nt_usd_increase_pos (only button) UPDATE
         StringBuilder exLog = new StringBuilder();
         boolean isSecondMarket = !isFirstMarket;
-        boolean increaseOnBitmex = isFirstMarket && bitmexUsd.subtract(dc).signum() > 0; //bitmex buy, включая переход через 0
-        boolean increaseOnOkex = isSecondMarket && oPS.signum() == 0; // okex buy AND okex has no 'opened-short-pos'
+        boolean increaseOnLeft = isFirstMarket && corrObj.getSignalType().isIncreasePos();
+        boolean increaseOnOkex = isSecondMarket && corrObj.getSignalType().isIncreasePos();
         // 1. Сравниваем DQL двух бирж:
         BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
         BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
@@ -1082,7 +1082,7 @@ public class PosDiffService {
         String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
         String rightEBest = String.format(", R_e_best%s_%s", reBest, arbitrageService.getoEbestUsd());
         exLog.append(leftEBest).append(rightEBest);
-        if (increaseOnBitmex || increaseOnOkex) {
+        if (increaseOnLeft || increaseOnOkex) {
             if (leftDql != null && rightDql != null
                     && leftDql.subtract(rightDql).signum() != 0) {
                 // a) У обеих бирж DQL числовые значения (не na), тогда выбираем ту, где DQL выше (это будет биржа A, другая - B).
@@ -1240,7 +1240,7 @@ public class PosDiffService {
      * <p><b>Possible update:</b></p>
      * - corrObj.signalType to increase<br>
      */
-    void updateSignalTypeToIncrease(CorrObj corrObj, BigDecimal leftPosVal, BigDecimal rightPosVal) {
+    void reupdateSignalTypeToIncrease(CorrObj corrObj, BigDecimal leftPosVal, BigDecimal rightPosVal) {
         if (corrObj.marketService.getArbType() == ArbType.LEFT) {
             if (leftPosVal.signum() == 0
                     || (leftPosVal.signum() > 0 && (corrObj.orderType == OrderType.BID || corrObj.orderType == OrderType.EXIT_ASK))

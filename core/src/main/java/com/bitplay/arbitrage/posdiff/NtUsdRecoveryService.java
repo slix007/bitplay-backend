@@ -134,7 +134,7 @@ public class NtUsdRecoveryService {
         }
 
         // marketService should be defined
-        posDiffService.updateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
+        posDiffService.reupdateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
 
         if (rp.isAuto()) {
             corrObj.noSwitch = true;
