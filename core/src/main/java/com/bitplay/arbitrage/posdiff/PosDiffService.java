@@ -924,7 +924,7 @@ public class PosDiffService {
 
         // ------
         assert corrObj.marketService != null;
-        trySwitchByDqlOrEBestMin(oPS, cm, isEth, dc, corrObj, corrParams);
+        trySwitchTheIncreaseByDqlOrEBestMin(cm, isEth, dc, corrObj, corrParams);
 
         reupdateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
         corrObj.noSwitch = true;
@@ -942,7 +942,7 @@ public class PosDiffService {
             countOnStartCorr(corrParams, signalType); // inc counters
             final String msg = String.format("No %s. %s", baseSignalType, corrObj.errorDescription);
             warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
+            marketService.getTradeLogger().warn(msg);
             slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, msg);
         } else if (correctAmount.signum() <= 0) {
             countOnStartCorr(corrParams, signalType); // inc counters
@@ -956,7 +956,7 @@ public class PosDiffService {
                     signalType
             );
             warningLogger.warn(msg);
-            corrObj.marketService.getTradeLogger().warn(msg);
+            marketService.getTradeLogger().warn(msg);
             slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY,
                     String.format("No %s: amount=%s", corrName, correctAmount));
         } else {
@@ -1055,20 +1055,8 @@ public class PosDiffService {
     }
 
     @SuppressWarnings("DuplicatedCode")
-    private void trySwitchByDqlOrEBestMin(BigDecimal oPS, BigDecimal cm, boolean isEth, BigDecimal dc, CorrObj corrObj, CorrParams corrParams) {
+    private void trySwitchTheIncreaseByDqlOrEBestMin(BigDecimal cm, boolean isEth, BigDecimal dc, CorrObj corrObj, CorrParams corrParams) {
         boolean isFirstMarket = corrObj.marketService.getArbType() == ArbType.LEFT;
-        boolean leftIsBtm = arbitrageService.getLeftMarketService().isBtm();
-        final BigDecimal bP = arbitrageService.getLeftMarketService().getPosVal();
-        final BigDecimal bitmexUsd;
-        if (leftIsBtm) {
-            bitmexUsd = isEth
-                    ? bP.multiply(BigDecimal.valueOf(10)).divide(cm, 2, RoundingMode.HALF_UP)
-                    : bP;
-        } else {
-            bitmexUsd = isEth
-                    ? (bP).multiply(BigDecimal.valueOf(10))
-                    : (bP).multiply(BigDecimal.valueOf(100));
-        }
         // >>> Corr_increase_pos improvement as Recovery_nt_usd_increase_pos (only button) UPDATE
         StringBuilder exLog = new StringBuilder();
         boolean isSecondMarket = !isFirstMarket;
@@ -1095,11 +1083,7 @@ public class PosDiffService {
         }
         // <<< endOf Corr_increase_pos improvement as Recovery_nt_usd_increase_pos (only button) UPDATE
         // logs
-        String exLogStr = exLog.toString();
-        if (exLogStr.length() != 0) {
-            final String msg = "corrIncreasePosImprovements: " + corrObj.getSignalType() + ": " + exLogStr;
-            printTradeLog(msg, corrObj);
-        }
+
         // do the changes
         final boolean alreadyFirst = corrObj.marketService.getArbType() == ArbType.LEFT && isFirstMarket;
         final boolean alreadySecond = corrObj.marketService.getArbType() == ArbType.RIGHT && isSecondMarket;
@@ -1114,6 +1098,11 @@ public class PosDiffService {
                     ? arbitrageService.getRightMarketService()
                     : arbitrageService.getLeftMarketService();
             switchMarkets(corrObj, dc, cm, isEth, bMax, okMax, theOtherService);
+        }
+        String exLogStr = exLog.toString();
+        if (exLogStr.length() != 0) {
+            final String msg = "corrIncreasePosImprovements: " + corrObj.getSignalType() + ": " + exLogStr;
+            printTradeLog(msg, corrObj);
         }
     }
 
