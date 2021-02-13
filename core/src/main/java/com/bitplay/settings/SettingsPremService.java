@@ -76,19 +76,19 @@ public class SettingsPremService {
         final boolean haveLPrem = v.getActiveFields().contains(Field.L_add_border_prem);
         final boolean haveRPrem = v.getActiveFields().contains(Field.R_add_border_prem);
         if (haveBcdPrem || haveLPrem || haveRPrem) {
-            final OrderBook leftOb = arbitrageService.getLeftMarketService().getOrderBook();
-            final BigDecimal l_ask1 = leftOb.getAsks().get(0).getLimitPrice();
-            final BigDecimal l_bid1 = leftOb.getBids().get(0).getLimitPrice();
-            final BigDecimal left_best_sam = (l_ask1.add(l_bid1)).divide(BigDecimal.valueOf(2), 3, RoundingMode.HALF_UP);
-            final OrderBook rightOb = arbitrageService.getRightMarketService().getOrderBook();
-            final BigDecimal r_ask1 = rightOb.getAsks().get(0).getLimitPrice();
-            final BigDecimal r_bid1 = rightOb.getBids().get(0).getLimitPrice();
-            final BigDecimal right_best_sam = (r_ask1.add(r_bid1)).divide(BigDecimal.valueOf(2), 3, RoundingMode.HALF_UP);
-            final FeeSettings fee = s.getFeeSettings();
             final int fractionDigits =
                     (arbitrageService.getLeftMarketService().getContractType().getName().startsWith("XRP")
                             || arbitrageService.getRightMarketService().getContractType().getName().startsWith("XRP"))
                             ? 4 : 3;
+            final OrderBook leftOb = arbitrageService.getLeftMarketService().getOrderBook();
+            final BigDecimal l_ask1 = leftOb.getAsks().get(0).getLimitPrice();
+            final BigDecimal l_bid1 = leftOb.getBids().get(0).getLimitPrice();
+            final BigDecimal left_best_sam = (l_ask1.add(l_bid1)).divide(BigDecimal.valueOf(2), fractionDigits, RoundingMode.HALF_UP);
+            final OrderBook rightOb = arbitrageService.getRightMarketService().getOrderBook();
+            final BigDecimal r_ask1 = rightOb.getAsks().get(0).getLimitPrice();
+            final BigDecimal r_bid1 = rightOb.getBids().get(0).getLimitPrice();
+            final BigDecimal right_best_sam = (r_ask1.add(r_bid1)).divide(BigDecimal.valueOf(2), fractionDigits, RoundingMode.HALF_UP);
+            final FeeSettings fee = s.getFeeSettings();
             final BigDecimal left_taker_com_pts = fee.getLeftTakerComRate().multiply(left_best_sam)
                     .divide(BigDecimal.valueOf(100), fractionDigits, RoundingMode.HALF_UP);
             final BigDecimal right_taker_com_pts = fee.getRightTakerComRate().multiply(right_best_sam)
@@ -98,13 +98,13 @@ public class SettingsPremService {
             //Auto L_add_border = sum_taker_com_pts + L_add_border_prem.
             //Auto R_add_border = sum_taker_com_pts + R_add_border_prem.
             if (haveBcdPrem) {
-                borderCrossDepth = sum_taker_com_pts.add(v.getPrem().getBcdPrem());
+                borderCrossDepth = sum_taker_com_pts.add(v.getPrem().getBcdPrem()).setScale(fractionDigits, RoundingMode.HALF_UP);
             }
             if (haveLPrem) {
-                leftAddBorder = sum_taker_com_pts.add(v.getPrem().getLeftAddBorderPrem());
+                leftAddBorder = sum_taker_com_pts.add(v.getPrem().getLeftAddBorderPrem()).setScale(fractionDigits, RoundingMode.HALF_UP);
             }
             if (haveRPrem) {
-                rightAddBorder = sum_taker_com_pts.add(v.getPrem().getRightAddBorderPrem());
+                rightAddBorder = sum_taker_com_pts.add(v.getPrem().getRightAddBorderPrem()).setScale(fractionDigits, RoundingMode.HALF_UP);
             }
 
             if (writeToDbCounter++ > WRITE_TO_DB_COUNTER_MAX) {
