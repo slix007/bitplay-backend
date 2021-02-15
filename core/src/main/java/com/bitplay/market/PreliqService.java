@@ -80,8 +80,8 @@ public class PreliqService {
             final Pos pos = marketService.getPos();
             final BigDecimal posVal = pos.getPositionLong().subtract(pos.getPositionShort());
             final CorrParams corrParams = persistenceService.fetchCorrParams();
-            maxCountNotify(corrParams.getPreliq(), "preliq");
-            maxCountNotify(corrParams.getKillpos(), "killpos");
+            maxCountNotify(corrParams.getPreliq());
+            maxCountNotifyKillpos(corrParams.getKillpos());
             final BigDecimal dqlLevel = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql().getDqlLevel();
             final BigDecimal dqlCurr = liqInfo.getDqlCurr();
 
@@ -103,7 +103,7 @@ public class PreliqService {
             }
 
             boolean normalDql = !marketDqlState.isActiveClose();
-            final boolean noSpareAttempts = !corrParams.getPreliq().hasSpareAttempts() && !corrParams.getKillpos().hasSpareTotalAttempts();
+            final boolean noSpareAttempts = !corrParams.getPreliq().hasSpareAttempts() && !corrParams.getKillpos().hasSpareAttemptsCurrentOnly();
             if (normalDql
                     || posZeroViolation(pos)
                     || marketService.getLimitsService().outsideLimitsForPreliq(posVal)
@@ -165,25 +165,9 @@ public class PreliqService {
 
                 // do killpos
                 if (marketDqlState == DqlState.KILLPOS && secToReadyKillpos <= 0) {
-                    if (corrParams.getKillpos().tryIncFailed(getName())) { // previous preliq counter
-                        persistenceService.saveCorrParams(corrParams);
-                    }
-
-                    if (corrParams.getKillpos().hasSpareTotalAttempts()) {
-                        final String counterForLogs = marketService.getCounterNameNext(getKillposSignalType());
-
-                        corrParams.getKillpos().incTotalCount(getName()); // counterName relates on it
-                        persistenceService.saveCorrParams(corrParams);
-
-                        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "KILLPOS");
-                        marketService.getKillPosService().doKillPos(counterForLogs);
-                        log.info("dtKillpos stop after successful killpos");
-                        dtKillpos.stop();
-                        dtPreliq.stop();
-
+                    if (doKillPosWithAttempts(persistenceService, liqInfo, pos, corrParams, nameSymbol)) {
                         return;
                     }
-
                 }
 
                 // do preliq
@@ -221,6 +205,71 @@ public class PreliqService {
             Instant end = Instant.now();
             Utils.logIfLong(start, end, log, "checkForDecreasePosition");
         }
+    }
+
+    private boolean doKillPosWithAttempts(PersistenceService persistenceService, LiqInfo liqInfo, Pos pos, CorrParams corrParams, String nameSymbol) {
+
+        int attemptWarnCnt = 0;
+        while (true) {
+            if (++attemptWarnCnt % 100 == 0) {
+                log.info(attemptWarnCnt + " killposAttempt " + corrParams.getKillpos().toStringKillpos());
+                printLogs(marketService.getCounterNameNext(getKillposSignalType()), nameSymbol, pos, liqInfo, "KILLPOS", "WARN_ATTEMPT_" + attemptWarnCnt);
+            }
+
+            log.info(attemptWarnCnt + " killposAttempt " + corrParams.getKillpos().toStringKillpos());
+
+            final BigDecimal posVal = marketService.getPosVal();
+            if (posVal.signum() == 0) {
+                if (corrParams.getKillpos().tryIncSuccessful(getName())) {
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                log.info("dtKillpos stop by pos==0 after successful killpos. " + corrParams.getKillpos().toStringKillpos());
+                printLogs(marketService.getCounterNameNext(getKillposSignalType()), nameSymbol, pos, liqInfo, "KILLPOS", "stopByPos==0");
+                break;
+            } else {
+                if (corrParams.getKillpos().tryIncFailed(getName())) { // previous killpos counter
+                    persistenceService.saveCorrParams(corrParams);
+                }
+                if (!corrParams.getKillpos().hasSpareAttemptsCurrentOnly()) {
+                    printLogs(marketService.getCounterNameNext(getKillposSignalType()), nameSymbol, pos, liqInfo, "KILLPOS",
+                            "stopByNoSpareAttempts:" + corrParams.getKillpos().toStringKillpos());
+                    break; // no spare attempts
+                }
+
+                // Start Attempt here
+                final String counterForLogs = marketService.getCounterNameNext(getKillposSignalType());
+                corrParams.getKillpos().incTotalCount(getName()); // counterName relates on it
+                persistenceService.saveCorrParams(corrParams);
+
+                printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "KILLPOS");
+
+                final boolean isSuccess = marketService.getKillPosService().doKillPos(counterForLogs);
+
+                if (isSuccess) {
+                    if (corrParams.getKillpos().tryIncSuccessful(getName())) {
+                        persistenceService.saveCorrParams(corrParams);
+                    }
+                    log.info("dtKillpos stop by pos==0 after successful killpos. " + corrParams.getKillpos().toStringKillpos());
+                    break; // success
+                }
+
+                //else continue;
+                try {
+                    //noinspection BusyWait
+                    Thread.sleep(200);
+                    continue;
+                } catch (InterruptedException e) {
+                    log.error("interrupted killpos attempt sleep");
+                }
+            }
+
+            log.info("dtKillpos should never reach " + corrParams.getKillpos().toStringKillpos());
+            break;
+        }
+
+        dtKillpos.stop();
+        dtPreliq.stop();
+        return true;
     }
 
     private BigDecimal getDqlKillPos() {
@@ -261,14 +310,21 @@ public class PreliqService {
         }
     }
 
-    private void maxCountNotify(Preliq preliq, String name) {
+    private void maxCountNotify(Preliq preliq) {
         if (preliq.totalCountViolated()) {
             marketService.getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_TOTAL,
-                    String.format("%s max total %s reached ", name, preliq.getMaxTotalCount()));
+                    String.format("preliq max total %s reached ", preliq.getMaxTotalCount()));
         }
         if (preliq.maxErrorCountViolated()) {
             marketService.getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_ATTEMPT,
-                    String.format("%s max attempts %s reached", name, preliq.getMaxErrorCount()));
+                    String.format("preliq max attempts %s reached", preliq.getMaxErrorCount()));
+        }
+    }
+
+    private void maxCountNotifyKillpos(Preliq killpos) {
+        if (killpos.maxErrorCountViolated()) {
+            marketService.getSlackNotifications().sendNotify(NotifyType.PRELIQ_MAX_ATTEMPT,
+                    String.format("killpos max attempts %s reached", killpos.getMaxErrorCount()));
         }
     }
 
@@ -277,9 +333,9 @@ public class PreliqService {
         return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
     }
 
-    private void printPreliqStarting(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName) {
+    private void printLogs(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName, String startStopStatus) {
         try {
-            final String prefix = String.format("#%s %s_%s starting: ", counterForLogs, nameSymbol, opName);
+            final String prefix = String.format("#%s %s_%s %s: ", counterForLogs, nameSymbol, opName, startStopStatus);
             final MarketServicePreliq thatMarket = getTheOtherMarket();
 
             final String thisMarketStr = prefix + getPreliqStartingStr(marketService.getNameWithType(), position, liqInfo);
@@ -296,12 +352,16 @@ public class PreliqService {
             marketService.getArbitrageService().printToCurrentDeltaLog(thisMarketStr);
             marketService.getArbitrageService().printToCurrentDeltaLog(thatMarketStr);
         } catch (Exception e) {
-            log.error("Error in printPreliqStarting", e);
-            final String err = "Error in printPreliqStarting " + e.toString();
+            log.error("Error in print" + opName + startStopStatus, e);
+            final String err = "Error in print" + opName + startStopStatus + " " + e.toString();
             warningLogger.error(err);
             marketService.getTradeLogger().error(err);
             marketService.getArbitrageService().printToCurrentDeltaLog(err);
         }
+    }
+
+    private void printPreliqStarting(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName) {
+        printLogs(counterForLogs, nameSymbol, position, liqInfo, opName, "starting");
     }
 
     private MarketServicePreliq getTheOtherMarket() {

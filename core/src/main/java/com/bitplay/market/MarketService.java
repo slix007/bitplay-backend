@@ -582,7 +582,7 @@ public abstract class MarketService extends MarketServiceWithState {
             value = String.format("%s:%s", isNext ? counter + 1 : counter, signalType.getCounterName());
         } else if (signalType.isKillPos()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();
-            final Integer counter = corrParams.getKillpos().getTotalCount();
+            final Integer counter = corrParams.getKillpos().getCurrErrorCount();
             value = String.format("%s:%s", isNext ? counter + 1 : counter, signalType.getCounterName());
         } else if (signalType.isAdj()) {
             final CorrParams corrParams = getPersistenceService().fetchCorrParams();

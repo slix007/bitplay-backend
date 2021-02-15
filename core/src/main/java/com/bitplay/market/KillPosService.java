@@ -18,7 +18,7 @@ public class KillPosService {
 
     private final MarketServicePreliq marketService;
 
-    public void doKillPos(String counterForLogs) {
+    public boolean doKillPos(String counterForLogs) {
         final String msg = String.format("%s %s KILLPOS", counterForLogs, marketService.getNameWithType());
         log.error(msg);
         warningLogger.error(msg);
@@ -28,20 +28,26 @@ public class KillPosService {
         //2) В случае успешного первого действия, непосредственно после него срабатывает автоматическое действие recovery_nt_usd 26nv19 Кнопка recovery nt_usd со следующими особенностями:
 
         final TradeResponse tradeResponse = marketService.closeAllPos();
-        if (tradeResponse.getOrderId() != null) {
-            final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
-
-            final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService);
-            String res;
-            try {
-                res = stringFuture.get(10, TimeUnit.SECONDS);
-                marketService.getTradeLogger().info(res);
-                log.info(res);
-            } catch (Exception e) {
-                marketService.getTradeLogger().info("recovery_nt_usd Error:" + e.getMessage());
-                log.error("recovery_nt_usd Error", e);
-            }
-
+        if (tradeResponse.getOrderId() == null) {
+            // FAIL:
+            return false;
         }
+
+        // SUCCESS:
+        //if (tradeResponse.getOrderId() != null) {
+        final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
+
+        final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService);
+        String res;
+        try {
+            res = stringFuture.get(10, TimeUnit.SECONDS);
+            marketService.getTradeLogger().info(res);
+            log.info(res);
+        } catch (Exception e) {
+            marketService.getTradeLogger().info("recovery_nt_usd Error:" + e.getMessage());
+            log.error("recovery_nt_usd Error", e);
+        }
+
+        return true;
     }
 }

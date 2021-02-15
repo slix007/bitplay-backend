@@ -65,12 +65,20 @@ public class Preliq extends CountedPreliq {
         return PlacingBlocks.toOkexCont(BigDecimal.valueOf(preliqBlockUsd), isEth).intValue();
     }
 
+    @SuppressWarnings("UnnecessaryLocalVariable")
     public boolean hasSpareAttempts() {
         boolean hasSpareCurrent = currErrorCount < maxErrorCount;
         boolean hasSparePermanent = totalCount < maxTotalCount;
         return hasSpareCurrent && hasSparePermanent;
     }
 
+    @SuppressWarnings("UnnecessaryLocalVariable")
+    public boolean hasSpareAttemptsCurrentOnly() {
+        boolean hasSpareCurrent = currErrorCount < maxErrorCount;
+        return hasSpareCurrent;
+    }
+
+    @SuppressWarnings("UnnecessaryLocalVariable")
     public boolean hasSpareTotalAttempts() {
         boolean hasSparePermanent = totalCount < maxTotalCount;
         return hasSparePermanent;
@@ -111,5 +119,9 @@ public class Preliq extends CountedPreliq {
                 succeedCount + failedCount,
                 succeedCount, failedCount,
                 maxTotalCount);
+    }
+
+    public String toStringKillpos() {
+        return String.format("killpos Attempts(curr/max): %s/%s", currErrorCount, maxErrorCount);
     }
 }
