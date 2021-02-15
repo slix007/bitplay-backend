@@ -2376,8 +2376,9 @@ public class BitmexService extends MarketServicePreliq {
         final String counterWithPortion = fplayOrder.getCounterWithPortion();
         Instant startReq = null;
         Instant endReq = null;
+        BigDecimal bestMakerPrice = null;
         try {
-            BigDecimal bestMakerPrice = newPrice.setScale(cntType.getScale(), BigDecimal.ROUND_HALF_UP);
+            bestMakerPrice = newPrice.setScale(cntType.getScale(), BigDecimal.ROUND_HALF_UP);
 
             if (bestMakerPrice.signum() == 0 || bestMakerPrice.compareTo(limitOrder.getLimitPrice()) == 0) {
                 return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving. newPrice==oldPrice");
@@ -2442,7 +2443,12 @@ public class BitmexService extends MarketServicePreliq {
 
             HttpStatusIOExceptionHandler handler = new HttpStatusIOExceptionHandler(
                     e,
-                    String.format("MoveOrderError:ordId=%s", limitOrder.getId()),
+                    String.format("MoveOrderError:ordId=%s(from %s to %s amount=%s)",
+                            limitOrder.getId(),
+                            limitOrder.getLimitPrice(),
+                            bestMakerPrice.toPlainString(),
+                            limitOrder.getTradableAmount()
+                    ),
                     movingErrorsOverloaded.get(),
                     counterWithPortion
             ).invoke();
