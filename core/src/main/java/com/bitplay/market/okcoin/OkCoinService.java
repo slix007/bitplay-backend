@@ -165,6 +165,7 @@ public class OkCoinService extends MarketServicePreliq {
     private OkExStreamingExchange exchange; // for streaming only
     private ApiCredentials apiCredentials;
     private FplayExchangeOkex fplayOkexExchange;
+    private FplayExchangeOkex fplayOkexExchange2sec;
     private Disposable orderBookSubscription;
     private Disposable orderBookSubscriptionExtra;
     private Disposable userPositionSub;
@@ -305,6 +306,7 @@ public class OkCoinService extends MarketServicePreliq {
 
         apiCredentials = getApiCredentials(exArgs);
         initExchangeV3(apiCredentials);
+        initExchangeV32Sec(apiCredentials);
         exchange = initExchange(exArgs);
 
         initWebSocketAndAllSubscribers();
@@ -324,6 +326,13 @@ public class OkCoinService extends MarketServicePreliq {
             warningLogger.warn(msg);
             initExchangeV3(apiCredentials);
         }
+
+        if (fplayOkexExchange2sec == null || fplayOkexExchange2sec.getPrivateApi() == null || fplayOkexExchange2sec.getPrivateApi().notCreated()) {
+            final String msg = "fplayOkexExchange2sec is not fully created. Re-create it.";
+            log.warn(msg);
+            warningLogger.warn(msg);
+            initExchangeV32Sec(apiCredentials);
+        }
     }
 
     private void initExchangeV3(ApiCredentials cred) {
@@ -337,6 +346,19 @@ public class OkCoinService extends MarketServicePreliq {
         config.setWriteTimeout(15);
 
         fplayOkexExchange = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
+    }
+
+    private void initExchangeV32Sec(ApiCredentials cred) {
+        ApiConfiguration config = new ApiConfiguration();
+        config.setEndpoint(ApiConfiguration.API_BASE_URL);
+        config.setApiCredentials(cred);
+        config.setPrint(true);
+        config.setRetryOnConnectionFailure(true);
+        config.setConnectTimeout(2);
+        config.setReadTimeout(2);
+        config.setWriteTimeout(2);
+
+        fplayOkexExchange2sec = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
     }
 
     private ApiCredentials getApiCredentials(Object[] exArgs) {
@@ -3031,8 +3053,7 @@ public class OkCoinService extends MarketServicePreliq {
     /**
      * fake taker price deviation limit order
      */
-    private String ftpdLimitOrder(String counterForLogs, OkexContractType okexContractType, OrderType orderType,
-            BigDecimal amount)
+    private String ftpdLimitOrder(String counterForLogs, OkexContractType okexContractType, OrderType orderType, BigDecimal amount)
             throws IOException {
         //TODO use https://www.okex.com/docs/en/#futures-close_all
         if (amount.signum() != 0) {
@@ -3045,7 +3066,7 @@ public class OkCoinService extends MarketServicePreliq {
             log.info(ftpdDetails);
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-            final OrderResultTiny orderResult = fplayOkexExchange.getPrivateApi().limitOrder(
+            final OrderResultTiny orderResult = fplayOkexExchange2sec.getPrivateApi().limitOrder(
                     instrumentDto.getInstrumentId(),
                     orderType,
                     thePrice,
@@ -3078,7 +3099,7 @@ public class OkCoinService extends MarketServicePreliq {
     private void cancelOrderOnMkt(String counterForLogs, String logInfoId, StringBuilder res, LimitOrder order)
             throws IOException {
         final String orderId = order.getId();
-        final OrderResultTiny result = fplayOkexExchange.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
+        final OrderResultTiny result = fplayOkexExchange2sec.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
 
         final String translatedError = OkexOrderConverter.getErrorCodeTranslation(result);
         tradeLogger.info(String.format("#%s %s id=%s,res=%s,code=%s,details=%s(%s)",
