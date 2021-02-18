@@ -50,9 +50,10 @@ public class BitmexLimitsService implements LimitsService {
         final BigDecimal limitAsk = ob.getAsks().size() > 0 ? ob.getAsks().get(0).getLimitPrice() : BigDecimal.ZERO;
 //        Max price = Index (1 + Limit price, %)
 //        Min price = Index (1 - Limit price, %)
-        final BigDecimal lp = bitmexLimitPrice.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        final BigDecimal maxPrice = indexPrice.multiply(BigDecimal.ONE.add(lp)).setScale(2, RoundingMode.HALF_UP);
-        final BigDecimal minPrice = indexPrice.multiply(BigDecimal.ONE.subtract(lp)).setScale(2, RoundingMode.HALF_UP);
+        final Integer scale = bitmexService.getContractType().getScale();
+        final BigDecimal lp = bitmexLimitPrice.divide(BigDecimal.valueOf(100), scale, RoundingMode.HALF_UP);
+        final BigDecimal maxPrice = indexPrice.multiply(BigDecimal.ONE.add(lp)).setScale(scale, RoundingMode.HALF_UP);
+        final BigDecimal minPrice = indexPrice.multiply(BigDecimal.ONE.subtract(lp)).setScale(scale, RoundingMode.HALF_UP);
         final String priceRangeTimestamp = Utils.timestampToStr(contractIndex.getTimestamp());
         // insideLimits: Limit Ask < Max price && Limit bid > Min price
         final boolean insideLimits = (limitAsk.compareTo(maxPrice) < 0 && limitBid.compareTo(minPrice) > 0);
