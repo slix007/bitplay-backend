@@ -4,6 +4,7 @@ import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.market.model.TradeResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.knowm.xchange.dto.Order.OrderStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,11 @@ public class KillPosService {
         //2) В случае успешного первого действия, непосредственно после него срабатывает автоматическое действие recovery_nt_usd 26nv19 Кнопка recovery nt_usd со следующими особенностями:
 
         final TradeResponse tradeResponse = marketService.closeAllPos();
-        if (tradeResponse.getOrderId() == null) {
+        final String orderId = tradeResponse.getOrderId();
+        if (orderId == null ||
+                (marketService.getOpenOrders().stream()
+                        .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
+                        .allMatch(fplayOrder -> fplayOrder.getOrderDetail().getOrderStatus() != OrderStatus.FILLED))) {
             // FAIL:
             return false;
         }
