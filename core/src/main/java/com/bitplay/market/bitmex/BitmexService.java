@@ -2774,13 +2774,16 @@ public class BitmexService extends MarketServicePreliq {
         }
         final Date timestamp = update.getTimestamp();
 
-        int s = getContractType().getScale();
+        final ContractType ct = getContractType();
+        int s = (ct == BitmexContractType.XRPUSD_Perpetual)
+                ? ct.getScale() + 1
+                : ct.getScale();
         return new BitmexContractIndex(update.getSymbol(),
-                indexPrice.setScale(s + 1, RoundingMode.HALF_UP),
-                markPrice.setScale(s + 1, RoundingMode.HALF_UP),
+                indexPrice.setScale(s, RoundingMode.HALF_UP),
+                markPrice.setScale(s, RoundingMode.HALF_UP),
                 lastPrice.setScale(s, RoundingMode.HALF_UP),
                 timestamp,
-                fundingRate.setScale(s + 2, RoundingMode.HALF_UP),
+                fundingRate.setScale(ct.getScale() + 2, RoundingMode.HALF_UP),
                 fundingTimestamp);
     }
 
