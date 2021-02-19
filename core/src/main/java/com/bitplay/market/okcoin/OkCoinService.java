@@ -1512,7 +1512,8 @@ public class OkCoinService extends MarketServicePreliq {
         for (int attemptCount = 1; attemptCount < maxAttempts
                 && !getArbitrageService().isArbStateStopped()
                 && !getArbitrageService().isArbForbidden(signalType)
-                && !shouldStopPlacing;
+                && !shouldStopPlacing
+                && !placeOrderArgs.isShouldStopNtUsdRecovery();
                 attemptCount++) {
             try {
                 if (settingsRepositoryService.getSettings().getManageType().isManual() && !signalType.isRecoveryNtUsd()) {
@@ -1526,6 +1527,9 @@ public class OkCoinService extends MarketServicePreliq {
                         bestQuotes.setSignalTime(null);
                     }
                     Thread.sleep(1000);
+                }
+                if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
+                    break;
                 }
 
                 if (placingType != PlacingType.TAKER) {

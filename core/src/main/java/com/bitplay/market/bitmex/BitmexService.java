@@ -1927,7 +1927,8 @@ public class BitmexService extends MarketServicePreliq {
             while (attemptCount < maxAttempts
                     && !getArbitrageService().isArbStateStopped()
                     && !getArbitrageService().isArbForbidden(signalType)
-                    && !shouldStopPlacing) {
+                    && !shouldStopPlacing
+                    && !placeOrderArgs.isShouldStopNtUsdRecovery()) {
                 attemptCount++;
                 if (placeOrderArgs.getAttempt() == PlaceOrderArgs.NO_REPEATS_ATTEMPT && attemptCount > 1) {
                     // means: R_wait_L on signal. No repeats. Cancel okex deferred.
@@ -1957,6 +1958,14 @@ public class BitmexService extends MarketServicePreliq {
                         tradeLogger.warn("placeOrder waiting for reconnect.", contractTypeStr);
                         while (reconnectInProgress) {
                             Thread.sleep(200);
+                            if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
+                                nextMarketState = MarketState.READY;
+                                final String warnMsg = "ShouldStopNtUsdRecovery";
+                                logger.info(warnMsg);
+                                tradeLogger.info(warnMsg);
+                                ((OkCoinService) arbitrageService.getRightMarketService()).resetWaitingArb(warnMsg);
+                                break;
+                            }
                         }
                         tradeLogger.warn("placeOrder end waiting for reconnect.", contractTypeStr);
                     }
@@ -2173,6 +2182,14 @@ public class BitmexService extends MarketServicePreliq {
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus) {
                         if (attemptCount < maxAttempts) {
                             Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
+                            if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
+                                nextMarketState = MarketState.READY;
+                                final String warnMsg = "ShouldStopNtUsdRecovery";
+                                logger.info(warnMsg);
+                                tradeLogger.info(warnMsg);
+                                ((OkCoinService) arbitrageService.getRightMarketService()).resetWaitingArb(warnMsg);
+                                break;
+                            }
                         } else {
                             setOverloaded(null, true);
                             nextMarketState = MarketState.SYSTEM_OVERLOADED;
@@ -2184,6 +2201,14 @@ public class BitmexService extends MarketServicePreliq {
                         badGatewayCount++;
                         if (badGatewayCount < 3) {
                             Thread.sleep(200);
+                            if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
+                                nextMarketState = MarketState.READY;
+                                final String warnMsg = "ShouldStopNtUsdRecovery";
+                                logger.info(warnMsg);
+                                tradeLogger.info(warnMsg);
+                                ((OkCoinService) arbitrageService.getRightMarketService()).resetWaitingArb(warnMsg);
+                                break;
+                            }
                         } else {
                             tradeResponse.setErrorCode(e.getMessage());
                             nextMarketState = MarketState.READY;

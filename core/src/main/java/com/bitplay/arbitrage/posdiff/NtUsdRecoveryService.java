@@ -16,6 +16,8 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
+import com.bitplay.security.RecoveryStatus;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +43,12 @@ public class NtUsdRecoveryService {
     private final PersistenceService persistenceService;
     private final ArbitrageService arbitrageService;
     private final TradeService tradeService;
+    private final AtomicReference<RecoveryStatus> recoveryStatus = new AtomicReference<>(RecoveryStatus.OFF);
+    private volatile PlaceOrderArgs placeOrderArgs;
 
     public Future<String> tryRecoveryByButton() {
         return ntUsdExecutor.runTask(() -> {
+            recoveryStatus.set(RecoveryStatus.IN_PROGRESS);
             try {
                 final RecoveryResult recoveryResult = doRecovery(new RecoveryParam(null, null));
                 return recoveryResult.details;
@@ -52,12 +57,15 @@ public class NtUsdRecoveryService {
                 final String msg = "recovery_nt_usd is failed." + e.getMessage();
                 warningLogger.error(msg);
                 return msg;
+            } finally {
+                recoveryStatus.set(RecoveryStatus.OFF);
             }
         });
     }
 
     public Future<String> tryRecoveryAfterKillPos(MarketServicePreliq marketService) {
         return ntUsdExecutor.runTask(() -> {
+            recoveryStatus.set(RecoveryStatus.IN_PROGRESS);
             try {
                 final String marketWithTypeToRecovery = marketService.getArbType() == ArbType.LEFT
                         ? arbitrageService.getRightMarketService().getNameWithType()
@@ -67,7 +75,7 @@ public class NtUsdRecoveryService {
                 boolean okexThroughZero = true;
                 int attempt = 0;
                 String resDetails = "RecoveryNtUsdAfterKillposResult: ";
-                while ((amount0 || okexThroughZero) && attempt < 5) {
+                while ((amount0 || okexThroughZero) && attempt < 5 && recoveryStatus.get() == RecoveryStatus.IN_PROGRESS) {
                     if (++attempt > 1) {
                         Thread.sleep(500);
                     }
@@ -84,6 +92,8 @@ public class NtUsdRecoveryService {
                 final String msg = "recovery_nt_usd is failed." + e.getMessage();
                 warningLogger.error(msg);
                 return msg;
+            } finally {
+                recoveryStatus.set(RecoveryStatus.OFF);
             }
         });
     }
@@ -195,7 +205,7 @@ public class NtUsdRecoveryService {
                 final String setStr = arbitrageService.getMainSetStr();
                 tradeService.info(tradeId, counterName, String.format("#%s %s", signalTypeEx.getCounterName(), setStr));
                 tradeService.info(tradeId, counterName, message);
-                PlaceOrderArgs placeOrderArgs = PlaceOrderArgs.builder()
+                placeOrderArgs = PlaceOrderArgs.builder()
                         .orderType(orderType)
                         .amount(correctAmount)
                         .placingType(placingType)
@@ -207,6 +217,14 @@ public class NtUsdRecoveryService {
                         .build();
                 marketService.getTradeLogger().info(message + placeOrderArgs.toString());
                 log.info(message);
+
+                // check stop flag
+                if (recoveryStatus.get() == RecoveryStatus.OFF) {
+                    resultMsg += "STOP by RecoveryStatus.OFF";
+                    marketService.getTradeLogger().warn(resultMsg);
+                    return new RecoveryResult(resultMsg, corrObj.okexThroughZero, true);
+                }
+
 
                 arbitrageService.setSignalType(signalType);
                 marketService.setBusy(counterName, MarketState.ARBITRAGE);
@@ -420,6 +438,20 @@ public class NtUsdRecoveryService {
         }
 
         corrObj.contractType = corrObj.marketService != null ? corrObj.marketService.getContractType() : null;
+    }
+
+
+    public RecoveryStatus getRecoveryStatus() {
+
+        return recoveryStatus.get();
+    }
+
+    public void resetRecoveryStatus() {
+        if (placeOrderArgs != null) {
+            placeOrderArgs.setShouldStopNtUsdRecovery(true);
+        }
+        recoveryStatus.set(RecoveryStatus.OFF);
+
     }
 
 }

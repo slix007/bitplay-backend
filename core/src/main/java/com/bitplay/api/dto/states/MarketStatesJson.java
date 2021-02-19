@@ -3,6 +3,7 @@ package com.bitplay.api.dto.states;
 import com.bitplay.api.dto.pos.PosDiffJson;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.persistance.domain.mon.MonObTimestamp;
+import com.bitplay.security.RecoveryStatus;
 import com.bitplay.security.SebestStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -39,6 +40,7 @@ public class MarketStatesJson {
     String nowMomentStr;
     DqlState dqlState;
     SebestStatus sebestStatus;
+    RecoveryStatus recoveryStatus;
     OkexFtpdJson leftFtpdJson;
     OkexFtpdJson rightFtpdJson;
     String twoMarketsIndexDiff;

@@ -350,6 +350,7 @@ public class CommonUIService {
                 LocalTime.now().toString(),
                 dqlState,
                 traderPermissionsService.getSebestStatus(),
+                ntUsdRecoveryService.getRecoveryStatus(),
                 leftFtpdJson,
                 rightFtpdJson,
                 getTwoMarketsIndexDiff(),
@@ -479,6 +480,11 @@ public class CommonUIService {
             res = e.getMessage();
         }
         return new ResultJson(res, "");
+    }
+
+    public ResultJson resetRecoveryStatus() {
+        ntUsdRecoveryService.resetRecoveryStatus();
+        return new ResultJson("OK", "");
     }
 
     public ResultJson printSumBal() {

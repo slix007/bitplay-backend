@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.knowm.xchange.dto.Order;
+import org.knowm.xchange.dto.Order.OrderType;
 import org.springframework.data.annotation.Transient;
 
 import java.math.BigDecimal;
@@ -52,6 +53,33 @@ public class PlaceOrderArgs {
     private Integer portionsQtyMax; // amount of portions in a row
     private BtmFokAutoArgs btmFokArgs;
     private ArbScheme arbScheme;
+    private volatile boolean shouldStopNtUsdRecovery = false;
+
+    public PlaceOrderArgs(OrderType orderType, BigDecimal fullAmount, BigDecimal amount, BestQuotes bestQuotes,
+            PlacingType placingType, SignalType signalType, int attempt, Long tradeId, String counterName, PlBefore plBefore,
+            ContractType contractType, AmountType amountType, Instant preliqQueuedTime, String preliqMarketName, boolean pricePlanOnStart, boolean preliqOrder,
+            Integer portionsQty, Integer portionsQtyMax, BtmFokAutoArgs btmFokArgs, ArbScheme arbScheme) {
+        this.orderType = orderType;
+        this.fullAmount = fullAmount;
+        this.amount = amount;
+        this.bestQuotes = bestQuotes;
+        this.placingType = placingType;
+        this.signalType = signalType;
+        this.attempt = attempt;
+        this.tradeId = tradeId;
+        this.counterName = counterName;
+        this.plBefore = plBefore;
+        this.contractType = contractType;
+        this.amountType = amountType;
+        this.preliqQueuedTime = preliqQueuedTime;
+        this.preliqMarketName = preliqMarketName;
+        this.pricePlanOnStart = pricePlanOnStart;
+        this.preliqOrder = preliqOrder;
+        this.portionsQty = portionsQty;
+        this.portionsQtyMax = portionsQtyMax;
+        this.btmFokArgs = btmFokArgs;
+        this.arbScheme = arbScheme;
+    }
 
     public static PlaceOrderArgs nextPlacingArgs(PlaceOrderArgs curr) {
         return new PlaceOrderArgs(curr.orderType, curr.fullAmount, curr.amount, curr.bestQuotes, curr.placingType, curr.signalType,
@@ -137,5 +165,13 @@ public class PlaceOrderArgs {
 
     public PlBefore getPlBefore() {
         return plBefore != null ? plBefore : new PlBefore();
+    }
+
+    public boolean isShouldStopNtUsdRecovery() {
+        return shouldStopNtUsdRecovery;
+    }
+
+    public void setShouldStopNtUsdRecovery(boolean shouldStopNtUsdRecovery) {
+        this.shouldStopNtUsdRecovery = shouldStopNtUsdRecovery;
     }
 }

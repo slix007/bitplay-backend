@@ -133,6 +133,16 @@ public class CommonEndpoint {
         return new ResultJson("reset requested", "");
     }
 
+    @RequestMapping(value = "/market/reset-recovery-state",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public ResultJson resetRecoveryState() {
+        commonUIService.resetRecoveryStatus();
+        return new ResultJson("reset requested", "");
+    }
+
     @RequestMapping(value = "/market/implied/fix-current",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
