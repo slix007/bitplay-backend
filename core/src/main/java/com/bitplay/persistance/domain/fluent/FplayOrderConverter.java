@@ -42,11 +42,17 @@ public class FplayOrderConverter {
     }
 
     private static CurrencyPairDetail convert(CurrencyPair currencyPair) {
+        if (currencyPair == null) {
+            return null;
+        }
         return new CurrencyPairDetail(currencyPair.base.getCurrencyCode(),
                 currencyPair.counter.getCurrencyCode());
     }
 
     private static CurrencyPair parse(CurrencyPairDetail detail) {
+        if (detail == null) {
+            return null;
+        }
         return new CurrencyPair(detail.getFirst(), detail.getSecond());
     }
 
