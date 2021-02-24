@@ -201,17 +201,19 @@ public class DeltasCalcService {
     }
 
     public String getBDeltaEveryCalc() {
-       return String.format("<span style=\"color: %s;\">%s / %s = %s</span>",
+        final int scale = arbitrageService.getToolsScale();
+        return String.format("<span style=\"color: %s;\">%s / %s = %s</span>",
                avgDeltaInParts.isHasErrorsBtm() ? "red" : "black",
-               BigDecimal.valueOf(avgDeltaInParts.getNum_sma_btm()).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).toPlainString(),
+               BigDecimal.valueOf(avgDeltaInParts.getNum_sma_btm(), scale).toPlainString(),
                avgDeltaInParts.getDen_sma_btm(),
                avgDeltaInParts.getCurrSmaBtmDelta());
     }
 
     public String getODeltaEveryCalc() {
+        final int scale = arbitrageService.getToolsScale();
         return String.format("<span style=\"color: %s;\">%s / %s = %s</span>",
                 avgDeltaInParts.isHasErrorsOk() ? "red" : "black",
-                BigDecimal.valueOf(avgDeltaInParts.getNum_sma_ok()).divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP).toPlainString(),
+                BigDecimal.valueOf(avgDeltaInParts.getNum_sma_ok(), scale).toPlainString(),
                 avgDeltaInParts.getDen_sma_ok(),
                 avgDeltaInParts.getCurrSmaOkDelta());
     }

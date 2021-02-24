@@ -33,7 +33,36 @@ public class Dlt {
      */
     private Long value;
 
+    /**
+     * scale as multiplier.<br>
+     * mlt=100 means scale=2<br>
+     * mlt=10000 means scale=4.
+     */
+    private int scale = 2;
+
     public BigDecimal getDelta() {
-        return BigDecimal.valueOf((double) value / 100);
+        return BigDecimal.valueOf(value, scale);
+    }
+
+    public Dlt(DeltaName name, Date timestamp, BigDecimal val) {
+        this.name = name;
+        this.timestamp = timestamp;
+        final int scale = val.scale();
+        final BigDecimal mlt = scaleToMlt(scale);
+        this.value = val.multiply(mlt).longValue();
+        this.scale = scale;
+    }
+
+    private static BigDecimal scaleToMlt(int scale) {
+        if (scale == 1) {
+            return BigDecimal.valueOf(10);
+        } else if (scale == 3) {
+            return BigDecimal.valueOf(1000);
+        } else if (scale == 4) {
+            return BigDecimal.valueOf(10000);
+        } else if (scale == 5) {
+            return BigDecimal.valueOf(100000);
+        }
+        return BigDecimal.valueOf(100); //default
     }
 }

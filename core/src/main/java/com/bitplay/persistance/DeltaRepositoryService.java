@@ -103,13 +103,15 @@ public class DeltaRepositoryService {
 
     private Observable<Dlt> deltaChangeToDlt(DeltaChange deltaChange) {
         List<Dlt> list = new ArrayList<>();
-        if (deltaChange.getBtmDelta() != null) {
-            Dlt delta = new Dlt(DeltaName.B_DELTA, new Date(), deltaChange.getBtmDelta().multiply(BigDecimal.valueOf(100)).longValue());
+        final BigDecimal btmDelta = deltaChange.getBtmDelta();
+        if (btmDelta != null) {
+            Dlt delta = new Dlt(DeltaName.B_DELTA, new Date(), btmDelta);
             list.add(delta);
             lastBtm = delta;
         }
-        if (deltaChange.getOkDelta() != null) {
-            Dlt delta = new Dlt(DeltaName.O_DELTA, new Date(), deltaChange.getOkDelta().multiply(BigDecimal.valueOf(100)).longValue());
+        final BigDecimal okDelta = deltaChange.getOkDelta();
+        if (okDelta != null) {
+            Dlt delta = new Dlt(DeltaName.O_DELTA, new Date(), okDelta);
             list.add(delta);
             lastOk = delta;
         }
@@ -157,10 +159,10 @@ public class DeltaRepositoryService {
         try {
             if (lastBtm != null && lastOk != null) {
                 Date currTime = new Date();
-                Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, lastBtm.getValue());
+                Dlt btmDlt = new Dlt(DeltaName.B_DELTA, currTime, lastBtm.getValue(), lastBtm.getScale());
                 dltRepository.save(btmDlt);
                 dltSavedEmitter.onNext(btmDlt);
-                Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, lastOk.getValue());
+                Dlt okDlt = new Dlt(DeltaName.O_DELTA, currTime, lastOk.getValue(), lastOk.getScale());
                 dltRepository.save(okDlt);
                 dltSavedEmitter.onNext(okDlt);
                 lastSavedBtm = btmDlt;

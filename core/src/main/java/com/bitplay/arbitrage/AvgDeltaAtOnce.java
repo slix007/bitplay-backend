@@ -25,15 +25,16 @@ public class AvgDeltaAtOnce implements AvgDelta {
     @Override
     public BigDecimal calcAvgDelta(DeltaName deltaName, BigDecimal instantDelta, Instant currTime, BorderDelta borderDelta,
             Instant begin_delta_hist_per) {
+        final int scale = instantDelta.scale();
         return deltaName == DeltaName.B_DELTA
-                ? BigDecimal.valueOf(getDeltaAvg1(instantDelta, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP)
-                : BigDecimal.valueOf(getDeltaAvg2(instantDelta, borderDelta)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                ? BigDecimal.valueOf(getDeltaAvg1(instantDelta, borderDelta)).setScale(scale, BigDecimal.ROUND_HALF_UP)
+                : BigDecimal.valueOf(getDeltaAvg2(instantDelta, borderDelta)).setScale(scale, BigDecimal.ROUND_HALF_UP);
     }
 
     private Double getDeltaAvg1(BigDecimal defaultDelta1, BorderDelta borderDelta) {
         final Date fromDate = Date.from(Instant.now().minus(borderDelta.getDeltaCalcPast(), ChronoUnit.SECONDS));
         final Date toDate = new Date();
-        
+
         final OptionalDouble average = deltaRepositoryService.streamDeltas(DeltaName.B_DELTA, fromDate, toDate)
                 .mapToLong(Dlt::getValue)
 //                .mapToDouble(BigDecimal::doubleValue)

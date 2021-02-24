@@ -157,15 +157,15 @@ public class AvgDeltaInParts implements AvgDelta {
         Integer delta_hist_per = borderDelta.getDeltaCalcPast();
 
         BigDecimal result;
+        int scale = arbitrageService.getToolsScale();
 
+        long startMs = System.nanoTime();
         if (deltaName == DeltaName.B_DELTA) {
-            long startMs = System.nanoTime();
-            result = doTheCalcBtm(currTime, delta_hist_per);
+            result = doTheCalcBtm(currTime, delta_hist_per, scale);
             long endMs = System.nanoTime();
             arbitrageService.getDeltaMon().setBtmDeltaMs((endMs - startMs) / 1000);
         } else {
-            long startMs = System.nanoTime();
-            result = doTheCalcOk(currTime, delta_hist_per);
+            result = doTheCalcOk(currTime, delta_hist_per, scale);
             long endMs = System.nanoTime();
             arbitrageService.getDeltaMon().setOkDeltaMs((endMs - startMs) / 1000);
         }
@@ -215,7 +215,7 @@ public class AvgDeltaInParts implements AvgDelta {
         }
     }
 
-    private synchronized BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per) {
+    private synchronized BigDecimal doTheCalcBtm(Instant currTime, Integer delta_hist_per, int scale) {
         btm_started = true;
         // comp_b_border_sma_event();
         reBtm = b_delta.size() - 1;
@@ -263,12 +263,12 @@ public class AvgDeltaInParts implements AvgDelta {
             return null;
         }
 
-        BigDecimal b_delta_sma_value = BigDecimal.valueOf(num_sma_btm / den_sma_btm, 2);
+        BigDecimal b_delta_sma_value = BigDecimal.valueOf(num_sma_btm / den_sma_btm, scale);
         b_delta_sma = Pair.of(currTime, b_delta_sma_value);
         return b_delta_sma_value;
     }
 
-    private synchronized BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per) {
+    private synchronized BigDecimal doTheCalcOk(Instant currTime, Integer delta_hist_per, int scale) {
         ok_started = true;
         // comp_b_border_sma_event();
         reOk = o_delta.size() - 1;
@@ -316,7 +316,7 @@ public class AvgDeltaInParts implements AvgDelta {
             return null;
         }
 
-        BigDecimal o_delta_sma_value = BigDecimal.valueOf(num_sma_ok / den_sma_ok, 2);
+        BigDecimal o_delta_sma_value = BigDecimal.valueOf(num_sma_ok / den_sma_ok, scale);
         o_delta_sma = Pair.of(currTime, o_delta_sma_value);
         return o_delta_sma_value;
     }
@@ -332,8 +332,9 @@ public class AvgDeltaInParts implements AvgDelta {
             count++;
             sum = sum.add(value);
         }
+        final int scale = arbitrageService.getToolsScale();
         BigDecimal validVal = count == 0 ? BigDecimal.ZERO
-                : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+                : sum.divide(BigDecimal.valueOf(count), scale, BigDecimal.ROUND_DOWN);
 
         if (validVal.compareTo(currSmaBtmDelta) != 0) {
             debugLog.error("ERROR btm validation: valid={}, but found={}, firstResult={}",
@@ -353,8 +354,9 @@ public class AvgDeltaInParts implements AvgDelta {
             count++;
             sum = sum.add(value);
         }
+        final int scale = arbitrageService.getToolsScale();
         BigDecimal validVal = count == 0 ? BigDecimal.ZERO
-                : sum.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_DOWN);
+                : sum.divide(BigDecimal.valueOf(count), scale, BigDecimal.ROUND_DOWN);
 
         if (validVal.compareTo(currSmaOkDelta) != 0) {
             debugLog.error("ERROR ok validation: valid={}, but found={}, firstResult={}",
@@ -402,16 +404,18 @@ public class AvgDeltaInParts implements AvgDelta {
     }
 
     public synchronized BigDecimal getCurrSmaBtmDelta() {
+        final int scale = arbitrageService.getToolsScale();
         BigDecimal b_delta_sma_value = den_sma_btm == 0
                 ? NONE_VALUE
-                : BigDecimal.valueOf(num_sma_btm / den_sma_btm, 2);
+                : BigDecimal.valueOf(num_sma_btm / den_sma_btm, scale);
         return b_delta_sma_value;
     }
 
     public synchronized BigDecimal getCurrSmaOkDelta() {
+        final int scale = arbitrageService.getToolsScale();
         BigDecimal o_delta_sma_value = den_sma_ok == 0
                 ? NONE_VALUE
-                : BigDecimal.valueOf(num_sma_ok / den_sma_ok, 2);
+                : BigDecimal.valueOf(num_sma_ok / den_sma_ok, scale);
         return o_delta_sma_value;
     }
 

@@ -1071,6 +1071,13 @@ public class ArbitrageService {
         unstartedCount = 0;
     }
 
+    public int getToolsScale() {
+        if (leftMarketService == null || leftMarketService.getContractType() == null) {
+            return 2; //default value as previous.
+        }
+        return leftMarketService.getContractType().getScale();
+    }
+
     @Data
     private static class ObTs { // orderBook timestamps
 
