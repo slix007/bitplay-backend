@@ -207,10 +207,13 @@ public class PreliqService {
         }
     }
 
-    private boolean doKillPosWithAttempts(PersistenceService persistenceService, LiqInfo liqInfo, Pos pos, CorrParams corrParams, String nameSymbol) {
+    private boolean doKillPosWithAttempts(PersistenceService persistenceService, LiqInfo liqInfo1, Pos pos1, CorrParams corrParams, String nameSymbol) {
+        boolean shouldStopAfter = true;
 
         int attemptWarnCnt = 0;
         while (true) {
+            final Pos pos = marketService.getPos();
+            LiqInfo liqInfo = marketService.getLiqInfo();
             if (++attemptWarnCnt % 100 == 0) {
                 log.info(attemptWarnCnt + " killposAttempt " + corrParams.getKillpos().toStringKillpos());
                 printLogs(marketService.getCounterNameNext(getKillposSignalType()), nameSymbol, pos, liqInfo, "KILLPOS", "WARN_ATTEMPT_" + attemptWarnCnt);
@@ -232,7 +235,8 @@ public class PreliqService {
                 }
                 if (!corrParams.getKillpos().hasSpareAttemptsCurrentOnly()) {
                     printLogs(marketService.getCounterNameNext(getKillposSignalType()), nameSymbol, pos, liqInfo, "KILLPOS",
-                            "stopByNoSpareAttempts:" + corrParams.getKillpos().toStringKillpos());
+                            "exitByNoSpareAttempts:" + corrParams.getKillpos().toStringKillpos());
+                    shouldStopAfter = false;
                     break; // no spare attempts
                 }
 
@@ -267,9 +271,12 @@ public class PreliqService {
             break;
         }
 
-        dtKillpos.stop();
-        dtPreliq.stop();
-        return true;
+        if (shouldStopAfter) {
+            dtKillpos.stop();
+            dtPreliq.stop();
+            return true;
+        }
+        return false;
     }
 
     private BigDecimal getDqlKillPos(MarketService marketService) {

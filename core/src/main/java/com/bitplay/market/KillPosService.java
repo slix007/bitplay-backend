@@ -36,6 +36,17 @@ public class KillPosService {
                         .allMatch(fplayOrder -> fplayOrder.getOrderDetail().getOrderStatus() != OrderStatus.FILLED))) {
             // FAIL:
             return false;
+        } else if (marketService.getOpenOrders().stream()
+                .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
+                .anyMatch(fplayOrder -> (
+                                fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.NEW
+                                        || fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.PENDING_NEW
+                                        || fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.PARTIALLY_FILLED
+                        )
+                )) {
+            // cancel the order:
+            marketService.cancelOrderSync(orderId, "KILLPOS:closeAllPos:Error:doCancel");
+            return false;
         }
 
         // SUCCESS:
