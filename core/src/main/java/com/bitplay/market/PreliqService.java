@@ -74,9 +74,9 @@ public class PreliqService {
             }
 
             final LiqInfo liqInfo = marketService.getLiqInfo();
-            final BigDecimal dqlCloseMin = getDqlCloseMin();
+            final BigDecimal dqlCloseMin = getDqlCloseMin(marketService);
             final BigDecimal dqlOpenMin = getDqlOpenMin();
-            final BigDecimal dqlKillPos = getDqlKillPos();
+            final BigDecimal dqlKillPos = getDqlKillPos(marketService);
             final Pos pos = marketService.getPos();
             final BigDecimal posVal = pos.getPositionLong().subtract(pos.getPositionShort());
             final CorrParams corrParams = persistenceService.fetchCorrParams();
@@ -272,7 +272,7 @@ public class PreliqService {
         return true;
     }
 
-    private BigDecimal getDqlKillPos() {
+    private BigDecimal getDqlKillPos(MarketService marketService) {
         final PersistenceService persistenceService = marketService.getPersistenceService();
         final Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
         return marketService.getArbType() == ArbType.LEFT ? dql.getLeftDqlKillPos() : dql.getRightDqlKillPos();
@@ -333,13 +333,13 @@ public class PreliqService {
         return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
     }
 
-    private void printLogs(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName, String startStopStatus) {
+        private void printLogs(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName, String startStopStatus) {
         try {
             final String prefix = String.format("#%s %s_%s %s: ", counterForLogs, nameSymbol, opName, startStopStatus);
             final MarketServicePreliq thatMarket = getTheOtherMarket();
 
-            final String thisMarketStr = prefix + getPreliqStartingStr(marketService.getNameWithType(), position, liqInfo);
-            final String thatMarketStr = prefix + getPreliqStartingStr(thatMarket.getNameWithType(), thatMarket.getPos(), thatMarket.getLiqInfo());
+            final String thisMarketStr = prefix + getPreliqStartingStr(marketService, marketService.getNameWithType(), position, liqInfo);
+            final String thatMarketStr = prefix + getPreliqStartingStr(thatMarket, thatMarket.getNameWithType(), thatMarket.getPos(), thatMarket.getLiqInfo());
 
             log.info(thisMarketStr);
             log.info(thatMarketStr);
@@ -370,9 +370,9 @@ public class PreliqService {
                 : marketService.getArbitrageService().getLeftMarketService();
     }
 
-    private String getPreliqStartingStr(String name, Pos position, LiqInfo liqInfo) {
-        final BigDecimal dqlCloseMin = getDqlCloseMin();
-        final BigDecimal dqlKillPos = getDqlKillPos();
+    private String getPreliqStartingStr(MarketService mrkSrv, String name, Pos position, LiqInfo liqInfo) {
+        final BigDecimal dqlCloseMin = getDqlCloseMin(mrkSrv);
+        final BigDecimal dqlKillPos = getDqlKillPos(mrkSrv);
         final String dqlCurrStr = liqInfo != null && liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toPlainString() : "null";
         final String dqlCloseMinStr = dqlCloseMin != null ? dqlCloseMin.toPlainString() : "null";
         final String dqlKillPosStr = dqlKillPos != null ? dqlKillPos.toPlainString() : "null";
@@ -504,6 +504,10 @@ public class PreliqService {
     }
 
     public BigDecimal getDqlCloseMin() {
+        return getDqlCloseMin(marketService);
+    }
+
+    public BigDecimal getDqlCloseMin(MarketService marketService) {
         ArbType arbType = marketService.getArbType();
         final Dql dql = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql();
         if (arbType == ArbType.LEFT) {
