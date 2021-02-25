@@ -164,14 +164,14 @@ public class PreliqService {
                 }
 
                 // do killpos
-                if (marketDqlState == DqlState.KILLPOS && secToReadyKillpos <= 0) {
+                if (marketDqlState == DqlState.KILLPOS && secToReadyKillpos <= 0 && corrParams.getKillpos().hasSpareAttemptsCurrentOnly()) {
                     if (doKillPosWithAttempts(persistenceService, liqInfo, pos, corrParams, nameSymbol)) {
                         return;
                     }
                 }
 
                 // do preliq
-                if (marketDqlState == DqlState.PRELIQ && secToReady <= 0) {
+                if (marketDqlState == DqlState.PRELIQ && secToReady <= 0 && corrParams.getPreliq().hasSpareAttempts()) {
                     final PreliqParams preliqParams = getPreliqParams(pos, posVal);
                     final boolean preliqBlockEnough = preliqParams != null && preliqParams.getPreliqBlocks() != null
                             && ((getName().equals(BitmexService.NAME) && preliqParams.getPreliqBlocks().getB_block().signum() > 0) ||

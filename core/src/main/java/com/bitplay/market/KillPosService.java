@@ -33,7 +33,7 @@ public class KillPosService {
         if (orderId == null ||
                 (marketService.getOpenOrders().stream()
                         .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
-                        .allMatch(fplayOrder -> fplayOrder.getOrderDetail().getOrderStatus() != OrderStatus.FILLED))) {
+                        .allMatch(fplayOrder -> fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.CANCELED))) {
             // FAIL:
             return false;
         } else if (marketService.getOpenOrders().stream()
