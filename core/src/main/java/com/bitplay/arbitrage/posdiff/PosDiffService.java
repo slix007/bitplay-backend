@@ -1089,6 +1089,9 @@ public class PosDiffService {
         final boolean alreadySecond = corrObj.marketService.getArbType() == ArbType.RIGHT && isSecondMarket;
         if (alreadyFirst || alreadySecond) {
             //do nothing
+//            exLog.append("alreadyFirst=").append(alreadyFirst).append(" or alreadySecond=").append(alreadySecond);
+        } else if (corrObj.getSignalType().isExtraSet()) {
+            exLog.append("Attempt of switch extraSet that can not be done on trySwitchTheIncreaseByDqlOrEBestMin.");
         } else {
             final MarketServicePreliq left = arbitrageService.getLeftMarketService();
             boolean isLeftOkex = left.getMarketStaticData() == MarketStaticData.OKEX;
@@ -1179,7 +1182,7 @@ public class PosDiffService {
         if (dqlOpenViolated) {
             if (corrObj.noSwitch) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated and noSwitch";
+                corrObj.errorDescription = "Attempt of INCREASE_POS when DQL_open_min is violated and noSwitch";
             } else {
                 // check if other market isOk
                 final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
@@ -1188,7 +1191,10 @@ public class PosDiffService {
                 boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
                 if (theOtherMarketIsViolated) {
                     corrObj.correctAmount = BigDecimal.ZERO;
-                    corrObj.errorDescription = "Try INCREASE_POS when DQL_open_min is violated on both markets.";
+                    corrObj.errorDescription = "Attempt of INCREASE_POS when DQL_open_min is violated on both markets.";
+                } else if (corrObj.getSignalType().isExtraSet()) {
+                    corrObj.correctAmount = BigDecimal.ZERO;
+                    corrObj.errorDescription = "Attempt of switch extraSet that can not be done on dqlOpenMinAdjust.";
                 } else {
                     final String switchMsg =
                             String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getNameWithType());
