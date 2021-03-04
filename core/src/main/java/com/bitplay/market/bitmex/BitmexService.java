@@ -2486,7 +2486,7 @@ public class BitmexService extends MarketServicePreliq {
             ).invoke();
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
-            if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED) {
+            if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED || moveResponse.getMoveOrderStatus() == MoveOrderStatus.INVALID_AMEND) {
                 final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), tradeId + ":" + counterWithPortion, 1, "Moving:CheckInvOrdStatus:");
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
@@ -2506,6 +2506,11 @@ public class BitmexService extends MarketServicePreliq {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, updated);
                     } else if (doubleChecked.getStatus() == Order.OrderStatus.FILLED) { // just update the status
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, moveResponse.getDescription(), null, null, updated);
+                    } else if (moveResponse.getMoveOrderStatus() == MoveOrderStatus.INVALID_AMEND) {
+                        // if invalid amend and no previous cases
+                        // then we just updated the info
+                        cancelledInRow.set(0);
+                        moveResponse = new MoveResponse(MoveOrderStatus.MOVED, moveResponse.getDescription(), updated.getLimitOrder(), updated);
                     } else {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, moveResponse.getDescription());
                     }
@@ -3264,6 +3269,9 @@ public class BitmexService extends MarketServicePreliq {
 
                 if (marketResponseMessage.startsWith("The system is currently overloaded. Please try again later")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED, marketResponseMessage);
+                    logger.error(fullMessage);
+                } else if (marketResponseMessage.startsWith("Invalid amend: orderQty, leavesQty, price, stopPx unchanged")) {
+                    moveResponse = new MoveResponse(MoveOrderStatus.INVALID_AMEND, marketResponseMessage);
                     logger.error(fullMessage);
                 } else if (marketResponseMessage.startsWith("Invalid ordStatus") || marketResponseMessage.startsWith("Invalid orderID")) {
                     moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, marketResponseMessage);

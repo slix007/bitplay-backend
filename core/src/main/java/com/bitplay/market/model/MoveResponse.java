@@ -19,6 +19,7 @@ public class MoveResponse {
         ALREADY_FIRST,
         ALREADY_CLOSED,
         MOVED,
+        INVALID_AMEND,
         EXCEPTION,
         EXCEPTION_SYSTEM_OVERLOADED,
         EXCEPTION_502_BAD_GATEWAY,
