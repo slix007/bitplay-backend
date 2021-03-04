@@ -108,6 +108,23 @@ public abstract class MarketServiceOpenOrders {
         return getArbitrageService().getLastTradeId();
     }
 
+    protected void validateForDuplicatesOO() {
+        Map<String, FplayOrder> map = new HashMap<>();
+        this.openOrders.forEach(fplayOrder -> {
+            String key = fplayOrder.getOrderId();
+            if (map.containsKey(key)) {
+                FplayOrder first = map.get(key);
+                FplayOrder merged = FplayOrderUtils.updateFplayOrder(first, fplayOrder);
+                log.warn("OO is repeated first " + first.toString());
+                log.warn("OO is repeated second " + fplayOrder.toString());
+                log.warn("OO is repeated merged " + merged.toString());
+                map.put(key, merged);
+            } else {
+                map.put(key, fplayOrder);
+            }
+        });
+    }
+
     /**
      * Adds or ...<br>
      *

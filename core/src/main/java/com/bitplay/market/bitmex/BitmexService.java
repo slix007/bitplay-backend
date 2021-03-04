@@ -2511,6 +2511,7 @@ public class BitmexService extends MarketServicePreliq {
                         // then we just updated the info
                         cancelledInRow.set(0);
                         moveResponse = new MoveResponse(MoveOrderStatus.MOVED, moveResponse.getDescription(), updated.getLimitOrder(), updated);
+                        validateForDuplicatesOO();
                     } else {
                         moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, moveResponse.getDescription());
                     }
