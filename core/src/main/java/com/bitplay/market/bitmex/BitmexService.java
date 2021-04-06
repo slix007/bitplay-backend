@@ -2789,7 +2789,7 @@ public class BitmexService extends MarketServicePreliq {
                 ? update.getIndexPrice()
                 : current.getIndexPrice();
         final BigDecimal markPrice;
-        final BigDecimal lastPrice;
+        BigDecimal lastPrice;
         final BigDecimal fundingRate;
         final OffsetDateTime fundingTimestamp;
         if (current instanceof BitmexContractIndex) {
@@ -2804,6 +2804,10 @@ public class BitmexService extends MarketServicePreliq {
             fundingRate = update.getFundingRate();
             fundingTimestamp = update.getSwapTime();
         }
+        if (lastPrice == null && markPrice != null) {
+            lastPrice = markPrice;
+        }
+
         final Date timestamp = update.getTimestamp();
 
         final ContractType ct = getContractType();
@@ -2811,9 +2815,9 @@ public class BitmexService extends MarketServicePreliq {
                 ? ct.getScale() + 1
                 : ct.getScale();
         return new BitmexContractIndex(update.getSymbol(),
-                indexPrice.setScale(s, RoundingMode.HALF_UP),
-                markPrice.setScale(s, RoundingMode.HALF_UP),
-                lastPrice.setScale(s, RoundingMode.HALF_UP),
+                indexPrice != null ? indexPrice.setScale(s, RoundingMode.HALF_UP): null,
+                markPrice != null ? markPrice.setScale(s, RoundingMode.HALF_UP) : null,
+                lastPrice != null ? lastPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 timestamp,
                 fundingRate.setScale(ct.getScale() + 2, RoundingMode.HALF_UP),
                 fundingTimestamp);
