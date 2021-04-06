@@ -2819,7 +2819,7 @@ public class BitmexService extends MarketServicePreliq {
                 markPrice != null ? markPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 lastPrice != null ? lastPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 timestamp,
-                fundingRate.setScale(ct.getScale() + 2, RoundingMode.HALF_UP),
+                fundingRate != null ? fundingRate.setScale(ct.getScale() + 2, RoundingMode.HALF_UP) : null,
                 fundingTimestamp);
     }
 
