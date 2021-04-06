@@ -171,7 +171,7 @@ public class BitmexAdapters {
 
         String s = order.getSymbol();
         if (s != null) {
-            int usdInd = s.indexOf("USD");
+            int usdInd = s.startsWith("LINK") ? 4 : 3;
             final String first = s.substring(0, usdInd);
             final String second = s.substring(usdInd);
 
