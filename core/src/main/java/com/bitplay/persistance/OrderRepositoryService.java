@@ -59,11 +59,11 @@ public class OrderRepositoryService {
             try {
                 fplayOrder = updateTask(updated);
             } catch (DuplicateKeyException | OptimisticLockingFailureException e) {
-                log.error("order save error " + e.toString());
+                log.error("order save error " + e);
                 fplayOrder = updateTask(updated);
             }
         } catch (DuplicateKeyException | OptimisticLockingFailureException e) {
-            log.error("order save double error " + e.toString());
+            log.error("order save double error " + e);
         } catch (Exception e) {
             log.error("order save double error", e);
         }

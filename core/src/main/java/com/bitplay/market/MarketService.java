@@ -961,12 +961,17 @@ public abstract class MarketService extends MarketServiceWithState {
                 for (Order orderInfo : orders) {
                     orderInfo = orders.iterator().next();
                     if (!orderInfo.getStatus().equals(Order.OrderStatus.FILLED)) {
-                        String errorMsg = String.format("#%s/%s %s %s status=%s, avgPrice=%s, orderId=%s, type=%s, cumAmount=%s",
+                        BigDecimal limitPrice = (orderInfo instanceof LimitOrder)
+                                ? ((LimitOrder) orderInfo).getLimitPrice()
+                                : BigDecimal.ZERO;
+
+                        String errorMsg = String.format("#%s/%s %s %s status=%s, avgPrice=%s, limitPrice=%s, orderId=%s, type=%s, cumAmount=%s",
                                 counterForLogs, attemptCount,
                                 logInfoId,
                                 Utils.convertOrderTypeName(orderInfo.getType()),
                                 orderInfo.getStatus() != null ? orderInfo.getStatus().toString() : null,
                                 orderInfo.getAveragePrice() != null ? orderInfo.getAveragePrice().toPlainString() : null,
+                                limitPrice != null ? limitPrice.toPlainString() : null,
                                 orderInfo.getId(),
                                 orderInfo.getType(),
                                 orderInfo.getCumulativeAmount() != null ? orderInfo.getCumulativeAmount().toPlainString() : null);
