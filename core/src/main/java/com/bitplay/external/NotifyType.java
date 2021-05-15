@@ -63,6 +63,10 @@ public enum NotifyType {
     MAX_DELTA_VIOLATED("mdv", true, 30), // b_delta >= b_max_delta и/или o_delta >= o_max_delta. (раз в 30 сек).
     //SETTINGS_ERRORS (раз в 30 сек) - err.
     SETTINGS_ERRORS("err", true, 30), // initiated from developer
+    // Совершился KILLPOS - klp;
+    KILLPOS_NOTIFY("klp", false), // initiated from developer
+    // Совершился auto recovery - rcn;
+    AUTO_RECOVERY_NOTIFY("rcn", false), // initiated from developer
     ;
 
     private final String shortName;

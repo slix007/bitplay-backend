@@ -1,15 +1,16 @@
 package com.bitplay.market;
 
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.model.TradeResponse;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.dto.Order.OrderStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -18,12 +19,14 @@ public class KillPosService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private final MarketServicePreliq marketService;
+    private final SlackNotifications slackNotifications;
 
     public boolean doKillPos(String counterForLogs) {
         final String msg = String.format("%s %s KILLPOS", counterForLogs, marketService.getNameWithType());
         log.error(msg);
         warningLogger.error(msg);
         marketService.getTradeLogger().info(msg);
+        slackNotifications.sendNotify(NotifyType.KILLPOS_NOTIFY, msg);
 
         // 1) Срабатывает механизм автоматического прожатия кнопки close_all_pos mkt у соответствующей биржи;
         //2) В случае успешного первого действия, непосредственно после него срабатывает автоматическое действие recovery_nt_usd 26nv19 Кнопка recovery nt_usd со следующими особенностями:
@@ -53,6 +56,8 @@ public class KillPosService {
         //if (tradeResponse.getOrderId() != null) {
         final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
 
+        slackNotifications.sendNotify(NotifyType.AUTO_RECOVERY_NOTIFY,
+                String.format("%s %s starting AUTO_RECOVERY", counterForLogs, marketService.getNameWithType()));
         final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService);
         String res;
         try {

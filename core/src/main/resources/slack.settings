@@ -3,6 +3,36 @@
 # первое слово в каждой строке до пробела это имя канала
 # далее идут короткие названия notityType через запятую. Пробелы отбрасывются
 # NOTE: не нужно ставить в конце лишних символов!
-#app-local str
-#all-test str, cor, adj, plq
-#trader-passive sig, rnd, out, eqt
+# Идентификаторы алармов:
+
+# 1. Сделалась любая коррекция - cor;
+# 2. Сделалась любая подгонка - adj;
+# 3. Bitmex дошли до stop! по X-rate limits - xrt;
+# 4. Запрос на ребут по зависанию стакана - reb;
+# 5. Бан на бирже (HTTP status was not ok: 403) - ban;
+# 6. DQL < DQL_open_min - dql;
+# 7. Совершился любой Preliq - plq;
+# 8. Любой флаг перешел в Stopped - stp;
+# 9. S_e_best = lower - low;
+# 10. BusyIsBusy for 6 min любой биржи, Arbitrage state reset - bsy;
+# 11. Любая из бирж Outside limits - out;
+# 12. Stop all actions (MDC и signal limit) - saa;
+# 13. Last price deviation - lpd;
+# 14. Reconnect / resubscribe Bitmex - rec;
+# 15. e_best bitmex / e_best okex = res; 0.4 < res < 1 - eqt;
+# 16. Round is not done - rnd;
+# 17. TRADE_SIGNAL - sig;
+# 18. Started: First delta calculated - str;
+# 19. Счетчик достиг максимума ADJ_CORR_MAX_TOTAL (раз в 30сек) - act;
+# 20. Счетчик достиг максимума ADJ_CORR_MAX_ATTEMPT (раз в 30 сек) - aca;
+# 21. Счетчик достиг максимума PRELIQ_MAX_TOTAL (раз в 30 сек) - pmt;
+# 22. Счетчик достиг максимума PRELIQ_MAX_ATTEMPT (раз в 30 сек) - pma;
+# 23. Reset_to_free (прожатие кнопки Free market states) - rtf;
+# 24. MAX_DELTA_VIOLATED (b_delta >= b_max_delta и/или o_delta >= o_max_delta, раз в 30 сек)) - mdv;
+# 25. SETTINGS_ERRORS (ошибки настроек, раз в 30 сек) - err. (wrong portions settings. maxBlockUsd=" + maxBlockUsd + "=> maxBlockCnt=" + maxBlockCnt)
+# 26 Совершился KILLPOS - klp;
+# 27 Совершился auto recovery - rcn;
+
+
+# Пример:
+# all-test str, cor, adj, plq

@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 public abstract class MarketServicePreliq extends MarketServicePortions {
 
     protected final PreliqService preliqService = new PreliqService(this);
-    private final KillPosService killPosService = new KillPosService(this);
+    private final KillPosService killPosService = new KillPosService(this, getSlackNotifications());
     protected LimitsService limitsService;
 
     public void setLimitsService(LimitsService limitsService) {
