@@ -2,16 +2,14 @@ package com.bitplay.market;
 
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.market.model.LiqInfo;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-
 import java.math.BigDecimal;
+import lombok.Getter;
 
 @Getter
 public abstract class MarketServicePreliq extends MarketServicePortions {
 
     protected final PreliqService preliqService = new PreliqService(this);
-    private final KillPosService killPosService = new KillPosService(this, getSlackNotifications());
+    private final KillPosService killPosService = new KillPosService(this);
     protected LimitsService limitsService;
 
     public void setLimitsService(LimitsService limitsService) {

@@ -19,13 +19,13 @@ public class KillPosService {
     private static final Logger warningLogger = LoggerFactory.getLogger("WARNING_LOG");
 
     private final MarketServicePreliq marketService;
-    private final SlackNotifications slackNotifications;
 
     public boolean doKillPos(String counterForLogs) {
         final String msg = String.format("%s %s KILLPOS", counterForLogs, marketService.getNameWithType());
         log.error(msg);
         warningLogger.error(msg);
         marketService.getTradeLogger().info(msg);
+        final SlackNotifications slackNotifications = marketService.getSlackNotifications();
         slackNotifications.sendNotify(NotifyType.KILLPOS_NOTIFY, msg);
 
         // 1) Срабатывает механизм автоматического прожатия кнопки close_all_pos mkt у соответствующей биржи;
