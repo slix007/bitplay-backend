@@ -2048,6 +2048,7 @@ public class BitmexService extends MarketServicePreliq {
                                     resultOrder.getCumulativeAmount(),
                                     thePrice,
                                     orderId), contractTypeStr);
+                            Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                             continue;
                         }
                         cancelledInRow.set(0);
@@ -2180,7 +2181,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus) {
-                        if (attemptCount < maxAttempts) {
+                        if (attemptCount <= maxAttempts) {
                             Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                             if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
                                 nextMarketState = MarketState.READY;
@@ -2435,6 +2436,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     String diffWithSignal = setQuotesForArbLogs(updated.getTradeId(), bestMakerPrice, showDiff);
 
+                    final boolean isParticipateDoNotInitiate = updatedOrder.getStatus() == OrderStatus.CANCELED;
                     final String logString = String
                             .format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.",
                                     counterWithPortion,
@@ -2449,10 +2451,15 @@ public class BitmexService extends MarketServicePreliq {
                                     limitOrder.getId(),
                                     getPositionAsString(),
                                     diffWithSignal,
-                                    updatedOrder.getStatus() == OrderStatus.CANCELED ? "CANCELED order had execInst ParticipateDoNotInitiate" : "");
+                                    isParticipateDoNotInitiate ? "CANCELED order had execInst ParticipateDoNotInitiate" : "");
                     logger.info(logString);
                     tradeLogger.info(logString, contractTypeStr);
                     ordersLogger.info(logString);
+                    if (isParticipateDoNotInitiate) {
+                        final Settings settings = settingsRepositoryService.getSettings();
+                        final int betweenAttemptsMsSafe = settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe();
+                        Thread.sleep(betweenAttemptsMsSafe);
+                    }
 
                     if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
                         incCancelledInRow(contractTypeStr);
