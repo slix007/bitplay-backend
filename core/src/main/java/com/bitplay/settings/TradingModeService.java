@@ -68,7 +68,7 @@ public class TradingModeService {
         final Long secPast = secPast(settings);
         if (secPast != null) {
             final Integer maxDurationSec = settings.getSettingsVolatileMode().getVolatileDurationSec();
-            return secPast >= maxDurationSec;
+            return secPast >= maxDurationSec || secPast < 0;
         }
         return false;
     }
