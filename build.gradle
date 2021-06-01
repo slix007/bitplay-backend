@@ -31,16 +31,28 @@ remotes {
         password = bpPassword
         port = bpPort as Integer
     }
-    host5060 {
-        host = bpHost5060
-        user = bpUser5060
-        password = bpPassword5060
+    host5062 {
+        host = bpHost5062
+        user = bpUser5062
+        password = bpPassword5062
+        port = bpPort as Integer
+    }
+    host5063 {
+        host = bpHost5063
+        user = bpUser5063
+        password = bpPassword5063
         port = bpPort as Integer
     }
     host5064 {
         host = bpHost5064
         user = bpUser5064
         password = bpPassword5064
+        port = bpPort as Integer
+    }
+    host5060 {
+        host = bpHost5060
+        user = bpUser5060
+        password = bpPassword5060
         port = bpPort as Integer
     }
     host659 {
@@ -142,6 +154,8 @@ task deployDemo { doLast { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir)
 // Real server
 task deployHost5051 { doLast { sshRun(remotes.host5051, '/home/ss', remoteInstallDir) } }
 task deployHost5060 { doLast { sshRun(remotes.host5060, '/home/ss', remoteInstallDir) } }
+task deployHost5062 { doLast { sshRun(remotes.host5062, '/home/ss', remoteInstallDir) } }
+task deployHost5063 { doLast { sshRun(remotes.host5063, '/home/ss', remoteInstallDir) } }
 task deployHost5064 { doLast { sshRun(remotes.host5064, '/home/ss', remoteInstallDir) } }
 
 private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
