@@ -240,6 +240,7 @@ public class BitmexService extends MarketServicePreliq {
     private volatile AtomicInteger orderBookErrors = new AtomicInteger(0);
     private volatile BigDecimal cm = null; // correlation multiplier
     public static final BigDecimal DEFAULT_BTM_CM = BigDecimal.valueOf(100);
+    public static final BigDecimal LOT_SIZE = BigDecimal.valueOf(100);
 
     public Date getOrderBookLastTimestamp() {
         return orderBookLastTimestamp;
@@ -463,6 +464,39 @@ public class BitmexService extends MarketServicePreliq {
 
         initPreliqScheduler();
     }
+
+//    private void getInstrument() {
+//        this.usdInContract = BigDecimal.valueOf(100);
+//        final BitmexAccountService accountService = (BitmexAccountService) exchange.getAccountService();
+//        try {
+//            final Instrument instrument = accountService.getInstrument(bitmexContractTypeEx.getSymbol());
+//            System.out.println(instrument);
+//
+//            this.usdInContract = instrument.getLotSize() != null
+//                    ? instrument.getLotSize()
+//                    : getUsdInContractByTime();
+//
+//        } catch (IOException e) {
+//            logger.error("CAN NOT INIT usdInContract", e);
+//            this.usdInContract = getUsdInContractByTime();
+//        }
+
+//        if (bitmexContractTypeEx.isBtc()) {
+//            this.cm = this.usdInContract;
+//        }
+//    }
+
+//    private BigDecimal getUsdInContractByTime() {
+//        // https://blog.bitmex.com/site_announcement/important-lot-size-change-on-xbtusd-swap-and-futures-moving-to-100-lot-size-effective-8-june/
+//        // We are changing the Lot Size, or minimum trading unit, on the XBTUSD Swap and XBT futures (XBTM21 ,XBTU21 and future listings)
+//        // from 1 contract to 100 contracts, effective 04:30 UTC on 8 June 2021
+//        final Instant now = Instant.now();
+//        final Instant timeX = Instant.parse("2021-06-08T04:30:00Z");
+//
+//        return (bitmexContractTypeEx.isBtc() && now.isAfter(timeX))
+//                ? BigDecimal.valueOf(100)
+//                : BigDecimal.ZERO;
+//    }
 
     private void startAllListeners() {
 

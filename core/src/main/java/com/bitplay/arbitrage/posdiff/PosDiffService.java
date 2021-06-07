@@ -30,6 +30,7 @@ import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.correction.CountedWithExtra;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -1153,7 +1154,23 @@ public class PosDiffService {
 
     void validateIncreaseByDqlAndAdaptMaxVol(final CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         maxVolCorrAdapt(corrObj, bMax, okMax);
+        maxVolByBitmexLotSize(corrObj);
         validateIncreasePosByDql(corrObj, dc, cm, isEth, bMax, okMax);
+    }
+
+    private void maxVolByBitmexLotSize(CorrObj corrObj) {
+        if (corrObj.marketService.getName().equals(BitmexService.NAME)
+                && corrObj.contractType.isBtc()) {
+            final BigDecimal before = corrObj.correctAmount;
+            corrObj.correctAmount = PlacingBlocks.scaleBitmexCont(corrObj.correctAmount);
+            final BigDecimal after = corrObj.correctAmount;
+            if (!before.equals(after)) {
+                String msg = String.format("change bitmex amount by LotSize from %s to %s",
+                        before.toPlainString(), after.toPlainString());
+                corrObj.marketService.getTradeLogger().info(msg);
+                log.info(msg);
+            }
+        }
     }
 
     private void maxVolCorrAdapt(CorrObj corrObj, BigDecimal bMax, BigDecimal okMax) {
@@ -1227,6 +1244,7 @@ public class PosDiffService {
             defineOkexThroughZero(corrObj);
         }
         maxVolCorrAdapt(corrObj, bMax, okMax);
+        maxVolByBitmexLotSize(corrObj);
     }
 
     /**

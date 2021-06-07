@@ -1,5 +1,6 @@
 package com.bitplay.persistance.domain.settings;
 
+import com.bitplay.market.bitmex.BitmexService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.Data;
@@ -75,7 +76,7 @@ public class PlacingBlocks {
         if (isQuanto) {
             return usd.multiply(cm).divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP);
         }
-        return usd.setScale(0, RoundingMode.HALF_UP);
+        return scaleBitmexCont(usd.setScale(0, RoundingMode.HALF_UP));
     }
 
     public static BigDecimal toBitmexCont(BigDecimal usd, boolean isQuanto, BigDecimal cm) {
@@ -83,7 +84,7 @@ public class PlacingBlocks {
         if (isQuanto) {
             return okexCont.multiply(cm).setScale(0, RoundingMode.HALF_UP);
         }
-        return okexCont.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP);
+        return scaleBitmexCont(okexCont.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP));
     }
 
     // set_eu: OkexCONT = block_usd/10
@@ -115,7 +116,12 @@ public class PlacingBlocks {
         if (isQuanto) {
             return cont.multiply(BigDecimal.valueOf(10)).divide(cm, 0, RoundingMode.HALF_UP);
         }
-        return cont.setScale(0, RoundingMode.HALF_UP);
+        return scaleBitmexCont(cont.setScale(0, RoundingMode.HALF_UP));
+    }
+
+    public static BigDecimal scaleBitmexCont(BigDecimal cont) {
+        final BigDecimal divide = cont.divide(BitmexService.LOT_SIZE, 0, BigDecimal.ROUND_HALF_UP);
+        return divide.multiply(BitmexService.LOT_SIZE);
     }
 
     public enum Ver {FIXED, DYNAMIC,}

@@ -1,6 +1,7 @@
 package org.knowm.xchange.bitmex;
 
 import io.swagger.client.model.Execution;
+import io.swagger.client.model.Instrument;
 import io.swagger.client.model.Order;
 import io.swagger.client.model.Position;
 import java.io.IOException;
@@ -51,22 +52,22 @@ public interface BitmexAuthenitcatedApi {
 //                  @QueryParam("currency") String currency
 //    ) throws IOException;
 
-//    @GET
-//    @Path("/instrument")
-//    List<Instrument> instrument(@HeaderParam("api-key") String apiKey,
-//                                @HeaderParam("api-signature") ParamsDigest signer,
-//                                @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
-//                                @QueryParam("symbol") String symbol,
-//                                @QueryParam("columns") String columns
-//    ) throws IOException;
+    @GET
+    @Path("/instrument")
+    ArrayListWithHeaders<Instrument> instrument(@HeaderParam("api-key") String apiKey,
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @QueryParam("symbol") String symbol,
+            @QueryParam("columns") String columns
+    ) throws IOException;
 
     @GET
     @Path("/order")
     ArrayListWithHeaders<Order> getOrders(@HeaderParam("api-key") String apiKey,
-                           @HeaderParam("api-signature") ParamsDigest signer,
-                           @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
-                           @QueryParam("filter") String filter,
-                           @QueryParam("count") String count
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @QueryParam("filter") String filter,
+            @QueryParam("count") String count
     ) throws IOException;
 
     @POST
@@ -112,14 +113,14 @@ public interface BitmexAuthenitcatedApi {
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     OrderWithHeaders updateOrder(@HeaderParam("api-key") String apiKey,
-                      @HeaderParam("api-signature") ParamsDigest signer,
-                      @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
-                      @FormParam("orderID") String orderID,
-                      @FormParam("symbol") String symbol,
-                      @FormParam("side") String side,
-                      @FormParam("price") Double price,
-                      @FormParam("ordType") String ordType,
-                      @FormParam("execInst") String execInst
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @FormParam("orderID") String orderID,
+            @FormParam("symbol") String symbol,
+            @FormParam("side") String side,
+            @FormParam("price") Double price,
+            @FormParam("ordType") String ordType,
+            @FormParam("execInst") String execInst
     ) throws IOException;
 
     @DELETE
@@ -147,14 +148,14 @@ public interface BitmexAuthenitcatedApi {
     @GET
     @Path("/position")
     ArrayListWithHeaders<Position> position(@HeaderParam("api-key") String apiKey,
-                      @HeaderParam("api-signature") ParamsDigest signer,
-                      @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce) throws IOException;
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce) throws IOException;
 
     @GET
     @Path("/execution/tradeHistory")
     ArrayListWithHeaders<Execution> getTradeHistory(@HeaderParam("api-key") String apiKey,
-                                    @HeaderParam("api-signature") ParamsDigest signer,
-                                    @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
-                                    @QueryParam("filter") String filter
+            @HeaderParam("api-signature") ParamsDigest signer,
+            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @QueryParam("filter") String filter
     ) throws IOException;
 }

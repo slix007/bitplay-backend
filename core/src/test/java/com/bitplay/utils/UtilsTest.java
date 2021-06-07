@@ -1,5 +1,7 @@
 package com.bitplay.utils;
 
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import org.junit.Test;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order;
@@ -41,4 +43,25 @@ public class UtilsTest {
         final BigDecimal avgPrice4 = Utils.getAvgPrice(new OrderBook(new Date(), asks, bids), 0, 0);
         assertEquals("avgPrice", BigDecimal.valueOf(0), avgPrice4);
     }
+
+    @Test
+    public void testBigDec() {
+
+//        final BigDecimal v = BigDecimal.valueOf(299);
+//        final BigDecimal remainder = v.remainder(BitmexService.LOT_SIZE);
+//        final BigDecimal res = v.subtract(remainder);
+
+        System.out.println(PlacingBlocks.scaleBitmexCont(BigDecimal.valueOf(299)));
+        System.out.println(PlacingBlocks.scaleBitmexCont(BigDecimal.valueOf(250)));
+        System.out.println(PlacingBlocks.scaleBitmexCont(BigDecimal.valueOf(249)));
+        System.out.println(PlacingBlocks.scaleBitmexCont(BigDecimal.valueOf(1920)));
+        System.out.println(PlacingBlocks.scaleBitmexCont(BigDecimal.valueOf(1900)));
+        System.out.println(PlacingBlocks.scaleBitmexCont(BigDecimal.valueOf(Integer.MAX_VALUE)));
+
+//        System.out.println(res);
+//        System.out.println(remainder);
+//        System.out.println(remainder);
+
+    }
+
 }
