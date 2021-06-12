@@ -88,15 +88,31 @@ public enum OkexContractType implements ContractType {
             // use next Time when bi-weekly==Quarterly
             final LocalDateTime plus2Weeks = now.plusDays(14);
             while (plus2Weeks.isAfter(expTime)) {
+                // 7*4=28 - one month
+                // 28*3+7=91 - three month
                 expTime = expTime.plusDays(28 * 3 + 7);
             }
+
+            // fix a BUG that first found at 12.06.2021... where BiQuorder=1224, but should be 1231
+            final LocalDateTime extraChangeTime = LocalDateTime.of(2021, 12, 24, 0, 0, 0);
+            if (expTime.isAfter(extraChangeTime)) {
+                expTime = expTime.plusWeeks(1);
+            }
+
         } else if (futuresContract == FuturesContract.BiQuarter) {
             expTime = LocalDateTime.of(2018, 9, 28, 8, 0, 0);
             final LocalDateTime plus2Weeks = now.plusDays(14);
             while (plus2Weeks.isAfter(expTime)) {
                 expTime = expTime.plusDays(28 * 3 + 7);
             }
-            expTime = expTime.plusDays(28 * 3 + 7);
+            expTime = expTime.plusDays(28 * 3 + 7); // three month + 1 week
+
+            // fix a BUG that first found at 12.06.2021... where BiQuorder=1224, but should be 1231
+            final LocalDateTime extraChangeTime = LocalDateTime.of(2021, 12, 24, 0, 0, 0);
+            if (expTime.isAfter(extraChangeTime)) {
+                expTime = expTime.plusDays(7);
+            }
+
         } else {
             throw new IllegalArgumentException("Illegal futuresContract " + futuresContract);
         }

@@ -92,6 +92,13 @@ public class OkexContractTypeTest {
         assertEquals("1225", OkexContractType.BTC_BiQuarter.getExpString(nowDate3, false));
         assertEquals("1225", OkexContractType.ETH_BiQuarter.getExpString(nowDate3, false));
 
+
+        final LocalDateTime nowDate4 = LocalDateTime.of(2021, 6, 12, 8, 0, 1);
+        assertEquals("0924", OkexContractType.ETH_Quarter.getExpString(nowDate4, false));
+        assertEquals("0924", OkexContractType.BTC_Quarter.getExpString(nowDate4, false));
+        assertEquals("1231", OkexContractType.BTC_BiQuarter.getExpString(nowDate4, false));
+        assertEquals("1231", OkexContractType.ETH_BiQuarter.getExpString(nowDate4, false));
+
     }
 
     @Test
