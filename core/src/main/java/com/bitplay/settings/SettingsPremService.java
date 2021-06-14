@@ -81,10 +81,16 @@ public class SettingsPremService {
                             || arbitrageService.getRightMarketService().getContractType().getName().startsWith("XRP"))
                             ? 4 : 3;
             final OrderBook leftOb = arbitrageService.getLeftMarketService().getOrderBook();
+            final OrderBook rightOb = arbitrageService.getRightMarketService().getOrderBook();
+            if (leftOb.getAsks().isEmpty()
+                    || leftOb.getBids().isEmpty()
+                    || rightOb.getAsks().isEmpty()
+                    || rightOb.getBids().isEmpty()) {
+                return;
+            }
             final BigDecimal l_ask1 = leftOb.getAsks().get(0).getLimitPrice();
             final BigDecimal l_bid1 = leftOb.getBids().get(0).getLimitPrice();
             final BigDecimal left_best_sam = (l_ask1.add(l_bid1)).divide(BigDecimal.valueOf(2), fractionDigits, RoundingMode.HALF_UP);
-            final OrderBook rightOb = arbitrageService.getRightMarketService().getOrderBook();
             final BigDecimal r_ask1 = rightOb.getAsks().get(0).getLimitPrice();
             final BigDecimal r_bid1 = rightOb.getBids().get(0).getLimitPrice();
             final BigDecimal right_best_sam = (r_ask1.add(r_bid1)).divide(BigDecimal.valueOf(2), fractionDigits, RoundingMode.HALF_UP);

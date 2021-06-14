@@ -1485,8 +1485,17 @@ public class BitmexService extends MarketServicePreliq {
             throw new IllegalArgumentException("Unknown OrderBook action=" + obUpdate.getAction() + ". " + obUpdate);
         }
         if (finalOB.getBids().size() == 0 || finalOB.getAsks().size() == 0) {
-            logger.warn("finalOB is empty. obUpdate: " + obUpdate);
-            logger.warn("finalOB is empty. finalOB: " + finalOB);
+            logger.warn("finalOB is empty. obUpdate: " + obUpdate.getAction() + " count=" + obUpdate.getBitmexOrderList().size());
+            logger.warn("finalOB is empty. finalOB: asks=" + finalOB.getAsks().size()
+                    + " bids=" + finalOB.getBids().size() + " timestamp=" + finalOB.getTimeStamp());
+            try {
+                reSubscribeOrderBooks(true);
+            } catch (Exception e) {
+                String msg = "Warning: Bitmex resubscribe error: " + e.getMessage() + getSubscribersStatuses();
+                tradeLogger.info(msg, getCurrencyPair().toString());
+                warningLogger.info(msg);
+                logger.info(msg);
+            }
         } else if (!startFlag) {
             startFlag = true;
             logger.warn("update OB : " + obUpdate);
@@ -2520,7 +2529,8 @@ public class BitmexService extends MarketServicePreliq {
             ).invoke();
             moveResponse = handler.getMoveResponse();
             // double check  "Invalid ordStatus"
-            if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED || moveResponse.getMoveOrderStatus() == MoveOrderStatus.INVALID_AMEND) {
+            if (moveResponse.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.ALREADY_CLOSED
+                    || moveResponse.getMoveOrderStatus() == MoveOrderStatus.INVALID_AMEND) {
                 final Optional<Order> orderInfo = getOrderInfo(limitOrder.getId(), tradeId + ":" + counterWithPortion, 1, "Moving:CheckInvOrdStatus:");
                 if (orderInfo.isPresent()) {
                     final Order doubleChecked = orderInfo.get();
@@ -2856,7 +2866,7 @@ public class BitmexService extends MarketServicePreliq {
                 ? ct.getScale() + 1
                 : ct.getScale();
         return new BitmexContractIndex(update.getSymbol(),
-                indexPrice != null ? indexPrice.setScale(s, RoundingMode.HALF_UP): null,
+                indexPrice != null ? indexPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 markPrice != null ? markPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 lastPrice != null ? lastPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 timestamp,
