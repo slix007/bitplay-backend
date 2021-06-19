@@ -111,6 +111,7 @@ public class Settings extends AbstractDocument {
     private boolean restartWarnBitmexCt = false;
 
     private SettingsTimestamps settingsTimestamps;
+    private BtmAvgPriceUpdateSettings btmAvgPriceUpdateSettings;
 
     public static Settings createDefault() {
         final Settings settings = new Settings();
@@ -123,6 +124,7 @@ public class Settings extends AbstractDocument {
         settings.placingBlocks = PlacingBlocks.createDefault();
         settings.posAdjustment = PosAdjustment.createDefault();
         settings.feeSettings = FeeSettings.createDefault();
+        settings.btmAvgPriceUpdateSettings = BtmAvgPriceUpdateSettings.createDefault();
         settings.limits = Limits.createDefault();
         settings.restartSettings = RestartSettings.createDefaults();
         settings.signalDelayMs = 1000;
@@ -279,5 +281,8 @@ public class Settings extends AbstractDocument {
 //    private Boolean movingStopped;// for UI
     public boolean flagMovingStopped() {
         return extraFlags.contains(ExtraFlag.STOP_MOVING);
+    }
+    public boolean flagUpdateAvgPriceStopped() {
+        return extraFlags.contains(ExtraFlag.STOP_UPDATE_AVG_PRICE);
     }
 }

@@ -28,6 +28,7 @@ import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.persistance.MonitoringDataService;
+import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -38,6 +39,7 @@ import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
@@ -461,8 +463,11 @@ public abstract class MarketService extends MarketServiceWithState {
             ((OkCoinService) getArbitrageService().getRightMarketService()).resetWaitingArb("setOverloaded");
         }
 
-        final SysOverloadArgs sysOverloadArgs = getPersistenceService().getSettingsRepositoryService()
-                .getSettings().getBitmexSysOverloadArgs();
+        final SettingsRepositoryService settingsRepositoryService = getPersistenceService().getSettingsRepositoryService();
+        final Settings settings = settingsRepositoryService.addExtraFlag(ExtraFlag.STOP_UPDATE_AVG_PRICE);
+        getTradeLogger().info("Stop AVG price update activated by auto");
+
+        final SysOverloadArgs sysOverloadArgs = settings.getBitmexSysOverloadArgs();
 
         scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, sysOverloadArgs.getOverloadTimeMs(), TimeUnit.MILLISECONDS);
     }

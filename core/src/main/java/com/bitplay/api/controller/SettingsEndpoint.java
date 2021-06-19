@@ -157,7 +157,7 @@ public class SettingsEndpoint {
     public Settings updateSettings(@RequestBody Settings settingsUpdate) {
         boolean resetPreset = true;
 
-        settingsRepositoryService.setInvalidated();
+        SettingsRepositoryService.setInvalidated();
         Settings settings = settingsRepositoryService.getSettings();
         if (settingsUpdate.getContractMode() != null) {
             final ContractMode c = settingsUpdate.getContractMode();
@@ -183,8 +183,10 @@ public class SettingsEndpoint {
             settings.setManageType(manageType);
             if (manageType == ManageType.AUTO) {
                 settings.getExtraFlags().remove(ExtraFlag.STOP_MOVING);
+                settings.getExtraFlags().remove(ExtraFlag.STOP_UPDATE_AVG_PRICE);
             } else if (manageType == ManageType.MANUAL) {
                 settings.getExtraFlags().add(ExtraFlag.STOP_MOVING);
+                settings.getExtraFlags().add(ExtraFlag.STOP_UPDATE_AVG_PRICE);
             }
             settingsRepositoryService.saveSettings(settings);
         }
@@ -448,6 +450,11 @@ public class SettingsEndpoint {
             settingsRepositoryService.saveSettings(settings);
         }
 
+        if (settingsUpdate.getBtmAvgPriceUpdateSettings() != null) {
+            DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getBtmAvgPriceUpdateSettings(), settings.getBtmAvgPriceUpdateSettings());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
         // ...
         if (resetPreset) {
             persistenceService.resetSettingsPreset();
@@ -532,7 +539,6 @@ public class SettingsEndpoint {
             settings.getActiveFields().add(settingsUpdate.getFieldToAdd());
             settingsRepositoryService.saveSettings(mainSettings);
         }
-
 
         if (settingsUpdate.getLeftPlacingType() != null) {
             settings.setLeftPlacingType(settingsUpdate.getLeftPlacingType());
@@ -659,6 +665,27 @@ public class SettingsEndpoint {
             extraFlags.add(ExtraFlag.STOP_MOVING);
         }
         settingsRepositoryService.saveSettings(settings);
+        return settings;
+    }
+
+    @RequestMapping(value = "/toggle-stop-update-avg-price",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasPermission(null, 'e_best_min-check')")
+    public Settings toggleUpdateAvgPriceStop() {
+        Settings settings = getFullSettings();
+        final EnumSet<ExtraFlag> extraFlags = settings.getExtraFlags();
+        if (extraFlags.contains(ExtraFlag.STOP_UPDATE_AVG_PRICE)) {
+            extraFlags.remove(ExtraFlag.STOP_UPDATE_AVG_PRICE);
+            settingsRepositoryService.saveSettings(settings);
+            arbitrageService.getLeftMarketService().getTradeLogger().info("Stop AVG price update deactivated by button");
+        } else {
+//            extraFlags.add(ExtraFlag.STOP_UPDATE_AVG_PRICE);
+            arbitrageService.getLeftMarketService().getTradeLogger().info("Stop AVG price update activated by button");
+            settingsRepositoryService.addExtraFlag(ExtraFlag.STOP_UPDATE_AVG_PRICE);
+            settings = getFullSettings();
+        }
         return settings;
     }
 

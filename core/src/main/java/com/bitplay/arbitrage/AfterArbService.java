@@ -17,7 +17,7 @@ public class AfterArbService {
             new ThreadFactoryBuilder().setNameFormat("arb-after-worker-%d").build()
     );
     private static final long SHUTDOWN_TIME_SEC = 60;
-    private static final long DELAY_MS = 1000;
+    private static final long DELAY_MS = 5000;
 
     public void addTask(AfterArbTask afterArbTask) {
 

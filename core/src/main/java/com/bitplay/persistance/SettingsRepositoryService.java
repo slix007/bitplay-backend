@@ -6,6 +6,7 @@ import com.bitplay.market.MarketStaticData;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
 import com.bitplay.persistance.domain.settings.BitmexCtList;
 import com.bitplay.persistance.domain.settings.ContractType;
+import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
@@ -44,15 +45,15 @@ public class SettingsRepositoryService {
     }
 
     private volatile Settings settings;
-    private volatile boolean invalidated = true;
+    private static volatile boolean invalidated = true;
 
     @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         settings = fetchSettings(); // in case of mongo ChangeSets
     }
 
-    public void setInvalidated() {
-        this.invalidated = true;
+    public static void setInvalidated() {
+        invalidated = true;
     }
 
     public Settings getSettings() {
@@ -107,6 +108,26 @@ public class SettingsRepositoryService {
             update.set("tradingModeState.tradingMode", tradingMode);
         }
         final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
+        this.settings = fetchSettings();
+        return this.settings;
+    }
+
+    public Settings removeExtraFlag(ExtraFlag extraFlag) {
+        Query query = new Query().addCriteria(Criteria.where("_id").exists(true).andOperator(Criteria.where("_id").is(1L)));
+        Update update = new Update();
+        update.pull("extraFlags", extraFlag);
+        final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
+
+        this.settings = fetchSettings();
+        return this.settings;
+    }
+
+    public Settings addExtraFlag(ExtraFlag extraFlag) {
+        Query query = new Query().addCriteria(Criteria.where("_id").exists(true).andOperator(Criteria.where("_id").is(1L)));
+        Update update = new Update();
+        update.addToSet("extraFlags", extraFlag);
+        final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
+
         this.settings = fetchSettings();
         return this.settings;
     }

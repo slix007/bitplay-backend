@@ -20,6 +20,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
+import com.bitplay.persistance.domain.settings.BtmAvgPriceUpdateSettings;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import lombok.AllArgsConstructor;
@@ -64,8 +65,18 @@ public class AfterArbTask implements Runnable {
 //            final BigDecimal cm = bitmexService.getCm();
 
             // updateAvgPriceFromDb and updateAvgPrice-from-Market
-            BigDecimal b_price_fact = fetchBtmFactPrice(); //always
-            BigDecimal ok_price_fact = fetchOkFactPrice(); //if fist RoundIsNotDone
+            BigDecimal b_price_fact = BigDecimal.ZERO;
+            BigDecimal ok_price_fact = BigDecimal.ZERO;
+
+            if (settings.flagUpdateAvgPriceStopped()) {
+                final String msg = String.format("#%s Stop AVG price update is enabled", counterName);
+                log.info(msg);
+                warningLogger.info(msg);
+                deltaLogWriter.info(msg);
+            } else {
+                b_price_fact = fetchBtmFactPrice(); //always
+                ok_price_fact = fetchOkFactPrice(); //if fist RoundIsNotDone
+            }
 
             validateAvgPrice(dealPrices.getBPriceFact());
             validateAvgPrice(dealPrices.getOPriceFact());
@@ -251,13 +262,13 @@ public class AfterArbTask implements Runnable {
 
         BigDecimal b_price_fact = BigDecimal.ZERO;
         int attempt = 0;
-        int maxAttempts = 3;
-        while (attempt < maxAttempts) {
-            attempt++;
+        final BtmAvgPriceUpdateSettings avgSettings = settings.getBtmAvgPriceUpdateSettings();
+        int maxAttempts = avgSettings.getUpdateAttempts() != null ? avgSettings.getUpdateAttempts() : 1;
+        while (attempt++ <= maxAttempts) {
 
             try {
 
-                left.updateAvgPrice(dealPrices, false);
+                left.updateAvgPrice(dealPrices, true);
                 StringBuilder logBuilder = new StringBuilder();
                 b_price_fact = dealPrices.getBPriceFact().getAvg(true, counterName, logBuilder);
                 deltaLogWriter.info(logBuilder.toString());

@@ -3133,7 +3133,7 @@ public class BitmexService extends MarketServicePreliq {
                 continue;
             }
             final String logMsg = String.format("#%s AvgPrice update of orderId=%s.", counterName, orderId);
-            int MAX_ATTEMPTS = 5;
+            int MAX_ATTEMPTS = 1;
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 try {
                     if (getArbitrageService().isArbStateStopped() || getArbitrageService().isArbForbidden()) {
@@ -3238,8 +3238,9 @@ public class BitmexService extends MarketServicePreliq {
 
     @Override
     public void sleepByXrateLimit(String logStr) {
+        final int sleepSec = settingsRepositoryService.getSettings().getBtmAvgPriceUpdateSettings().getUpdateDelayMs();
         final BitmexXRateLimit xRateLimit = exchange.getBitmexStateService().getxRateLimit();
-        int sleepSec = (xRateLimit.getxRateLimit() > 20) ? 1 : 5; // xRateLimit: 60 attempts in 1 min
+//        int sleepSec = (xRateLimit.getxRateLimit() > 20) ? 1 : 5; // xRateLimit: 60 attempts in 1 min
         final String rateLimitStr = String.format("%s. sleep=%s sec. %s ", logStr, sleepSec, xRateLimit.getString());
         logger.info(rateLimitStr);
         tradeLogger.info(rateLimitStr);
