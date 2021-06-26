@@ -2225,7 +2225,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     final MoveResponse.MoveOrderStatus placeOrderStatus = handler.getMoveResponse().getMoveOrderStatus();
                     if (MoveResponse.MoveOrderStatus.EXCEPTION_SYSTEM_OVERLOADED == placeOrderStatus) {
-                        if (attemptCount <= maxAttempts) {
+                        if (attemptCount < maxAttempts) {
                             Thread.sleep(settings.getBitmexSysOverloadArgs().getBetweenAttemptsMsSafe());
                             if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
                                 nextMarketState = MarketState.READY;
