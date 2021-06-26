@@ -183,9 +183,11 @@ public class SettingsEndpoint {
             settings.setManageType(manageType);
             if (manageType == ManageType.AUTO) {
                 settings.getExtraFlags().remove(ExtraFlag.STOP_MOVING);
+                arbitrageService.getLeftMarketService().getTradeLogger().info("Stop AVG price update deactivated by auto");
                 settings.getExtraFlags().remove(ExtraFlag.STOP_UPDATE_AVG_PRICE);
             } else if (manageType == ManageType.MANUAL) {
                 settings.getExtraFlags().add(ExtraFlag.STOP_MOVING);
+                arbitrageService.getLeftMarketService().getTradeLogger().info("Stop AVG price update activated by auto");
                 settings.getExtraFlags().add(ExtraFlag.STOP_UPDATE_AVG_PRICE);
             }
             settingsRepositoryService.saveSettings(settings);
