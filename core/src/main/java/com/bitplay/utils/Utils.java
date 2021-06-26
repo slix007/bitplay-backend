@@ -205,11 +205,15 @@ public class Utils {
     }
 
     public static String getTenAskBid(OrderBook orderBook, String counterName, String description, String leftOrRight) {
+        return getBestAskBid(orderBook, counterName, description, leftOrRight, 10);
+    }
+
+    public static String getBestAskBid(OrderBook orderBook, String counterName, String description, String leftOrRight, int amount) {
         StringBuilder obBuilder = new StringBuilder();
         obBuilder.append("ask: ");
         final List<LimitOrder> asks = orderBook.getAsks();
         synchronized (asks) {
-            for (int i = 0; i < 10 && i < asks.size(); i++) {
+            for (int i = 0; i < amount && i < asks.size(); i++) {
                 final LimitOrder ask = asks.get(i);
                 obBuilder.append(String.format("%d. %s(%s);", i + 1, ask.getLimitPrice(), ask.getTradableAmount()));
             }
@@ -217,7 +221,7 @@ public class Utils {
         final List<LimitOrder> bids = orderBook.getBids();
         obBuilder.append("bid: ");
         synchronized (bids) {
-            for (int i = 0; i < 10 && i < bids.size(); i++) {
+            for (int i = 0; i < amount && i < bids.size(); i++) {
                 final LimitOrder bid = bids.get(i);
                 obBuilder.append(String.format("%d. %s (%s);", i + 1, bid.getLimitPrice(), bid.getTradableAmount()));
             }

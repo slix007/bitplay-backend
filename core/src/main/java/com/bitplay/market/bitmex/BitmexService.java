@@ -24,6 +24,7 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BtmFokAutoArgs;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.MoveMakerOrderArg;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlBefore;
@@ -1487,15 +1488,15 @@ public class BitmexService extends MarketServicePreliq {
         if (finalOB.getBids().size() == 0 || finalOB.getAsks().size() == 0) {
             logger.warn("finalOB is empty. obUpdate: " + obUpdate.getAction() + " count=" + obUpdate.getBitmexOrderList().size());
             logger.warn("finalOB is empty. finalOB: asks=" + finalOB.getAsks().size()
-                    + " bids=" + finalOB.getBids().size() + " timestamp=" + finalOB.getTimeStamp());
-            try {
-                reSubscribeOrderBooks(true);
-            } catch (Exception e) {
-                String msg = "Warning: Bitmex resubscribe error: " + e.getMessage() + getSubscribersStatuses();
-                tradeLogger.info(msg, getCurrencyPair().toString());
-                warningLogger.info(msg);
-                logger.info(msg);
-            }
+                    + " bids=" + finalOB.getBids().size() + " timestamp=" + finalOB.getTimeStamp() + finalOB);
+//            try {
+//                reSubscribeOrderBooks(true);
+//            } catch (Exception e) {
+//                String msg = "Warning: Bitmex resubscribe error: " + e.getMessage() + getSubscribersStatuses();
+//                tradeLogger.info(msg, getCurrencyPair().toString());
+//                warningLogger.info(msg);
+//                logger.info(msg);
+//            }
         } else if (!startFlag) {
             startFlag = true;
             logger.warn("update OB : " + obUpdate);
@@ -2419,7 +2420,11 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs) {
+    public MoveResponse moveMakerOrder(MoveMakerOrderArg moveMakerOrderArg) {
+        FplayOrder fplayOrder = moveMakerOrderArg.getFplayOrder();
+        BigDecimal newPrice = moveMakerOrderArg.getNewPrice();
+        Object[] reqMovingArgs = moveMakerOrderArg.getReqMovingArgs();
+
         final Long tradeId = fplayOrder.getTradeId();
         final LimitOrder limitOrder = (LimitOrder) fplayOrder.getOrder();
         MoveResponse moveResponse = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "do nothing by default");
@@ -2481,7 +2486,7 @@ public class BitmexService extends MarketServicePreliq {
 
                     final boolean isParticipateDoNotInitiate = updatedOrder.getStatus() == OrderStatus.CANCELED;
                     final String logString = String
-                            .format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.",
+                            .format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s.%s.%s.; OB: %s",
                                     counterWithPortion,
                                     limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
                                     limitOrder.getLimitPrice(),
@@ -2494,7 +2499,8 @@ public class BitmexService extends MarketServicePreliq {
                                     limitOrder.getId(),
                                     getPositionAsString(),
                                     diffWithSignal,
-                                    isParticipateDoNotInitiate ? "CANCELED order had execInst ParticipateDoNotInitiate" : "");
+                                    isParticipateDoNotInitiate ? "CANCELED order had execInst ParticipateDoNotInitiate" : "",
+                                    moveMakerOrderArg.getObBestFive());
                     logger.info(logString);
                     tradeLogger.info(logString, contractTypeStr);
                     ordersLogger.info(logString);

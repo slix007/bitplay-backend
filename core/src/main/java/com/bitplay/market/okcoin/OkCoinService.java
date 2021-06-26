@@ -23,6 +23,7 @@ import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.MoveMakerOrderArg;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
@@ -2099,7 +2100,10 @@ public class OkCoinService extends MarketServicePreliq {
      * Moves Taker orders as well.
      */
     @Override
-    public MoveResponse moveMakerOrder(FplayOrder fOrderToCancel, BigDecimal bestMarketPrice, Object... reqMovingArgs) {
+    public MoveResponse moveMakerOrder(MoveMakerOrderArg moveMakerOrderArg) {
+        FplayOrder fOrderToCancel = moveMakerOrderArg.getFplayOrder();
+        BigDecimal bestMarketPrice = moveMakerOrderArg.getNewPrice();
+        Object[] reqMovingArgs = moveMakerOrderArg.getReqMovingArgs();
         final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
         final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
 

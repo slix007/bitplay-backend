@@ -16,6 +16,7 @@ import com.bitplay.market.model.DqlState;
 import com.bitplay.market.model.FullBalance;
 import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.MoveMakerOrderArg;
 import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.OrderBookShort;
 import com.bitplay.market.model.PlaceOrderArgs;
@@ -1061,7 +1062,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return response;
     }
 
-    public abstract MoveResponse moveMakerOrder(FplayOrder fplayOrder, BigDecimal newPrice, Object... reqMovingArgs);
+    public abstract MoveResponse moveMakerOrder(MoveMakerOrderArg moveMakerOrderArg);
 
     protected BigDecimal createBestPrice(Order.OrderType orderType, PlacingType placingType, OrderBook orderBook, ContractType contractType) {
         BigDecimal tickSize = contractType.getTickSize();
@@ -1232,6 +1233,7 @@ public abstract class MarketService extends MarketServiceWithState {
             }
 
             BigDecimal bestPrice = createBestPrice(limitOrder.getType(), fplayOrder.getPlacingType(), orderBook, contractType);
+            final String obBestFive = Utils.getBestAskBid(orderBook, "", getNameWithType(), getArbType().s(), 5);
             if (marketName.equals(BitmexService.NAME)) {
                 final Settings settings = getPersistenceService().getSettingsRepositoryService().getSettings();
                 if (settings.getBitmexPrice() != null && settings.getBitmexPrice().signum() != 0) {
@@ -1239,6 +1241,7 @@ public abstract class MarketService extends MarketServiceWithState {
                 }
             }
 
+            final MoveMakerOrderArg moveMakerOrderArg = new MoveMakerOrderArg(fplayOrder, bestPrice, reqMovingArgs, obBestFive);
             if (bestPrice.signum() == 0) {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "bestPrice is 0");
 
@@ -1247,7 +1250,7 @@ public abstract class MarketService extends MarketServiceWithState {
             } else if (fplayOrder.getPlacingType() == PlacingType.TAKER
                     && bestPrice.compareTo(limitOrder.getLimitPrice()) != 0) {
                 // move taker
-                response = moveMakerOrder(fplayOrder, bestPrice, reqMovingArgs);
+                response = moveMakerOrder(moveMakerOrderArg);
             } else if (
                     ((limitOrder.getType() == Order.OrderType.ASK || limitOrder.getType() == Order.OrderType.EXIT_BID)
                             && bestPrice.compareTo(limitOrder.getLimitPrice()) < 0)
@@ -1256,7 +1259,7 @@ public abstract class MarketService extends MarketServiceWithState {
                                     && bestPrice.compareTo(limitOrder.getLimitPrice()) > 0)
             ) {
                 // move non-taker
-                response = moveMakerOrder(fplayOrder, bestPrice, reqMovingArgs);
+                response = moveMakerOrder(moveMakerOrderArg);
             } else {
                 response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_FIRST, "");
             }
