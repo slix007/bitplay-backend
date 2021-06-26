@@ -192,10 +192,10 @@ public class PreliqService {
                         corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
                         persistenceService.saveCorrParams(corrParams);
 
-                        marketService.stopAllActions("preliq:stopAllActions");
                         getTheOtherMarket().stopAllActions("preliq:stopAllActions");
 
                         doPreliqOrder(preliqParams);
+
                         log.info("dtPreliq stop after successful preliq");
                         dtPreliq.stop(); //after successful start
                     }
