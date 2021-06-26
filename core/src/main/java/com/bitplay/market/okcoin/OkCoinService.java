@@ -1526,7 +1526,7 @@ public class OkCoinService extends MarketServicePreliq {
                     if (bestQuotes != null) {
                         bestQuotes.setSignalTime(null);
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep(2000);
                 }
                 if (placeOrderArgs.isShouldStopNtUsdRecovery()) {
                     break;
@@ -1710,6 +1710,12 @@ public class OkCoinService extends MarketServicePreliq {
                 ) { // ExchangeException
                     return NextStep.CONTINUE;
                 }
+                if (message.contains("Too Many Requests")) {
+                    slackNotifications.sendNotify(NotifyType.OKEX_TOO_MANY_REQUESTS_ERROR,
+                            "OKEX_TOO_MANY_REQUESTS_ERROR on placing");
+                    return NextStep.CONTINUE;
+                }
+
                 // Api V3:
                 // futures: 32014 : Positions that you are squaring exceeded the total no. of contracts allowed to close
                 // swap: 35010 : Position closing too large,Closing position size larger than available size
@@ -1949,7 +1955,7 @@ public class OkCoinService extends MarketServicePreliq {
             return (LimitOrder) theOrder;
         }
         final String warn = preStr + " no orders in response";
-        if (needRepeatCheckOrderStatus(checkAttempt, 500, warn)) {
+        if (needRepeatCheckOrderStatus(checkAttempt, 2, 500, warn)) {
             updateOrderDetails(counterNameWithPortion, limitOrder, checkAttempt + 1);
         }
         return limitOrder;
@@ -1970,23 +1976,32 @@ public class OkCoinService extends MarketServicePreliq {
                 log.info(msg);
                 if (!postOnly && (theOrderStatus == OrderStatus.NEW || theOrderStatus == OrderStatus.PENDING_NEW)) {
                     final String warn = String.format("%s postOnly with status %s.", preStr, theOrderStatus);
-                    if (needRepeatCheckOrderStatus(checkAttempt, 500, warn)) {
+                    if (needRepeatCheckOrderStatus(checkAttempt, 2, 500, warn)) {
                         return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
-                                checkAttempt + 1, postOnly);
+                                checkAttempt + 1, false);
                     }
                 }
                 return (LimitOrder) theOrder;
             }
 
             final String warn = preStr + "no orders in response";
-            if (needRepeatCheckOrderStatus(checkAttempt, 500, warn)) {
+            if (needRepeatCheckOrderStatus(checkAttempt, 2, 500, warn)) {
                 return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
                         checkAttempt + 1, postOnly);
             }
         } catch (Exception e) {
-            final String errMsg = String.format("#%s/%s ERROR checkAfterPlacing(check=%s) id=%s: ",
-                    counterNameWithPortion, attemptCount, checkAttempt, orderId);
-            if (needRepeatCheckOrderStatus(checkAttempt, 2000, errMsg)) {
+            final String errMsg = String.format("#%s/%s ERROR checkAfterPlacing(check=%s) id=%s: %s",
+                    counterNameWithPortion, attemptCount, checkAttempt, orderId, e.getMessage());
+            // ApiException: 30014 : Too Many Requests
+            int sleepTime = 500;
+            int maxAttempt = 2;
+            if (getApiExceptionMessage(e).contains("Too Many Requests")) {
+                slackNotifications.sendNotify(NotifyType.OKEX_TOO_MANY_REQUESTS_ERROR,
+                        "OKEX_TOO_MANY_REQUESTS_ERROR checkAfterPlacing");
+                sleepTime = 2000;
+                maxAttempt = 4;
+            }
+            if (needRepeatCheckOrderStatus(checkAttempt, maxAttempt, sleepTime, errMsg)) {
                 return checkOrderStatus(counterNameWithPortion, attemptCount, orderType, tradableAmount, thePrice, orderId,
                         checkAttempt + 1, postOnly);
             }
@@ -1996,8 +2011,8 @@ public class OkCoinService extends MarketServicePreliq {
                 thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
     }
 
-    private boolean needRepeatCheckOrderStatus(int checkAttempt, int sleepTimeMs, String warn) {
-        if (checkAttempt < 4) {
+    private boolean needRepeatCheckOrderStatus(int checkAttempt, int maxAttempts, int sleepTimeMs, String warn) {
+        if (checkAttempt < maxAttempts) {
             try {
                 Thread.sleep(sleepTimeMs);
             } catch (InterruptedException e) {
@@ -2529,9 +2544,23 @@ public class OkCoinService extends MarketServicePreliq {
             } catch (Exception e) {
                 log.error("#{}/{} error cancel maker order", counterForLogs, attemptCount, e);
                 tradeLogger.error(String.format("#%s/%s error cancel maker order: %s", counterForLogs, attemptCount, e.toString()));
+                if (getApiExceptionMessage(e).contains("Too Many Requests")) {
+                    slackNotifications.sendNotify(NotifyType.OKEX_TOO_MANY_REQUESTS_ERROR,
+                            "OKEX_TOO_MANY_REQUESTS_ERROR cancelOrderWithCheck");
+                }
             }
         }
         return new CancelOrderRes(cancelSucceed, res, resOrder);
+    }
+
+    private String getApiExceptionMessage(Exception e) {
+        String message;
+        message = e.getMessage();
+        // api v3 throws ApiException
+        if (e instanceof ApiException && e.getCause() != null) {
+            message = e.getCause().getMessage();
+        }
+        return message != null ? message : e.toString();
     }
 
     @Override

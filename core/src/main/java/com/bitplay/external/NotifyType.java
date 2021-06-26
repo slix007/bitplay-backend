@@ -67,6 +67,8 @@ public enum NotifyType {
     KILLPOS_NOTIFY("klp", false), // initiated from developer
     // Совершился auto recovery - rcn;
     AUTO_RECOVERY_NOTIFY("rcn", false), // initiated from developer
+    // Ошибка Okex - Too many requests - tmr.
+    OKEX_TOO_MANY_REQUESTS_ERROR("tmr", true, 30),
     ;
 
     private final String shortName;
