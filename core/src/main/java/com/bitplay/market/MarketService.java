@@ -407,6 +407,8 @@ public abstract class MarketService extends MarketServiceWithState {
                 if (flags != null && flags.length > 0 && (flags[0].equals("UI") || flags[0].equals("FORCE_RESET"))) { // only UI and 6 min flag
                     log.info("reset SYSTEM_OVERLOADED from UI");
                     resetOverload();
+                    getArbitrageService().getLeftMarketService().getTradeLogger().info("Stop AVG price update deactivated by auto");
+                    getPersistenceService().getSettingsRepositoryService().removeExtraFlag(ExtraFlag.STOP_UPDATE_AVG_PRICE);
                 } else {
                     log.info("Free attempt when SYSTEM_OVERLOADED");
                 }
@@ -481,6 +483,9 @@ public abstract class MarketService extends MarketServiceWithState {
 
             if (getMarketState() == MarketState.SYSTEM_OVERLOADED) {
                 scheduledOverloadReset = scheduler.schedule(this::resetOverloadCycled, 1, TimeUnit.SECONDS);
+            } else {
+                getArbitrageService().getLeftMarketService().getTradeLogger().info("Stop AVG price update deactivated by auto");
+                getPersistenceService().getSettingsRepositoryService().removeExtraFlag(ExtraFlag.STOP_UPDATE_AVG_PRICE);
             }
         } catch (Exception e) {
             log.error("can not resetOverloaded.", e);
