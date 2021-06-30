@@ -13,6 +13,7 @@ import io.swagger.client.model.Position;
 import io.swagger.client.model.Wallet;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -26,11 +27,15 @@ import org.knowm.xchange.dto.account.Balance;
 import org.knowm.xchange.dto.marketdata.OrderBook;
 import org.knowm.xchange.dto.trade.LimitOrder;
 import org.knowm.xchange.dto.trade.OpenOrders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Sergey Shurmin on 5/3/17.
  */
 public class BitmexAdapters {
+
+    private static final Logger log = LoggerFactory.getLogger(BitmexAdapters.class);
 
     private final static String BID_TYPE = "Buy";
     private final static String ASK_TYPE = "Sell";
@@ -108,19 +113,27 @@ public class BitmexAdapters {
         if (position == null || position.getSymbol() == null || !position.getSymbol().equals(symbol)) {
             return Pos.nullPos();
         }
-        return new Pos(
-                position.getCurrentQty(),
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                position.getLeverage() != null ? BigDecimal.valueOf(position.getLeverage()) : BigDecimal.ZERO,
-                position.getLiquidationPrice() != null ? BigDecimal.valueOf(position.getLiquidationPrice()) : BigDecimal.ZERO,
-                position.getMarkValue(),
-                position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
-                position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
-                position.getTimestamp().toInstant(), //TODO check timezone
-                position.toString(),
-                null, null);
+        final Pos pos;
+        try {
+            pos = new Pos(
+                    position.getCurrentQty(),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    position.getLeverage() != null ? BigDecimal.valueOf(position.getLeverage()) : BigDecimal.ZERO,
+                    position.getLiquidationPrice() != null ? BigDecimal.valueOf(position.getLiquidationPrice()) : BigDecimal.ZERO,
+                    position.getMarkValue(),
+                    position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
+                    position.getAvgEntryPrice() != null ? BigDecimal.valueOf(position.getAvgEntryPrice()) : BigDecimal.ZERO,
+                    position.getTimestamp() != null ? position.getTimestamp().toInstant() : Instant.now(), //TODO check timezone
+                    position.toString(),
+                    null, null);
+        } catch (Exception e) {
+            log.error("parse position error {} ", position, e);
+//            e.printStackTrace();
+            throw e;
+        }
+        return pos;
     }
 
     public static BigDecimal priceToBigDecimal(Double aDouble, Integer scale) {

@@ -182,6 +182,9 @@ Starting: `mongo 127.0.0.1:26459 --eval "rs.initiate()"`
 ####Checks that mongobeelock is released:
 ```bash
 dsh -Mac -- "mongo bitplay --port 26459 --eval 'db.mongobeelock.stats()' | grep \\\"size"
+
+# Checks settings bitmexContractTypes from mongodb
+dsh -Mac -- "mongo bitplay --port 26459 --eval 'db.settingsCollection.find({}).projection({"bitmexContractTypes": 1}).limit(2)'
 ```
 
 
