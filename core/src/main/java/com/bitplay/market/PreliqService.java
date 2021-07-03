@@ -111,6 +111,7 @@ public class PreliqService {
             ) {
                 if (corrParams.getPreliq().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
+                    marketService.stopAllActions("preliq:stopAllActions");
                 }
                 if (corrParams.getKillpos().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
@@ -186,6 +187,9 @@ public class PreliqService {
 
                     if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
                         persistenceService.saveCorrParams(corrParams);
+                        if (!corrParams.getPreliq().hasSpareAttempts()) {
+                            marketService.stopAllActions("preliq:stopAllActions");
+                        }
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {
                         printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "PRELIQ");

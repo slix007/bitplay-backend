@@ -1571,9 +1571,6 @@ public class OkCoinService extends MarketServicePreliq {
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
-
-            stopAllActions("preliq:stopAllActions");
-
             log.info("restore marketState to READY after PRELIQ");
             setMarketState(MarketState.READY, counterName);
         } else {

@@ -2308,9 +2308,6 @@ public class BitmexService extends MarketServicePreliq {
         }
 
         if (placeOrderArgs.isPreliqOrder()) {
-
-            stopAllActions("preliq:stopAllActions");
-
             logger.info("restore marketState to READY after PRELIQ");
             setMarketState(MarketState.READY, counterName);
         } else {
