@@ -2,9 +2,9 @@ package com.bitplay.okex.v3.service.futures.adapter;
 
 import com.bitplay.okex.v3.dto.futures.result.Account;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
+import com.bitplay.xchange.currency.Currency;
+import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import java.math.BigDecimal;
-import org.knowm.xchange.currency.Currency;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
 
 public class AccountConverter {
 

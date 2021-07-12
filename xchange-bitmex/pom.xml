@@ -7,12 +7,12 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.knowm.xchange</groupId>
+    <groupId>com.bitplay.xchange</groupId>
     <artifactId>xchange-bitmex</artifactId>
     <packaging>jar</packaging>
 
-    <name>XChange Bitmex</name>
-    <description>XChange implementation for the Bitmex Exchange</description>
+<!--    <name>XChange Bitmex</name>-->
+<!--    <description>XChange implementation for the Bitmex Exchange</description>-->
 
     <inceptionYear>2017</inceptionYear>
 
@@ -32,6 +32,7 @@
                         <configuration>
                             <!-- specify the swagger yaml -->
                             <inputSpec>xchange-bitmex/src/main/resources/swagger.json</inputSpec>
+<!--                            <inputSpec>src/main/resources/swagger.json</inputSpec>-->
 
                             <!-- target to generate java client code -->
                             <language>java</language>
@@ -143,12 +144,12 @@
 
         <!-- Cryptocurrency markets -->
 
-        <!-- TODO move it to xchange. Parent should be org.knowm.xchange otherwise do not set the next dependency -->
-        <dependency>
-            <groupId>org.knowm.xchange</groupId>
-            <artifactId>xchange-core</artifactId>
-            <version>${xchange-core.version}</version>
-        </dependency>
+        <!-- TODO move it to xchange. Parent should be com.bitplay.xchange otherwise do not set the next dependency -->
+<!--        <dependency>-->
+<!--            <groupId>com.bitplay.xchange</groupId>-->
+<!--            <artifactId>xchange-core</artifactId>-->
+<!--            <version>${xchange-core.version}</version>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>com.bitplay</groupId>
@@ -156,12 +157,13 @@
             <version>${bitplay-model.version}</version>
         </dependency>
 
+<!--        with bitplay-model: -->
         <!-- Rest client -->
-        <dependency>
-            <groupId>com.github.mmazi</groupId>
-            <artifactId>rescu</artifactId>
-            <version>2.0.2</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.github.mmazi</groupId>-->
+<!--            <artifactId>rescu</artifactId>-->
+<!--            <version>2.0.2</version>-->
+<!--        </dependency>-->
 
 
         <!-- https://mvnrepository.com/artifact/junit/junit -->
@@ -198,7 +200,7 @@
         <maven-plugin-version>1.0.0</maven-plugin-version>
         <junit-version>4.12</junit-version>
         <java.version>1.8</java.version>
-        <xchange-core.version>4.2.3-bts</xchange-core.version>
+<!--        <xchange-core.version>4.2.3-bts</xchange-core.version>-->
         <bitplay-model.version>0.0.1-SNAPSHOT</bitplay-model.version>
     </properties>
 </project>

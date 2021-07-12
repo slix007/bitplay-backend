@@ -1,10 +1,10 @@
 package com.bitplay.okex.v3.service.futures;
 
 import com.bitplay.okex.v3.ApiConfiguration;
-import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.result.OkexAllPositions;
+import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
 import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiService;
 import com.bitplay.okex.v3.service.futures.api.FuturesTradeApiServiceImpl;

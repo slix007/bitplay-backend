@@ -27,11 +27,13 @@
     </scm>
 
     <modules>
-        <module>core</module>
+        <module>bitplay</module>
         <module>xchange-bitmex</module>
         <module>xchange-bitmex-stream</module>
         <module>bitplay-model</module>
         <module>bitplay-okex-v3</module>
+      <module>bitplay-model-stream</module>
+      <module>bitplay-okex-v3-stream</module>
     </modules>
     <packaging>pom</packaging>
 

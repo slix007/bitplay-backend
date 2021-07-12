@@ -23,9 +23,9 @@
     </plugins>
   </build>
 
-  <properties>
-    <xchange.version>4.2.3-bts</xchange.version>
-  </properties>
+<!--  <properties>-->
+<!--    <xchange.version>4.2.3-bts</xchange.version>-->
+<!--  </properties>-->
 
   <dependencies>
     <dependency>
@@ -39,16 +39,43 @@
     </dependency>
 
     <!-- XCHange should be removed -->
+<!--    <dependency>-->
+<!--      <groupId>org.knowm.xchange</groupId>-->
+<!--      <artifactId>xchange-okcoin</artifactId>-->
+<!--      <version>${xchange.version}</version>-->
+<!--    </dependency>-->
+<!--    <dependency>-->
+<!--      <groupId>org.knowm.xchange</groupId>-->
+<!--      <artifactId>xchange-core</artifactId>-->
+<!--      <version>${xchange.version}</version>-->
+<!--    </dependency>-->
+
+    <!-- Third party dependencies -->
     <dependency>
-      <groupId>org.knowm.xchange</groupId>
-      <artifactId>xchange-okcoin</artifactId>
-      <version>${xchange.version}</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
+
+    <!-- Rest client -->
     <dependency>
-      <groupId>org.knowm.xchange</groupId>
-      <artifactId>xchange-core</artifactId>
-      <version>${xchange.version}</version>
+      <groupId>com.github.mmazi</groupId>
+      <artifactId>rescu</artifactId>
+      <version>2.0.2</version>
     </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.5</version>
+    </dependency>
+
+    <!-- fix on update rescu -->
+    <dependency>
+      <groupId>net.iharder</groupId>
+      <artifactId>base64</artifactId>
+      <version>2.3.9</version>
+    </dependency>
+
   </dependencies>
 
 </project>

@@ -1,15 +1,15 @@
 package com.bitplay.okex.v3.service.futures.adapter;
 
 import com.bitplay.okex.v3.dto.futures.result.Book;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.Order.OrderType;
+import com.bitplay.xchange.dto.marketdata.OrderBook;
+import com.bitplay.xchange.dto.trade.LimitOrder;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
 
 public class BookAdapter {
 

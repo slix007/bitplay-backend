@@ -2,8 +2,8 @@ package com.bitplay.externalapi;
 
 import com.bitplay.model.EstimatedPrice;
 import com.bitplay.model.SwapSettlement;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.marketdata.OrderBook;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.marketdata.OrderBook;
 
 public interface PublicApi {
 

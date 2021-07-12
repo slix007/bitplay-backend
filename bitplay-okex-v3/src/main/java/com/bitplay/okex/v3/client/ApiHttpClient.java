@@ -1,7 +1,7 @@
 package com.bitplay.okex.v3.client;
 
-import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.constant.ApiConstants;
+import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.enums.ContentTypeEnum;
 import com.bitplay.okex.v3.enums.HttpHeadersEnum;
 import com.bitplay.okex.v3.enums.I18nEnum;

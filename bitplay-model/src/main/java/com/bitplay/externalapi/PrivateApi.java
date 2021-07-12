@@ -3,12 +3,11 @@ package com.bitplay.externalapi;
 import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.marketdata.OrderBook;
-import org.knowm.xchange.dto.trade.LimitOrder;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.account.AccountInfoContracts;
+import com.bitplay.xchange.dto.trade.LimitOrder;
 
+import com.bitplay.xchange.dto.Order.OrderType;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -22,7 +21,7 @@ public interface PrivateApi {
      * Create a new order
      */
 //    OrderResultTiny order(LimitOrder order);
-    OrderResultTiny limitOrder(String instrumentId, Order.OrderType orderType, BigDecimal thePrice, BigDecimal amount,
+    OrderResultTiny limitOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal amount,
                                BigDecimal leverage,
                                List<Object> extraFlags
 

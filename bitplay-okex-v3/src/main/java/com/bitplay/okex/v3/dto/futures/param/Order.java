@@ -1,5 +1,6 @@
 package com.bitplay.okex.v3.dto.futures.param;
 
+import com.bitplay.okex.v3.enums.FuturesTransactionTypeEnum;
 import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +22,7 @@ public class Order {
      */
     private String client_oid;
     /**
-     * The execution type {@link com.bitplay.okex.v3.enums.FuturesTransactionTypeEnum}
+     * The execution type {@link FuturesTransactionTypeEnum}
      */
     private Integer type;
     /**

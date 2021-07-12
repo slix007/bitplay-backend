@@ -1,8 +1,8 @@
 package com.bitplay.okex.v3.client;
 
-import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.constant.ApiConstants;
 import com.bitplay.okex.v3.dto.futures.HttpResult;
+import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.enums.HttpHeadersEnum;
 import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.okex.v3.helper.OkexObjectMapper;

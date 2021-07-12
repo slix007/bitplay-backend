@@ -1,12 +1,12 @@
 package com.bitplay.okex.v3.service.futures.adapter;
 
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.Order.OrderStatus;
+import com.bitplay.xchange.dto.Order.OrderType;
+import com.bitplay.xchange.dto.trade.LimitOrder;
+import com.bitplay.xchange.dto.trade.LimitOrder.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order.OrderStatus;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.trade.LimitOrder;
-import org.knowm.xchange.dto.trade.LimitOrder.Builder;
 
 import java.util.List;
 import java.util.stream.Collectors;

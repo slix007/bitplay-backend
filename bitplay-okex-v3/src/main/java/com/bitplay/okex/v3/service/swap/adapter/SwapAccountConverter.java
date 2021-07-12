@@ -1,11 +1,8 @@
 package com.bitplay.okex.v3.service.swap.adapter;
 
-import com.bitplay.okex.v3.dto.futures.result.Account;
-import com.bitplay.okex.v3.dto.futures.result.Accounts;
 import com.bitplay.okex.v3.dto.futures.result.SwapAccount;
 import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
-import org.knowm.xchange.currency.Currency;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
+import com.bitplay.xchange.dto.account.AccountInfoContracts;
 
 import java.math.BigDecimal;
 

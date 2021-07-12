@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright (C) 2015 Matija Mazi
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy of
+  ~ this software and associated documentation files (the "Software"), to deal in
+  ~ the Software without restriction, including without limitation the rights to
+  ~ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+  ~ of the Software, and to permit persons to whom the Software is furnished to do
+  ~ so, subject to the following conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be included in all
+  ~ copies or substantial portions of the Software.
+  ~
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  ~ SOFTWARE.
+  ~
+  -->
+
+<configuration>
+
+    <property resource="application.properties" />
+
+    <appender name="CONSOLE_APPENDER" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36}.%M:%line - %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/main.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/main.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36}.%M:%line - %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="OKCOIN_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/okcoin.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/okcoin.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36} - %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+
+    <appender name="DEBUG_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/debug.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/debug.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%contextName] [%thread] %-5level %logger{36} - %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="POLONIEX_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/poloniex-trades.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/poloniex-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="RIGHT_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/right-trades.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/right-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="OKCOIN_ORDERS_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/okcoin-orders.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/okcoin-orders.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="LEFT_TRADING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/left-trades.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/left-trades.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="BITMEX_ORDERS_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/bitmex-orders.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/bitmex-orders.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="DELTAS_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/deltas.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/deltas.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="WARNING_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/warning.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/warning.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SIGNAL_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/signal.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/signal.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="HTTP_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/http.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/http.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE_APPENDER"/>
+        <appender-ref ref="FILE_APPENDER"/>
+    </root>
+
+    <logger name="com.bitplay.market.okcoin" level="info" additivity="true">
+        <appender-ref ref="OKCOIN_APPENDER"/>
+    </logger>
+
+
+    <!--com.bitplay.xchangestream.poloniex - orderBook increment update for Poloniex-->
+    <logger name="DEBUG_LOG" level="debug" additivity="false">
+        <appender-ref ref="DEBUG_APPENDER"/>
+    </logger>
+
+    <logger name="RIGHT_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="RIGHT_TRADING_APPENDER"/>
+    </logger>
+    <logger name="OKCOIN_ORDERS_LOG" level="debug" additivity="false">
+        <appender-ref ref="OKCOIN_ORDERS_APPENDER"/>
+    </logger>
+    <logger name="POLONIEX_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="POLONIEX_TRADING_APPENDER"/>
+    </logger>
+    <logger name="LEFT_TRADE_LOG" level="debug" additivity="false">
+        <appender-ref ref="LEFT_TRADING_APPENDER"/>
+    </logger>
+    <logger name="BITMEX_ORDERS_LOG" level="debug" additivity="false">
+        <appender-ref ref="BITMEX_ORDERS_APPENDER"/>
+    </logger>
+    <logger name="DELTAS_LOG" level="debug" additivity="false">
+        <appender-ref ref="DELTAS_APPENDER"/>
+    </logger>
+    <logger name="WARNING_LOG" level="debug" additivity="false">
+        <appender-ref ref="WARNING_APPENDER"/>
+    </logger>
+    <logger name="SIGNAL_LOG" level="debug" additivity="false">
+        <appender-ref ref="SIGNAL_APPENDER"/>
+    </logger>
+
+
+    <!-- Logging all REST api requests -->
+    <logger name="si.mazi.rescu" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER"/>
+    </logger>
+    <!-- Logging all REST api requests -->
+    <logger name="com.bitplay.okex.v3" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER"/>
+    </logger>
+
+    <logger name="io.micrometer" level="debug" additivity="false">
+        <appender-ref ref="CONSOLE_APPENDER"/>
+    </logger>
+
+    <!--<logger name="com.bitplay.xchangestream.bitmex.netty" level="debug">-->
+        <!--<appender-ref ref="CONSOLE_APPENDER"/>-->
+    <!--</logger>-->
+    <!--<logger name="com.bitplay.xchangestream.okex" level="debug">-->
+        <!--<appender-ref ref="CONSOLE_APPENDER"/>-->
+    <!--</logger>-->
+
+</configuration>

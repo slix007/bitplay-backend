@@ -1,10 +1,10 @@
 package com.bitplay.okex.v3.service.futures;
 
 import com.bitplay.okex.v3.ApiConfiguration;
-import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.dto.futures.result.Instrument;
+import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 

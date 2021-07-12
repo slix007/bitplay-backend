@@ -1,9 +1,7 @@
 package com.bitplay.okex.v3.service.swap.api;
 
-import com.bitplay.okex.v3.dto.futures.param.ClosePosition;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.Accounts;
-import com.bitplay.okex.v3.dto.futures.result.ClosePositionResult;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapAllPositions;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;

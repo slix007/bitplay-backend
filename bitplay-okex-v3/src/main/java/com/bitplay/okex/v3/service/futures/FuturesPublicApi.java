@@ -5,8 +5,8 @@ import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.dto.futures.result.Book;
 import com.bitplay.okex.v3.service.futures.adapter.BookAdapter;
 import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiServiceImpl;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.marketdata.OrderBook;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.marketdata.OrderBook;
 
 import java.math.BigDecimal;
 

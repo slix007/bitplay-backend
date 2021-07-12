@@ -3,15 +3,15 @@ package com.bitplay.okex.v3.service.futures.adapter;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
+import com.bitplay.okex.v3.utils.OkexErrors;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.enums.FuturesTransactionTypeEnum;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.Order.OrderType;
+import com.bitplay.xchange.dto.trade.LimitOrder;
 import java.math.BigDecimal;
 
-import com.bitplay.okex.v3.utils.OkexErrors;
 import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order.OrderType;
-import org.knowm.xchange.dto.trade.LimitOrder;
 
 @Slf4j
 public class OkexOrderConverter implements SuperConverter<LimitOrder, Order> {

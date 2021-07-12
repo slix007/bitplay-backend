@@ -1,20 +1,15 @@
 package com.bitplay.okex.v3.service.futures;
 
 import com.bitplay.okex.v3.ApiConfiguration;
-import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.client.ApiCredentials;
-import com.bitplay.okex.v3.dto.futures.result.Book;
-import com.bitplay.okex.v3.dto.futures.result.Instrument;
+import com.bitplay.okex.v3.BaseTests;
 import com.bitplay.okex.v3.service.futures.api.FuturesMarketApiService;
 import com.bitplay.okex.v3.service.swap.SwapPublicApi;
-import com.bitplay.okex.v3.service.swap.api.SwapMarketApiServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class SwapMarketApiServiceTest extends BaseTests {
 

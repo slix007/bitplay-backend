@@ -7,8 +7,8 @@
     </parent>
 
     <properties>
-        <xchange.version>4.2.3-bts</xchange.version>
-        <xchange-stream.version>4.3.17-bts</xchange-stream.version>
+<!--        <xchange.version>4.2.3-bts</xchange.version>-->
+<!--        <xchange-stream.version>4.3.17-bts</xchange-stream.version>-->
         <bitplay-model.version>0.0.1-SNAPSHOT</bitplay-model.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -27,11 +27,11 @@
 <!--            <artifactId>xchange-stream-core</artifactId>-->
 <!--            <version>${xchange-stream.version}</version>-->
 <!--        </dependency>-->
-        <dependency>
-            <groupId>info.bitrich.xchange-stream</groupId>
-            <artifactId>xchange-okcoin-v3</artifactId>
-            <version>${xchange-stream.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>info.bitrich.xchange-stream</groupId>-->
+<!--            <artifactId>xchange-okcoin-v3</artifactId>-->
+<!--            <version>${xchange-stream.version}</version>-->
+<!--        </dependency>-->
         <!--<dependency>-->
             <!--<groupId>info.bitrich.xchange-stream</groupId>-->
             <!--<artifactId>service-netty</artifactId>-->
@@ -39,17 +39,30 @@
         <!--</dependency>-->
 
         <!-- service-netty dependencies -->
-        <dependency>
-            <groupId>info.bitrich.xchange-stream</groupId>
-            <artifactId>service-core</artifactId>
-            <version>${xchange-stream.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>info.bitrich.xchange-stream</groupId>-->
+<!--            <artifactId>service-core</artifactId>-->
+<!--            <version>${xchange-stream.version}</version>-->
+<!--        </dependency>-->
 
       <dependency>
         <groupId>com.bitplay</groupId>
         <artifactId>bitplay-model</artifactId>
         <version>${bitplay-model.version}</version>
       </dependency>
+
+      <dependency>
+        <groupId>com.bitplay</groupId>
+        <artifactId>bitplay-model-stream</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.bitplay.xchange</groupId>
+        <artifactId>xchange-bitmex</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+
 
       <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -88,11 +101,6 @@
 
 
 
-        <dependency>
-            <groupId>org.knowm.xchange</groupId>
-            <artifactId>xchange-bitmex</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 
 </project>

@@ -4,22 +4,23 @@ import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
+import com.bitplay.okex.v3.dto.futures.param.Order;
 import com.bitplay.okex.v3.dto.futures.result.LeverageResult;
 import com.bitplay.okex.v3.dto.futures.result.OkexSwapOnePosition;
 import com.bitplay.okex.v3.dto.futures.result.OrderDetail;
 import com.bitplay.okex.v3.dto.futures.result.OrderResult;
+import com.bitplay.okex.v3.service.swap.adapter.SwapAccountConverter;
+import com.bitplay.okex.v3.service.swap.api.SwapTradeApiServiceImpl;
 import com.bitplay.okex.v3.dto.futures.result.SwapAccounts;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.okex.v3.service.futures.adapter.DtoToModelConverter;
 import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
-import com.bitplay.okex.v3.service.swap.adapter.SwapAccountConverter;
-import com.bitplay.okex.v3.service.swap.api.SwapTradeApiServiceImpl;
+import com.bitplay.xchange.currency.CurrencyPair;
+import com.bitplay.xchange.dto.Order.OrderType;
+import com.bitplay.xchange.dto.account.AccountInfoContracts;
+import com.bitplay.xchange.dto.trade.LimitOrder;
 import lombok.extern.slf4j.Slf4j;
-import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.Order;
-import org.knowm.xchange.dto.account.AccountInfoContracts;
-import org.knowm.xchange.dto.trade.LimitOrder;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -45,10 +46,10 @@ public class SwapPrivateApi extends SwapTradeApiServiceImpl {
 
     @SuppressWarnings("DuplicatedCode")
     @Override
-    public OrderResultTiny limitOrder(String instrumentId, Order.OrderType orderType, BigDecimal thePrice, BigDecimal amount, BigDecimal leverage,
+    public OrderResultTiny limitOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal amount, BigDecimal leverage,
                                       List<Object> extraFlags) {
         final FuturesOrderTypeEnum orderTypeEnum = (FuturesOrderTypeEnum) extraFlags.get(0);
-        final com.bitplay.okex.v3.dto.futures.param.Order order =
+        final Order order =
                 OkexOrderConverter.createOrder(instrumentId, orderType, thePrice, amount, orderTypeEnum, leverage);
         final OrderResult orderResult = orderApi(order);
         return OkexOrderConverter.convertOrderResult(orderResult);
