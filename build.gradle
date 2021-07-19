@@ -14,10 +14,10 @@ remotes {
         port = bpPort as Integer
     }
     host5068 {
-        host = 'localhost'
+        host = bpHost5068
         user = bpUser
         password = bpPassword
-        port = 7777 as Integer
+        port = bpPort as Integer
     }
     host5040 {
         host = bpHost5040
