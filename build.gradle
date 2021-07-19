@@ -14,10 +14,10 @@ remotes {
         port = bpPort as Integer
     }
     host5068 {
-        host = bpHost5068
+        host = 'localhost'
         user = bpUser
         password = bpPassword
-        port = bpPort as Integer
+        port = 7777 as Integer
     }
     host5040 {
         host = bpHost5040
@@ -163,7 +163,7 @@ private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
     ssh.run {
         session(hostName) {
 
-            put from: "$project.projectDir/core/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
+            put from: "$project.projectDir/bitplay/target/bitplay-0.0.1-SNAPSHOT.jar", into: "${remoteHomeDir}/"
 
             executeSudo "sudo systemctl stop bitplay2", pty: true
             executeSudo "sudo rm -f ${remoteInstallDir}/bitplay.jar", pty: true
