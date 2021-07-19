@@ -19,6 +19,7 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.TwoMarketStarter;
 import com.bitplay.security.TraderPermissionsService;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.annotation.Secured;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Secured("ROLE_TRADER")
 @RestController
+@Slf4j
 public class CommonEndpoint {
 
     @Autowired
@@ -57,12 +59,21 @@ public class CommonEndpoint {
     @RequestMapping(value = "/market/list", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public MarketList getMarkets() {
         final MarketService first = twoMarketStarter.getLeftMarketService();
-        final String firstName = first.getName();
-        final String firstFuturesContractName = first.getFuturesContractName();
         final MarketService second = twoMarketStarter.getRightMarketService();
-        final String secondName = second.getName();
-        final String secondFuturesContract = second.getFuturesContractName();
-        boolean isEth = first.getContractType().isQuanto();
+        String firstName = "";
+        String firstFuturesContractName = "";
+        String secondName = "";
+        String secondFuturesContract = "";
+        boolean isEth = false;
+        try {
+            firstName = first != null ? first.getName() : null;
+            firstFuturesContractName = first != null ? first.getFuturesContractName() : null;
+            secondName = second != null ? second.getName() : null;
+            secondFuturesContract = second != null ? second.getFuturesContractName() : null;
+            isEth = first != null && first.getContractType().isQuanto();
+        } catch (Exception e) {
+            log.error("Markets are not initialized. " + e.getMessage());
+        }
         return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract, isEth);
     }
 
