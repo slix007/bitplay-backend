@@ -29,7 +29,7 @@ all-in-one:
 #    - mvn $MAVEN_CLI_OPTS -f XChange install
     - pwd
 #    - mvn $MAVEN_CLI_OPTS -f xchange-stream install
-    - ls .m2/repository/org/
+#    - ls .m2/repository/org/
     - mvn $MAVEN_CLI_OPTS -Dmaven.test.skip=true install
 
 #pre-build:
