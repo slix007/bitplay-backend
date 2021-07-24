@@ -1,6 +1,31 @@
 package com.bitplay.market.okcoin;
 
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
+import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.dto.ThrottledWarn;
+import com.bitplay.arbitrage.events.NtUsdCheckEvent;
+import com.bitplay.arbitrage.events.ObChangeEvent;
+import com.bitplay.arbitrage.events.SigEvent;
+import com.bitplay.arbitrage.events.SigType;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.core.dto.PositionStream;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.BalanceService;
+import com.bitplay.market.MarketService;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
+import com.bitplay.market.model.Affordable;
+import com.bitplay.market.model.DqlState;
+import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.MoveMakerOrderArg;
+import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.EstimatedPrice;
@@ -11,7 +36,15 @@ import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v3.ApiConfiguration;
 import com.bitplay.okex.v3.FplayExchangeOkex;
 import com.bitplay.okex.v3.client.ApiCredentials;
+import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
+import com.bitplay.okex.v3.exception.ApiException;
+import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
 import com.bitplay.okexv3.OkExAdapters;
+import com.bitplay.okexv3.OkExStreamingExchange;
+import com.bitplay.okexv3.OkExStreamingMarketDataService;
+import com.bitplay.okexv3.OkExStreamingPrivateDataService;
+import com.bitplay.okexv3.dto.InstrumentDto;
+import com.bitplay.okexv3.dto.marketdata.OkCoinDepth;
 import com.bitplay.okexv3.dto.marketdata.OkcoinPriceRange;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
@@ -39,6 +72,7 @@ import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.service.ws.statistic.PingStatEvent;
+import com.bitplay.utils.Utils;
 import com.bitplay.xchange.Exchange;
 import com.bitplay.xchange.ExchangeFactory;
 import com.bitplay.xchange.ExchangeSpecification;
@@ -51,40 +85,7 @@ import com.bitplay.xchange.dto.marketdata.ContractIndex;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.okcoin.FuturesContract;
-import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.ArbType;
-import com.bitplay.arbitrage.dto.AvgPriceItem;
-import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.dto.ThrottledWarn;
-import com.bitplay.arbitrage.events.NtUsdCheckEvent;
-import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.arbitrage.events.SigEvent;
-import com.bitplay.arbitrage.events.SigType;
-import com.bitplay.arbitrage.posdiff.PosDiffService;
-import com.bitplay.external.NotifyType;
-import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.BalanceService;
-import com.bitplay.market.MarketService;
-import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.DqlState;
-import com.bitplay.market.model.LiqInfo;
-import com.bitplay.market.model.MarketState;
-import com.bitplay.market.model.MoveMakerOrderArg;
-import com.bitplay.market.model.MoveResponse;
-import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.TradeResponse;
-import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
-import com.bitplay.okex.v3.exception.ApiException;
-import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
-import com.bitplay.okexv3.OkExStreamingExchange;
-import com.bitplay.okexv3.OkExStreamingMarketDataService;
-import com.bitplay.okexv3.OkExStreamingPrivateDataService;
-import com.bitplay.okexv3.dto.InstrumentDto;
-import com.bitplay.okexv3.dto.marketdata.OkCoinDepth;
-import com.bitplay.utils.Utils;
+import com.bitplay.xchange.service.marketdata.MarketDataService;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
@@ -163,8 +164,9 @@ public class OkCoinService extends MarketServicePreliq {
 
     private OkExStreamingExchange exchange; // for streaming only
     private ApiCredentials apiCredentials;
-    private FplayExchangeOkex fplayOkexExchange;
-    private FplayExchangeOkex fplayOkexExchange2sec;
+    private FplayExchangeOkex fplayOkexExchangeV3;
+    // FplayExchangeOkexV3 with 2 sec REST timeout (connect/read/write)
+    private FplayExchangeOkex fplayOkexExchangeV32sec;
     private Disposable orderBookSubscription;
     private Disposable orderBookSubscriptionExtra;
     private Disposable userPositionSub;
@@ -308,6 +310,8 @@ public class OkCoinService extends MarketServicePreliq {
         initExchangeV32Sec(apiCredentials);
         exchange = initExchange(exArgs);
 
+        fetchOrderBookMain();
+
         initWebSocketAndAllSubscribers();
 
 //        final Instrument instrument = bitplayOkexEchange.getMarketAPIService().getInstruments().get(0);
@@ -319,14 +323,14 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Scheduled(initialDelay = 120 * 1000, fixedDelay = 60 * 1000)
     public void checkExchange() {
-        if (fplayOkexExchange == null || fplayOkexExchange.getPrivateApi() == null || fplayOkexExchange.getPrivateApi().notCreated()) {
+        if (fplayOkexExchangeV3 == null || fplayOkexExchangeV3.getPrivateApi() == null || fplayOkexExchangeV3.getPrivateApi().notCreated()) {
             final String msg = "OkexExchange is not fully created. Re-create it.";
             log.warn(msg);
             warningLogger.warn(msg);
             initExchangeV3(apiCredentials);
         }
 
-        if (fplayOkexExchange2sec == null || fplayOkexExchange2sec.getPrivateApi() == null || fplayOkexExchange2sec.getPrivateApi().notCreated()) {
+        if (fplayOkexExchangeV32sec == null || fplayOkexExchangeV32sec.getPrivateApi() == null || fplayOkexExchangeV32sec.getPrivateApi().notCreated()) {
             final String msg = "fplayOkexExchange2sec is not fully created. Re-create it.";
             log.warn(msg);
             warningLogger.warn(msg);
@@ -344,7 +348,7 @@ public class OkCoinService extends MarketServicePreliq {
         config.setReadTimeout(15);
         config.setWriteTimeout(15);
 
-        fplayOkexExchange = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
+        fplayOkexExchangeV3 = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
     }
 
     private void initExchangeV32Sec(ApiCredentials cred) {
@@ -357,7 +361,7 @@ public class OkCoinService extends MarketServicePreliq {
         config.setReadTimeout(2);
         config.setWriteTimeout(2);
 
-        fplayOkexExchange2sec = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
+        fplayOkexExchangeV32sec = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
     }
 
     private ApiCredentials getApiCredentials(Object[] exArgs) {
@@ -404,11 +408,14 @@ public class OkCoinService extends MarketServicePreliq {
             log.trace(settings.getPlacingBlocks().toString());
 
             fetchPosition();
+
+            fetchOrderBookMain();
+
         } catch (Exception e) {
             log.error("FetchPositionError", e);
         }
 
-        subscribeOnOrderBook();
+//        subscribeOnOrderBook();
 
         final boolean loginSuccess = exchange.getStreamingPrivateDataService()
                 .login()
@@ -560,16 +567,20 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public OrderBook fetchOrderBookMain() {
         //TODO
-//        try {
-//            fplayOkexExchange.getPrivateApi().changeLeverage()
-//
-//            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
-//            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
-//            this.orderBook = ob;
-//            this.orderBookShort.setOb(ob);
-//        } catch (IOException e) {
-//            log.error("can not fetch orderBook");
-//        }
+        try {
+            final MarketDataService v1exchange = getExchange().getMarketDataService();
+            final InstrumentDto instrumentDto = instrDtos.get(0);
+            final OrderBook orderBook = fplayOkexExchangeV3.getPublicApi().getInstrumentBook(
+                    instrumentDto.getInstrumentId(), getCurrencyPair()
+            );
+
+//            final OrderBook orderBook = v1exchange.getOrderBook(getCurrencyPair());
+            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+            this.orderBook = ob;
+            this.getOrderBookShort().setOb(ob);
+        } catch (Exception e) {
+            log.error("can not fetch orderBook");
+        }
         return this.getOrderBookShort().getOb();
     }
 
@@ -611,7 +622,7 @@ public class OkCoinService extends MarketServicePreliq {
             if (instrumentDto.getFuturesContract() == FuturesContract.Swap) {
                 return; // not in use for swap
             }
-            final EstimatedPrice result = fplayOkexExchange.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
+            final EstimatedPrice result = fplayOkexExchangeV3.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
             forecastPrice = result.getPrice();
 
         } catch (Exception e) {
@@ -637,7 +648,7 @@ public class OkCoinService extends MarketServicePreliq {
             if (instrumentDto.getFuturesContract() != FuturesContract.Swap) {
                 return; // not in use for futures
             }
-            swapSettlement = fplayOkexExchange.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+            swapSettlement = fplayOkexExchangeV3.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 log.error("On fetchSwapSettlement timeout");
@@ -697,7 +708,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public String fetchPosition() throws Exception {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
-        final Pos pos = fplayOkexExchange.getPrivateApi().getPos(instrumentId);
+        final Pos pos = fplayOkexExchangeV3.getPrivateApi().getPos(instrumentId);
         final Pos pos1 = setPosLeverage(pos);
         final Pos pos2 = updatePlPos(pos1);
         this.pos.set(pos2);
@@ -732,7 +743,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     public AccountInfoContracts getAccountApiV3() {
         final String toolIdForApi = getToolIdForApi();
-        return fplayOkexExchange.getPrivateApi().getAccount(toolIdForApi);
+        return fplayOkexExchangeV3.getPrivateApi().getAccount(toolIdForApi);
     }
 
     private String getToolIdForApi() {
@@ -1127,7 +1138,7 @@ public class OkCoinService extends MarketServicePreliq {
             final Instant startReq = Instant.now();
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-            final OrderResultTiny orderResult = fplayOkexExchange.getPrivateApi().limitOrder(
+            final OrderResultTiny orderResult = fplayOkexExchangeV3.getPrivateApi().limitOrder(
                     instrumentDto.getInstrumentId(),
                     orderType,
                     thePrice,
@@ -1622,7 +1633,7 @@ public class OkCoinService extends MarketServicePreliq {
         Instant start = Instant.now();
         try {
             final String toolName = getToolIdForApi();
-            final Leverage lv = fplayOkexExchange.getPrivateApi().getLeverage(toolName);
+            final Leverage lv = fplayOkexExchangeV3.getPrivateApi().getLeverage(toolName);
             if (lv == null) {
                 log.error("lv is null");
             } else {
@@ -1643,7 +1654,7 @@ public class OkCoinService extends MarketServicePreliq {
         String resultDescription = "";
         try {
             final String toolIdForApi = getToolIdForApi();
-            final Leverage r = fplayOkexExchange.getPrivateApi().changeLeverage(
+            final Leverage r = fplayOkexExchangeV3.getPrivateApi().changeLeverage(
                     toolIdForApi,
                     okexLeverage.setScale(0, RoundingMode.DOWN).toPlainString()
             );
@@ -1809,7 +1820,7 @@ public class OkCoinService extends MarketServicePreliq {
                     log.info(msg);
 
                     final CurrencyPair currencyPair = instrumentDto.getCurrencyPair();
-                    orderBook = fplayOkexExchange.getPublicApi().getInstrumentBook(instrumentDto.getInstrumentId(), currencyPair);
+                    orderBook = fplayOkexExchangeV3.getPublicApi().getInstrumentBook(instrumentDto.getInstrumentId(), currencyPair);
                     if (orderBook.getTimeStamp() == null) {
                         orderBook = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
                     }
@@ -1844,7 +1855,7 @@ public class OkCoinService extends MarketServicePreliq {
                     );
                     tradeLogger.info(msgPlacing);
                     log.info(msgPlacing);
-                    final OrderResultTiny orderResult = fplayOkexExchange.getPrivateApi().limitOrder(
+                    final OrderResultTiny orderResult = fplayOkexExchangeV3.getPrivateApi().limitOrder(
                             instrumentDto.getInstrumentId(),
                             orderType,
                             thePrice,
@@ -2363,7 +2374,7 @@ public class OkCoinService extends MarketServicePreliq {
                     if (attemptCount > 1) {
                         Thread.sleep(1000);
                     }
-                    final OrderResultTiny result = fplayOkexExchange.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
+                    final OrderResultTiny result = fplayOkexExchangeV3.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
                     final String translatedError = OkexOrderConverter.getErrorCodeTranslation(result);
                     final String msg = String.format("#%s/%s %s id=%s,res=%s,code=%s,details=%s(%s)",
                             counterForLogs, attemptCount,
@@ -2430,7 +2441,7 @@ public class OkCoinService extends MarketServicePreliq {
         final String counterForLogs = getCounterName();
         OrderResultTiny result = new OrderResultTiny(false, orderId);
         try {
-            result = fplayOkexExchange.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
+            result = fplayOkexExchangeV3.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
             if (result == null) {
                 tradeLogger.info(String.format("#%s %s id=%s, no response", counterForLogs, logInfoId, orderId));
             } else {
@@ -2487,7 +2498,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                 // 1. Cancel request
                 if (!cancelSucceed) {
-                    final OrderResultTiny result = fplayOkexExchange.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
+                    final OrderResultTiny result = fplayOkexExchangeV3.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
 
                     if (result == null) {
                         tradeLogger.info(String.format("#%s/%s %s id=%s, no response", counterForLogs, attemptCount, logInfoId1, orderId));
@@ -3122,7 +3133,7 @@ public class OkCoinService extends MarketServicePreliq {
             log.info(ftpdDetails);
 
             final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-            final OrderResultTiny orderResult = fplayOkexExchange2sec.getPrivateApi().limitOrder(
+            final OrderResultTiny orderResult = fplayOkexExchangeV32sec.getPrivateApi().limitOrder(
                     instrumentDto.getInstrumentId(),
                     orderType,
                     thePrice,
@@ -3155,7 +3166,7 @@ public class OkCoinService extends MarketServicePreliq {
     private void cancelOrderOnMkt(String counterForLogs, String logInfoId, StringBuilder res, LimitOrder order)
             throws IOException {
         final String orderId = order.getId();
-        final OrderResultTiny result = fplayOkexExchange2sec.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
+        final OrderResultTiny result = fplayOkexExchangeV32sec.getPrivateApi().cnlOrder(instrDtos.get(0).getInstrumentId(), orderId);
 
         final String translatedError = OkexOrderConverter.getErrorCodeTranslation(result);
         tradeLogger.info(String.format("#%s %s id=%s,res=%s,code=%s,details=%s(%s)",
@@ -3193,7 +3204,7 @@ public class OkCoinService extends MarketServicePreliq {
         final InstrumentDto instrumentDto = instrDtos.get(0);
         final String instrumentId = instrumentDto.getInstrumentId();
         final CurrencyPair currencyPair = instrumentDto.getCurrencyPair();
-        return fplayOkexExchange.getPrivateApi().getOpenLimitOrders(instrumentId, currencyPair);
+        return fplayOkexExchangeV3.getPrivateApi().getOpenLimitOrders(instrumentId, currencyPair);
     }
 
     @Override
@@ -3203,7 +3214,7 @@ public class OkCoinService extends MarketServicePreliq {
         final Collection<Order> orders = new ArrayList<>();
         for (String orderId : orderIds) {
             final CurrencyPair currencyPair = instrumentDto.getCurrencyPair();
-            final LimitOrder order = fplayOkexExchange.getPrivateApi().getLimitOrder(instrumentId, orderId, currencyPair);
+            final LimitOrder order = fplayOkexExchangeV3.getPrivateApi().getLimitOrder(instrumentId, orderId, currencyPair);
             if (order != null) {
                 orders.add(order);
             }

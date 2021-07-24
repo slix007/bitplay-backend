@@ -229,12 +229,13 @@ public abstract class MarketService extends MarketServiceWithState {
                     return ob; // for bitmex incremental
                 }
             }
-            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
-            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
-            this.orderBook = ob;
-            this.orderBookShort.setOb(ob);
+            // okex v1 alredy deleted
+//            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
+//            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+//            this.orderBook = ob;
+//            this.orderBookShort.setOb(ob);
         } catch (IOException e) {
-            log.error("can not fetch orderBook");
+            log.error("can not fetch orderBook", e);
         }
         return this.orderBookShort.getOb();
     }
