@@ -13,6 +13,15 @@ remotes {
         password = bpPassword
         port = bpPort as Integer
     }
+    // DEPLOY WHEN BANNED:
+    // ssh 5060 -L 7777:5068-vupa.fplay.io:44022
+    //
+    // host5068 {
+    //        host = 'localhost'
+    //        user = bpUser
+    //        password = bpPassword
+    //        port = 7777 as Integer
+    //    }
     host5068 {
         host = bpHost5068
         user = bpUser
