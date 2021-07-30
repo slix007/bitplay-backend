@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.client;
 
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.constant.ApiConstants;
 import com.bitplay.okex.v5.enums.ContentTypeEnum;
 import com.bitplay.okex.v5.enums.HttpHeadersEnum;
@@ -24,10 +24,10 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 public class ApiHttpClient {
 
-    private final ApiConfiguration config;
-    private final ApiCredentials credentials;
+    private final ApiConfigurationV5 config;
+    private final ApiCredentialsV5 credentials;
 
-    public ApiHttpClient(final ApiConfiguration config, final ApiCredentials credentials) {
+    public ApiHttpClient(final ApiConfigurationV5 config, final ApiCredentialsV5 credentials) {
         this.config = config;
         this.credentials = credentials;
     }

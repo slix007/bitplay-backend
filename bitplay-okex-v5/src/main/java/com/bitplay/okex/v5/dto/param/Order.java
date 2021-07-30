@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.dto.param;
 
-import com.bitplay.okex.v3.enums.FuturesTransactionTypeEnum;
+import com.bitplay.okex.v5.enums.FuturesTransactionTypeEnum;
 import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Data;

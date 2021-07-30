@@ -14,6 +14,7 @@ import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.core.dto.PositionStream;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.externalapi.PublicApi;
 import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
@@ -39,6 +40,9 @@ import com.bitplay.okex.v3.client.ApiCredentials;
 import com.bitplay.okex.v3.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v3.exception.ApiException;
 import com.bitplay.okex.v3.service.futures.adapter.OkexOrderConverter;
+import com.bitplay.okex.v5.ApiConfigurationV5;
+import com.bitplay.okex.v5.FplayExchangeOkexV5;
+import com.bitplay.okex.v5.client.ApiCredentialsV5;
 import com.bitplay.okexv3.OkExAdapters;
 import com.bitplay.okexv3.OkExStreamingExchange;
 import com.bitplay.okexv3.OkExStreamingMarketDataService;
@@ -165,8 +169,11 @@ public class OkCoinService extends MarketServicePreliq {
     private OkExStreamingExchange exchange; // for streaming only
     private ApiCredentials apiCredentials;
     private FplayExchangeOkex fplayOkexExchangeV3;
+    private FplayExchangeOkexV5 fplayOkexExchangeV5;
+    private ApiCredentialsV5 apiCredentialsV5;
     // FplayExchangeOkexV3 with 2 sec REST timeout (connect/read/write)
     private FplayExchangeOkex fplayOkexExchangeV32sec;
+    private FplayExchangeOkexV5 fplayOkexExchangeV52sec;
     private Disposable orderBookSubscription;
     private Disposable orderBookSubscriptionExtra;
     private Disposable userPositionSub;
@@ -306,10 +313,14 @@ public class OkCoinService extends MarketServicePreliq {
         leverage = okexContractType.defaultLeverage();
 
         apiCredentials = getApiCredentials(exArgs);
+        apiCredentialsV5 = getApiCredentialsV5(exArgs);
         initExchangeV3(apiCredentials);
         initExchangeV32Sec(apiCredentials);
+        initExchangeV5(apiCredentialsV5);
+        initExchangeV52Sec(apiCredentialsV5);
         exchange = initExchange(exArgs);
 
+        // for testing
         fetchOrderBookMain();
 
         initWebSocketAndAllSubscribers();
@@ -335,6 +346,19 @@ public class OkCoinService extends MarketServicePreliq {
             log.warn(msg);
             warningLogger.warn(msg);
             initExchangeV32Sec(apiCredentials);
+        }
+
+        if (fplayOkexExchangeV5 == null || fplayOkexExchangeV5.getPrivateApi() == null || fplayOkexExchangeV5.getPrivateApi().notCreated()) {
+            final String msg = "OkexExchange is not fully created. Re-create it.";
+            log.warn(msg);
+            warningLogger.warn(msg);
+            initExchangeV5(apiCredentialsV5);
+        }
+        if (fplayOkexExchangeV52sec == null || fplayOkexExchangeV52sec.getPrivateApi() == null || fplayOkexExchangeV52sec.getPrivateApi().notCreated()) {
+            final String msg = "OkexExchange is not fully created. Re-create it.";
+            log.warn(msg);
+            warningLogger.warn(msg);
+            initExchangeV5(apiCredentialsV5);
         }
     }
 
@@ -364,12 +388,51 @@ public class OkCoinService extends MarketServicePreliq {
         fplayOkexExchangeV32sec = FplayExchangeOkex.create(config, okexContractType.getFuturesContract().getName());
     }
 
+    private void initExchangeV5(ApiCredentialsV5 cred) {
+        ApiConfigurationV5 config = new ApiConfigurationV5();
+        config.setEndpoint(ApiConfiguration.API_BASE_URL);
+        config.setApiCredentials(cred);
+        config.setPrint(true);
+        config.setRetryOnConnectionFailure(true);
+        config.setConnectTimeout(15);
+        config.setReadTimeout(15);
+        config.setWriteTimeout(15);
+
+        fplayOkexExchangeV5 = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract().getName());
+    }
+
+    private void initExchangeV52Sec(ApiCredentialsV5 cred) {
+        ApiConfigurationV5 config = new ApiConfigurationV5();
+        config.setEndpoint(ApiConfiguration.API_BASE_URL);
+        config.setApiCredentials(cred);
+        config.setPrint(true);
+        config.setRetryOnConnectionFailure(true);
+        config.setConnectTimeout(2);
+        config.setReadTimeout(2);
+        config.setWriteTimeout(2);
+
+        fplayOkexExchangeV52sec = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract().getName());
+    }
+
     private ApiCredentials getApiCredentials(Object[] exArgs) {
         final ApiCredentials cred = new ApiCredentials();
         if (exArgs != null && exArgs.length == 3) {
             String exKey = (String) exArgs[0];
             String exSecret = (String) exArgs[1];
             String exPassphrase = (String) exArgs[2];
+            cred.setApiKey(exKey);
+            cred.setSecretKey(exSecret);
+            cred.setPassphrase(exPassphrase);
+        }
+        return cred;
+    }
+
+    private ApiCredentialsV5 getApiCredentialsV5(Object[] exArgs) {
+        final ApiCredentialsV5 cred = new ApiCredentialsV5();
+        if (exArgs != null && exArgs.length == 6) {
+            String exKey = (String) exArgs[3];
+            String exSecret = (String) exArgs[4];
+            String exPassphrase = (String) exArgs[5];
             cred.setApiKey(exKey);
             cred.setSecretKey(exSecret);
             cred.setPassphrase(exPassphrase);
@@ -490,6 +553,16 @@ public class OkCoinService extends MarketServicePreliq {
             spec.setExchangeSpecificParametersItem("okex-v3-secret", exSecret);
             spec.setExchangeSpecificParametersItem("okex-v3-passphrase", exPassphrase);
         }
+        // init xchange-stream
+        if (exArgs != null && exArgs.length == 6) {
+            String exKey = (String) exArgs[3];
+            String exSecret = (String) exArgs[4];
+            String exPassphrase = (String) exArgs[5];
+            spec.setExchangeSpecificParametersItem("okex-v5-as-extra", true);
+            spec.setExchangeSpecificParametersItem("okex-v5-key", exKey);
+            spec.setExchangeSpecificParametersItem("okex-v5-secret", exSecret);
+            spec.setExchangeSpecificParametersItem("okex-v5-passphrase", exPassphrase);
+        }
 
         return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
@@ -568,9 +641,9 @@ public class OkCoinService extends MarketServicePreliq {
     public OrderBook fetchOrderBookMain() {
         //TODO
         try {
-            final MarketDataService v1exchange = getExchange().getMarketDataService();
+//            final PublicApi publicApi = fplayOkexExchangeV5.getPublicApi();
             final InstrumentDto instrumentDto = instrDtos.get(0);
-            final OrderBook orderBook = fplayOkexExchangeV3.getPublicApi().getInstrumentBook(
+            final OrderBook orderBook = fplayOkexExchangeV5.getPublicApi().getInstrumentBook(
                     instrumentDto.getInstrumentId(), getCurrencyPair()
             );
 
@@ -579,7 +652,7 @@ public class OkCoinService extends MarketServicePreliq {
             this.orderBook = ob;
             this.getOrderBookShort().setOb(ob);
         } catch (Exception e) {
-            log.error("can not fetch orderBook");
+            log.error("can not fetch orderBook", e);
         }
         return this.getOrderBookShort().getOb();
     }

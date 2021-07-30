@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.utils;
 
-import com.bitplay.okex.v3.constant.ApiConstants;
+import com.bitplay.okex.v5.constant.ApiConstants;
 import java.text.NumberFormat;
 import org.apache.commons.lang3.StringUtils;
 

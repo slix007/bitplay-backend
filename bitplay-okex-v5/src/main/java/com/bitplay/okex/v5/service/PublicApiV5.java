@@ -3,7 +3,7 @@ package com.bitplay.okex.v5.service;
 import com.bitplay.externalapi.PublicApi;
 import com.bitplay.model.EstimatedPrice;
 import com.bitplay.model.SwapSettlement;
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.client.ApiClient;
 import com.bitplay.okex.v5.dto.adapter.BookAdapter;
 import com.bitplay.okex.v5.dto.result.Book;
@@ -16,9 +16,9 @@ public class PublicApiV5 implements PublicApi {
     private ApiClient client;
     private MarketApiV5 api;
 
-    public PublicApiV5(ApiConfiguration config) {
+    public PublicApiV5(ApiConfigurationV5 config) {
         this.client = new ApiClient(config);
-//        this.api = client.createService(SwapMarketApi.class);
+        this.api = client.createService(MarketApiV5.class);
     }
 
 

@@ -4,7 +4,7 @@ import com.bitplay.externalapi.PrivateApi;
 import com.bitplay.model.Leverage;
 import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.client.ApiClient;
 import com.bitplay.okex.v5.dto.result.OkexAllPositions;
 import com.bitplay.okex.v5.dto.result.OkexOnePosition;
@@ -24,7 +24,7 @@ public class PrivateApiV5 implements PrivateApi {
 //    private volatile SwapTradeApi api;
 
 
-    public PrivateApiV5(ApiConfiguration config) {
+    public PrivateApiV5(ApiConfigurationV5 config) {
 //        super(config);
     }
 

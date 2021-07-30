@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.dto.param;
 
-import com.bitplay.okex.v3.enums.FuturesDirectionEnum;
+import com.bitplay.okex.v5.enums.FuturesDirectionEnum;
 import lombok.Data;
 
 @Data

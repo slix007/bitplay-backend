@@ -1,16 +1,16 @@
 package com.bitplay.okex.v5;
 
-import com.bitplay.okex.v5.client.ApiCredentials;
+import com.bitplay.okex.v5.client.ApiCredentialsV5;
 import lombok.Data;
 
 @Data
-public class ApiConfiguration {
+public class ApiConfigurationV5 {
 
     public static final String API_BASE_URL = "https://www.okex.com";
     public static final String JSON_CONTENT_TYPE = "application/json";
 
 
-    private ApiCredentials apiCredentials;
+    private ApiCredentialsV5 apiCredentials;
 
     /**
      * Rest api endpoint url.

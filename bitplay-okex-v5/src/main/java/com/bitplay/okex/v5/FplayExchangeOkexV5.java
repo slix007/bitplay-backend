@@ -15,7 +15,7 @@ public class FplayExchangeOkexV5 extends FplayExchange {
         super(publicApi, privateApi);
     }
 
-    public static FplayExchangeOkexV5 create(ApiConfiguration config, String futuresContractName) {
+    public static FplayExchangeOkexV5 create(ApiConfigurationV5 config, String futuresContractName) {
         final PublicApi publicApi = new PublicApiV5(config);
         final PrivateApi privateApi = null;
 //        if (futuresContractName.equals("swap")) {

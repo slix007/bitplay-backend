@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.client;
 
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.constant.ApiConstants;
 import com.bitplay.okex.v5.dto.result.HttpResult;
 import com.bitplay.okex.v5.enums.HttpHeadersEnum;
@@ -21,8 +21,8 @@ import retrofit2.Retrofit;
 @Slf4j
 public class ApiClient {
 
-    private final ApiConfiguration config;
-    private final ApiCredentials credentials;
+    private final ApiConfigurationV5 config;
+    private final ApiCredentialsV5 credentials;
     private final OkHttpClient client;
     private final Retrofit retrofit;
     private final ApiHttp apiHttp;
@@ -30,12 +30,12 @@ public class ApiClient {
     /**
      * Initialize the apis client
      */
-    public ApiClient(final ApiConfiguration config) {
+    public ApiClient(final ApiConfigurationV5 config) {
         if (config == null || StringUtils.isEmpty(config.getEndpoint())) {
             throw new RuntimeException("The ApiClient params can't be empty.");
         }
         this.config = config;
-        this.credentials = new ApiCredentials(config);
+        this.credentials = new ApiCredentialsV5(config);
         this.client = new ApiHttpClient(config, this.credentials).client();
         this.retrofit = new ApiRetrofit(config, this.client).retrofit();
         this.apiHttp = new ApiHttp(config, this.client);

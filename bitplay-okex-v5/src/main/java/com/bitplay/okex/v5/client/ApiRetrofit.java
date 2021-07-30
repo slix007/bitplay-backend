@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.client;
 
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.helper.OkexObjectMapper;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
@@ -9,10 +9,10 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 
 public class ApiRetrofit {
 
-    private ApiConfiguration config;
+    private ApiConfigurationV5 config;
     private OkHttpClient client;
 
-    public ApiRetrofit(ApiConfiguration config, OkHttpClient client) {
+    public ApiRetrofit(ApiConfigurationV5 config, OkHttpClient client) {
         this.config = config;
         this.client = client;
     }

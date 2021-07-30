@@ -1,8 +1,8 @@
 package com.bitplay.okex.v5.utils;
 
-import com.bitplay.okex.v3.constant.ApiConstants;
-import com.bitplay.okex.v3.enums.AlgorithmEnum;
-import com.bitplay.okex.v3.enums.CharsetEnum;
+import com.bitplay.okex.v5.constant.ApiConstants;
+import com.bitplay.okex.v5.enums.AlgorithmEnum;
+import com.bitplay.okex.v5.enums.CharsetEnum;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;

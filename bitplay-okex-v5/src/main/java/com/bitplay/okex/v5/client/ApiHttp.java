@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.client;
 
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.constant.ApiConstants;
 import com.bitplay.okex.v5.dto.result.HttpResult;
 import com.bitplay.okex.v5.exception.ApiException;
@@ -18,11 +18,11 @@ import okhttp3.Response;
 public class ApiHttp {
 
     private OkHttpClient client;
-    private ApiConfiguration config;
+    private ApiConfigurationV5 config;
 
     static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    public ApiHttp(ApiConfiguration config, OkHttpClient client) {
+    public ApiHttp(ApiConfigurationV5 config, OkHttpClient client) {
         this.config = config;
         this.client = client;
     }

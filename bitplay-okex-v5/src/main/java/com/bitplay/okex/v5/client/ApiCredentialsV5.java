@@ -1,12 +1,12 @@
 package com.bitplay.okex.v5.client;
 
-import com.bitplay.okex.v5.ApiConfiguration;
+import com.bitplay.okex.v5.ApiConfigurationV5;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class ApiCredentials {
+public class ApiCredentialsV5 {
 
     /**
      * The user's secret key provided by OKEx.
@@ -22,8 +22,8 @@ public class ApiCredentials {
     private String passphrase;
 
 
-    public ApiCredentials(ApiConfiguration config) {
-        final ApiCredentials cred = config.getApiCredentials();
+    public ApiCredentialsV5(ApiConfigurationV5 config) {
+        final ApiCredentialsV5 cred = config.getApiCredentials();
         this.apiKey = cred.getApiKey();
         this.secretKey = cred.getSecretKey();
         this.passphrase = cred.getPassphrase();
