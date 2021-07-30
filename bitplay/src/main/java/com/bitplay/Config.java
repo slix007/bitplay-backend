@@ -37,6 +37,20 @@ public class Config {
     @Value("${market.okex.left.ex.passphrase:DEFAULT}")
     private String okexLeftMarketExPassphrase;
 
+    @Value("${market.okex.v5.key:DEFAULT}")
+    private String okexMarketV5Key;
+    @Value("${market.okex.v5.secret:DEFAULT}")
+    private String okexMarketV5Secret;
+    @Value("${market.okex.v5.passphrase:DEFAULT}")
+    private String okexMarketV5Passphrase;
+
+    @Value("${market.okex.left.v5.key:DEFAULT}")
+    private String okexLeftMarketV5Key;
+    @Value("${market.okex.left.v5.secret:DEFAULT}")
+    private String okexLeftMarketV5Secret;
+    @Value("${market.okex.left.v5.passphrase:DEFAULT}")
+    private String okexLeftMarketV5Passphrase;
+
     @Value("${ui.password.trader}")
     private String uiPasswordForTrader;
     @Value("${ui.password.admin}")

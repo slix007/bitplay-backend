@@ -152,12 +152,19 @@ public class TwoMarketStarter {
                     marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
                             config.getOkexLeftMarketExKey(),
                             config.getOkexLeftMarketExSecret(),
-                            config.getOkexLeftMarketExPassphrase());
+                            config.getOkexLeftMarketExPassphrase(),
+                            config.getOkexLeftMarketV5Key(),
+                            config.getOkexLeftMarketV5Secret(),
+                            config.getOkexLeftMarketV5Passphrase()
+                    );
                 } else {
                     marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
                             config.getOkexMarketExKey(),
                             config.getOkexMarketExSecret(),
-                            config.getOkexMarketExPassphrase());
+                            config.getOkexMarketExPassphrase(),
+                            config.getOkexMarketV5Key(),
+                            config.getOkexMarketV5Secret(),
+                            config.getOkexMarketV5Passphrase());
                 }
             }
 

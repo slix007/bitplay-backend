@@ -202,6 +202,20 @@
         </encoder>
     </appender>
 
+    <appender name="HTTP_APPENDER_OKEX_V5" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/http_okex_v5.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/http_okex_v5.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+
 
     <root level="INFO">
         <appender-ref ref="CONSOLE_APPENDER"/>
@@ -251,6 +265,10 @@
     <!-- Logging all REST api requests -->
     <logger name="com.bitplay.okex.v3" level="trace" additivity="false">
         <appender-ref ref="HTTP_APPENDER"/>
+    </logger>
+    <!-- Logging all REST api requests -->
+    <logger name="com.bitplay.okex.v5" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER_OKEX_V5"/>
     </logger>
 
     <logger name="io.micrometer" level="debug" additivity="false">

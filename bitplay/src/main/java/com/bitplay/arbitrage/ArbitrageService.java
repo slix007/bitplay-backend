@@ -1687,6 +1687,12 @@ public class ArbitrageService {
                 if (keyEquals && passEquals && secretEquals) {
                     return true;
                 }
+                final boolean keyEqualsV5 = config.getOkexLeftMarketV5Key().equals(config.getOkexMarketV5Key());
+                final boolean passEqualsV5 = config.getOkexLeftMarketV5Passphrase().equals(config.getOkexMarketV5Passphrase());
+                final boolean secretEqualsV5 = config.getOkexLeftMarketV5Secret().equals(config.getOkexMarketV5Secret());
+                if (keyEqualsV5 && passEqualsV5 && secretEqualsV5) {
+                    return true;
+                }
             }
         }
         return false;

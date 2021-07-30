@@ -2,6 +2,8 @@ package com.bitplay.okex.v5.service;
 
 import com.bitplay.okex.v5.dto.result.Book;
 import com.bitplay.okex.v5.dto.result.Instrument;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.google.gson.JsonObject;
 import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -16,15 +18,35 @@ interface MarketApiV5 {
 //    @GET("/api/futures/v3/rate")
 //    Call<ExchangeRate> getExchangeRate();
 
-    @GET("/api/swap/v3/instruments")
-    Call<List<Instrument>> getInstruments();
+//    @GET("/api/v5/public/instruments")
+//    Call<List<Instrument>> getInstruments();
+    @GET("/api/v5/public/instruments")
+    Call<JsonObject> getInstrumentBook(
+            @Query("instType") String instType
+    );
+//
+//    @GET("/api/v5/market/books")
+//    Call<JSONObject> getBook(
+//            @Query("instId") String instrumentId,
+//            @Query("sz") Integer sz
+//    );
+
+    @GET("/api/v5/market/books")
+    Call<Book> getBook(
+            @Query("instId") String instrumentId,
+            @Query("sz") Integer sz
+    );
+
 
     //
 //    @GET("/api/futures/v3/instruments/currencies")
 //    Call<List<Currencies>> getCurrencies();
 //
-    @GET("/api/swap/v3/instruments/{instrument_id}/depth")
-    Call<Book> getInstrumentBook(@Path("instrument_id") String instrumentId, @Query("size") Integer size);
+    @GET("/api/v5/public/instruments")
+    Call<JsonObject> getInstrumentBook(
+            @Query("instType") String instType,
+            @Query("instId") String instrumentId
+    );
 
     // Rate limit：20/2s
 //    @GET("/api/swap/v3/instruments/{instrument_id}/funding_time")

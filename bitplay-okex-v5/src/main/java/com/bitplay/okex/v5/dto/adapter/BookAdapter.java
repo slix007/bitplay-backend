@@ -1,6 +1,7 @@
 package com.bitplay.okex.v5.dto.adapter;
 
 import com.bitplay.okex.v5.dto.result.Book;
+import com.bitplay.okex.v5.dto.result.Book.BookData;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
@@ -13,11 +14,16 @@ import java.util.List;
 
 public class BookAdapter {
 
-    public static OrderBook convertBook(Book depth, CurrencyPair currencyPair) {
-        List<LimitOrder> asks = adaptLimitOrders(OrderType.ASK, depth.getAsks(), currencyPair, depth.getTimestamp());
+    public static OrderBook convertBook(Book book, CurrencyPair currencyPair) {
+        if (book.getData().isEmpty()) {
+            return new OrderBook(new Date(), new ArrayList<>(), new ArrayList<>());
+        }
+        final BookData depth = book.getData().get(0);
+
+        List<LimitOrder> asks = adaptLimitOrders(OrderType.ASK, depth.getAsks(), currencyPair, depth.getTs());
 //        Collections.reverse(asks);
-        List<LimitOrder> bids = adaptLimitOrders(OrderType.BID, depth.getBids(), currencyPair, depth.getTimestamp());
-        return new OrderBook(depth.getTimestamp(), asks, bids);
+        List<LimitOrder> bids = adaptLimitOrders(OrderType.BID, depth.getBids(), currencyPair, depth.getTs());
+        return new OrderBook(depth.getTs(), new Date(), asks, bids);
     }
 
     private static List<LimitOrder> adaptLimitOrders(OrderType type, BigDecimal[][] list, CurrencyPair currencyPair, Date timestamp) {

@@ -396,7 +396,7 @@ public class OkCoinService extends MarketServicePreliq {
         config.setReadTimeout(15);
         config.setWriteTimeout(15);
 
-        fplayOkexExchangeV5 = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract().getName());
+        fplayOkexExchangeV5 = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract());
     }
 
     private void initExchangeV52Sec(ApiCredentialsV5 cred) {
@@ -409,7 +409,7 @@ public class OkCoinService extends MarketServicePreliq {
         config.setReadTimeout(2);
         config.setWriteTimeout(2);
 
-        fplayOkexExchangeV52sec = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract().getName());
+        fplayOkexExchangeV52sec = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract());
     }
 
     private ApiCredentials getApiCredentials(Object[] exArgs) {
