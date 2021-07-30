@@ -1,5 +1,18 @@
 package com.bitplay.xchange.okcoin;
 
+import com.bitplay.xchange.okcoin.dto.account.OKCoinWithdraw;
+import com.bitplay.xchange.okcoin.dto.account.OkCoinFuturesUserInfoCross;
+import com.bitplay.xchange.okcoin.dto.account.OkCoinUserInfo;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinDepth;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTickerResponse;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkcoinIndexPrice;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkcoinMarkPrice;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesOrderResult;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesTradeHistoryResult;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinOrderResult;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinPositionResult;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import java.io.IOException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -9,20 +22,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import com.bitplay.xchange.okcoin.dto.account.OKCoinWithdraw;
-import com.bitplay.xchange.okcoin.dto.account.OkCoinFuturesUserInfoCross;
-import com.bitplay.xchange.okcoin.dto.account.OkCoinUserInfo;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinDepth;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTickerResponse;
 import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTrade;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkcoinForecastPrice;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkcoinIndexPrice;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkcoinMarkPrice;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesOrderResult;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesTradeHistoryResult;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinOrderResult;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinPositionResult;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinTradeResult;
 import si.mazi.rescu.ParamsDigest;
 
 @Path("/v1")

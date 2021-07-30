@@ -5,6 +5,19 @@ import static com.bitplay.xchange.currency.Currency.ETH;
 import static com.bitplay.xchange.currency.Currency.LTC;
 import static com.bitplay.xchange.currency.Currency.USD;
 
+import com.bitplay.xchange.okcoin.dto.account.OkCoinFunds;
+import com.bitplay.xchange.okcoin.dto.account.OkCoinFuturesInfoCross;
+import com.bitplay.xchange.okcoin.dto.account.OkCoinFuturesUserInfoCross;
+import com.bitplay.xchange.okcoin.dto.account.OkCoinUserInfo;
+import com.bitplay.xchange.okcoin.dto.account.OkcoinFuturesFundsCross;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinDepth;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTickerResponse;
+import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTrade;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesOrder;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesOrderResult;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesTradeHistoryResult;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesTradeHistoryResult.TransactionType;
+import com.bitplay.xchange.okcoin.dto.trade.OkCoinOrderResult;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,20 +42,7 @@ import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.dto.trade.OpenOrders;
 import com.bitplay.xchange.dto.trade.UserTrade;
 import com.bitplay.xchange.dto.trade.UserTrades;
-import com.bitplay.xchange.okcoin.dto.account.OkCoinFunds;
-import com.bitplay.xchange.okcoin.dto.account.OkCoinFuturesInfoCross;
-import com.bitplay.xchange.okcoin.dto.account.OkCoinFuturesUserInfoCross;
-import com.bitplay.xchange.okcoin.dto.account.OkCoinUserInfo;
-import com.bitplay.xchange.okcoin.dto.account.OkcoinFuturesFundsCross;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinDepth;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTickerResponse;
-import com.bitplay.xchange.okcoin.dto.marketdata.OkCoinTrade;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesOrder;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesOrderResult;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesTradeHistoryResult;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinFuturesTradeHistoryResult.TransactionType;
 import com.bitplay.xchange.okcoin.dto.trade.OkCoinOrder;
-import com.bitplay.xchange.okcoin.dto.trade.OkCoinOrderResult;
 
 public final class OkCoinAdapters {
 
