@@ -319,7 +319,11 @@ public class OkCoinService extends MarketServicePreliq {
         exchange = initExchange(exArgs);
 
         // for testing
-        fetchOrderBookMain();
+//        final EstimatedPrice result = fplayOkexExchangeV5.getPublicApi().getEstimatedPrice(mainInstr.getInstrumentId());
+//        forecastPrice = result.getPrice();
+
+//        fetchOrderBookMain();
+//        swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(mainInstr.getInstrumentId());
 
         initWebSocketAndAllSubscribers();
 
@@ -693,7 +697,7 @@ public class OkCoinService extends MarketServicePreliq {
             if (instrumentDto.getFuturesContract() == FuturesContract.Swap) {
                 return; // not in use for swap
             }
-            final EstimatedPrice result = fplayOkexExchangeV3.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
+            final EstimatedPrice result = fplayOkexExchangeV5.getPublicApi().getEstimatedPrice(instrumentDto.getInstrumentId());
             forecastPrice = result.getPrice();
 
         } catch (Exception e) {
@@ -719,7 +723,7 @@ public class OkCoinService extends MarketServicePreliq {
             if (instrumentDto.getFuturesContract() != FuturesContract.Swap) {
                 return; // not in use for futures
             }
-            swapSettlement = fplayOkexExchangeV3.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+            swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 log.error("On fetchSwapSettlement timeout");

@@ -1,13 +1,11 @@
 package com.bitplay.okex.v5.service;
 
 import com.bitplay.okex.v5.dto.result.Book;
-import com.bitplay.okex.v5.dto.result.Instrument;
-import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.bitplay.okex.v5.dto.result.EstimatedPriceDto;
+import com.bitplay.okex.v5.dto.result.SwapFundingTime;
 import com.google.gson.JsonObject;
-import java.util.List;
 import retrofit2.Call;
 import retrofit2.http.GET;
-import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 interface MarketApiV5 {
@@ -48,9 +46,9 @@ interface MarketApiV5 {
             @Query("instId") String instrumentId
     );
 
-    // Rate limit：20/2s
-//    @GET("/api/swap/v3/instruments/{instrument_id}/funding_time")
-//    Call<SwapFundingTime> getSwapFundingTime(@Path("instrument_id") String instrumentId);
+    // Rate Limit: 20 requests per 2 seconds
+    @GET("/api/v5/public/funding-rate")
+    Call<SwapFundingTime> getSwapFundingTime(@Query("instId") String instrumentId);
 //
 //    @GET("/api/futures/v3/instruments/{instrument_id}/ticker")
 //    Call<Ticker> getInstrumentTicker(@Path("instrument_id") String instrumentId);
@@ -84,4 +82,7 @@ interface MarketApiV5 {
 //
 //    @GET("/api/futures/v3/instruments/{instrument_id}/mark_price")
 //    Call<JSONObject> getMarkPrice(@Path("instrument_id") String instrumentId);
+
+    @GET("/api/v5/public/estimated-price")
+    Call<EstimatedPriceDto> getInstrumentEstimatedPrice(@Query("instId") String instrumentId);
 }
