@@ -337,30 +337,30 @@ public class OkCoinService extends MarketServicePreliq {
     @Scheduled(initialDelay = 120 * 1000, fixedDelay = 60 * 1000)
     public void checkExchange() {
         if (fplayOkexExchangeV3 == null || fplayOkexExchangeV3.getPrivateApi() == null || fplayOkexExchangeV3.getPrivateApi().notCreated()) {
-            final String msg = "OkexExchange is not fully created. Re-create it.";
+            final String msg = "fplayOkexExchangeV3 is not fully created. Re-create it.";
             log.warn(msg);
             warningLogger.warn(msg);
             initExchangeV3(apiCredentials);
         }
 
         if (fplayOkexExchangeV32sec == null || fplayOkexExchangeV32sec.getPrivateApi() == null || fplayOkexExchangeV32sec.getPrivateApi().notCreated()) {
-            final String msg = "fplayOkexExchange2sec is not fully created. Re-create it.";
+            final String msg = "fplayOkexExchangeV32sec is not fully created. Re-create it.";
             log.warn(msg);
             warningLogger.warn(msg);
             initExchangeV32Sec(apiCredentials);
         }
 
         if (fplayOkexExchangeV5 == null || fplayOkexExchangeV5.getPrivateApi() == null || fplayOkexExchangeV5.getPrivateApi().notCreated()) {
-            final String msg = "OkexExchange is not fully created. Re-create it.";
+            final String msg = "fplayOkexExchangeV5 is not fully created. Re-create it.";
             log.warn(msg);
             warningLogger.warn(msg);
             initExchangeV5(apiCredentialsV5);
         }
         if (fplayOkexExchangeV52sec == null || fplayOkexExchangeV52sec.getPrivateApi() == null || fplayOkexExchangeV52sec.getPrivateApi().notCreated()) {
-            final String msg = "OkexExchange is not fully created. Re-create it.";
+            final String msg = "fplayOkexExchangeV52sec is not fully created. Re-create it.";
             log.warn(msg);
             warningLogger.warn(msg);
-            initExchangeV5(apiCredentialsV5);
+            initExchangeV52Sec(apiCredentialsV5);
         }
     }
 
@@ -480,7 +480,7 @@ public class OkCoinService extends MarketServicePreliq {
             log.error("FetchPositionError", e);
         }
 
-//        subscribeOnOrderBook();
+        subscribeOnOrderBook();
 
         final boolean loginSuccess = exchange.getStreamingPrivateDataService()
                 .login()
