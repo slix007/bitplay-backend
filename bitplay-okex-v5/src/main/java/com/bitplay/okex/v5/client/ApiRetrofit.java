@@ -4,6 +4,7 @@ import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.helper.OkexObjectMapper;
 import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 

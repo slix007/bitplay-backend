@@ -822,7 +822,12 @@ public class OkCoinService extends MarketServicePreliq {
 
     public AccountInfoContracts getAccountApiV3() {
         final String toolIdForApi = getToolIdForApi();
-        return fplayOkexExchangeV3.getPrivateApi().getAccount(toolIdForApi);
+        final AccountInfoContracts account3 = fplayOkexExchangeV3.getPrivateApi().getAccount(toolIdForApi);
+        System.out.println(account3);
+        final String ccy = okexContractType.getCurrencyPair().base.getCurrencyCode().toUpperCase();
+        final AccountInfoContracts account5 = fplayOkexExchangeV5.getPrivateApi().getAccount(ccy);
+        System.out.println(account5);
+        return account5;
     }
 
     private String getToolIdForApi() {

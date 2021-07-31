@@ -59,7 +59,7 @@ public class ApiClient {
         try {
             final Response<T> response = call.execute();
             if (this.config.isPrint()) {
-                this.printResponse(response);
+                this.printResponse(response, call.request().url().toString());
             }
             final int status = response.code();
             final String message = new StringBuilder().append(response.code()).append(" / ").append(response.message()).toString();
@@ -117,9 +117,10 @@ public class ApiClient {
 //        }
 //    }
 
-    private void printResponse(final Response response) {
+    private void printResponse(final Response response, final String requestUrl) {
         final StringBuilder responseInfo = new StringBuilder();
-        responseInfo.append("\n\tOkex-v3 Response").append("(").append(DateUtils.timeToString(null, 4)).append("):");
+        responseInfo.append("\n\tOkex-v5 Response").append("(").append(DateUtils.timeToString(null, 4)).append("):");
+        responseInfo.append("\n\t\t").append("Url: ").append(requestUrl);
         if (response != null) {
             final String limit = response.headers().get(HttpHeadersEnum.OK_LIMIT.header());
             if (StringUtils.isNotEmpty(limit)) {

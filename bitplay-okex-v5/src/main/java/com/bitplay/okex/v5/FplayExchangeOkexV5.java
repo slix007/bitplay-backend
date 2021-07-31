@@ -3,6 +3,7 @@ package com.bitplay.okex.v5;
 import com.bitplay.externalapi.FplayExchange;
 import com.bitplay.externalapi.PrivateApi;
 import com.bitplay.externalapi.PublicApi;
+import com.bitplay.okex.v5.service.PrivateApiV5;
 import com.bitplay.okex.v5.service.PublicApiV5;
 import com.bitplay.xchange.okcoin.FuturesContract;
 import lombok.Getter;
@@ -16,9 +17,19 @@ public class FplayExchangeOkexV5 extends FplayExchange {
         super(publicApi, privateApi);
     }
 
+    private static String defineInstType(FuturesContract futuresContract) {
+        //SPOT
+        //MARGIN
+        //SWAP
+        //FUTURES
+        //OPTION
+        return futuresContract.getName().equals("swap") ? "SWAP" : "FUTURES";
+    }
+
     public static FplayExchangeOkexV5 create(ApiConfigurationV5 config, FuturesContract futuresContract) {
-        final PublicApi publicApi = new PublicApiV5(config, futuresContract);
-        final PrivateApi privateApi = null;
+        final String instType = defineInstType(futuresContract);
+        final PublicApi publicApi = new PublicApiV5(config, instType);
+        final PrivateApi privateApi = new PrivateApiV5(config, instType);
 //        if (futuresContractName.equals("swap")) {
 //            publicApi = new SwapPublicApi(config);
 //            privateApi = new SwapPrivateApi(config);

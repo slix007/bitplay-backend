@@ -12,7 +12,6 @@ import com.bitplay.okex.v5.dto.result.EstimatedPriceDto;
 import com.bitplay.okex.v5.dto.result.SwapFundingTime;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
-import com.bitplay.xchange.okcoin.FuturesContract;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -22,21 +21,11 @@ public class PublicApiV5 implements PublicApi {
     private MarketApiV5 api;
     private String instType;
 
-    public PublicApiV5(ApiConfigurationV5 config, FuturesContract futuresContract) {
+    public PublicApiV5(ApiConfigurationV5 config, String instType) {
         this.client = new ApiClient(config);
         this.api = client.createService(MarketApiV5.class);
-        instType = defineInstType(futuresContract);
+        this.instType = instType;
     }
-
-    private String defineInstType(FuturesContract futuresContract) {
-        //SPOT
-        //MARGIN
-        //SWAP
-        //FUTURES
-        //OPTION
-        return futuresContract.getName().equals("swap") ? "SWAP" : "FUTURES";
-    }
-
 
     public Book getInstrumentBookApi(String instrumentId) {
         return this.client.executeSync(this.api.getBook(instrumentId, 20));

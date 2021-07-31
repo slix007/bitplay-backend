@@ -6,6 +6,8 @@ import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.client.ApiClient;
+import com.bitplay.okex.v5.dto.adapter.AccountConverter;
+import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.OkexAllPositions;
 import com.bitplay.okex.v5.dto.result.OkexOnePosition;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -21,11 +23,14 @@ import lombok.extern.slf4j.Slf4j;
 public class PrivateApiV5 implements PrivateApi {
 
     private volatile ApiClient client;
-//    private volatile SwapTradeApi api;
+    private volatile TradeApi api;
+    private String instType;
 
 
-    public PrivateApiV5(ApiConfigurationV5 config) {
-//        super(config);
+    public PrivateApiV5(ApiConfigurationV5 config, String instType) {
+        this.client = new ApiClient(config);
+        this.api = client.createService(TradeApi.class);
+        this.instType = instType;
     }
 
     @Override
@@ -44,9 +49,10 @@ public class PrivateApiV5 implements PrivateApi {
 
     @Override
     public AccountInfoContracts getAccount(String currencyCode) {
-//        final Account byCurrencyApi = getAccountsByCurrencyApi(currencyCode);
-//        return AccountConverter.convert(byCurrencyApi);
-        throw new NotYetImplementedForExchangeException();
+        final Account byCurrencyApi = this.client.executeSync(this.api.getBalance(currencyCode));
+        System.out.println(byCurrencyApi);
+        return AccountConverter.convert(byCurrencyApi);
+//        throw new NotYetImplementedForExchangeException();
 
     }
 
@@ -110,7 +116,7 @@ public class PrivateApiV5 implements PrivateApi {
 
     @Override
     public boolean notCreated() {
-        return false;
+        return this.client == null || this.api == null;
     }
 
 

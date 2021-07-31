@@ -2,27 +2,47 @@ package com.bitplay.okex.v5.dto.result;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Data;
 
 @Data
 public class Account {
 
-    private BigDecimal equity;
-    private BigDecimal margin;
-    private BigDecimal margin_for_unfilled;
-    private BigDecimal margin_frozen;
-    private String margin_mode; //crossed,
-    private BigDecimal margin_ratio;
-    private BigDecimal realized_pnl;
-    private BigDecimal total_avail_balance;
-    private BigDecimal unrealized_pnl;
-    private String liqui_mode; //tier, - 	Liquidation mode: tier（partial), legacy (complete)
-    private BigDecimal maint_margin_ratio; // 	Maintenance margin ratio
-    private BigDecimal liqui_fee_rate; // 	forced-liquidation fee
-    private BigDecimal can_withdraw; // 	transferrable amount
-    // swap only
-    private BigDecimal fixed_balance;
-    private String instrument_id;
-    private LocalDateTime timestamp;
+    private String code;
+    private String msg;
+    private List<AccountData> data;
+
+    @Data
+    public static class AccountData {
+        private BigDecimal totalEq;     // Total equity in USD level
+        private BigDecimal imr;         // Initial margin requirement in USD level
+        private BigDecimal mmr;         // Maintenance margin requirement in USD level
+        private BigDecimal mgnRatio;    // Margin ratio in USD level
+        private BigDecimal notionalUsd; // Quantity of positions usd
+        private BigDecimal isoEq;       // Isolated margin equity in USD level
+        private BigDecimal adjEq;       // Adjusted/Effective equity in USD level
+        private BigDecimal ordFroz;     // Margin frozen for pending orders in USD level
+
+        private LocalDateTime uTime;
+        private List<DetailsData> details;
+
+        public DetailsData getDetails() {
+            return details != null && !details.isEmpty()
+                    ? details.get(0) : null;
+        }
+
+        @Data
+        public static class DetailsData {
+
+            private String ccy;
+            private BigDecimal eq;
+            private BigDecimal isoEq;
+            private BigDecimal availEq;
+            private BigDecimal frozenBal;
+            private BigDecimal upl;
+            private BigDecimal mgnRatio;
+            private BigDecimal liab;
+        }
+    }
 
 }

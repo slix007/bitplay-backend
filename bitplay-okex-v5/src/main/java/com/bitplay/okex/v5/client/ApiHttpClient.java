@@ -158,7 +158,7 @@ public class ApiHttpClient {
         }
         final StringBuilder requestInfo = new StringBuilder();
 //        requestInfo.append("\n").append("\tSecret-Key: ").append(this.credentials.getSecretKey());
-        requestInfo.append("\n\tOkex-v3 Request").append("(").append(DateUtils.timeToString(null, 4)).append("):");
+        requestInfo.append("\n\tOkex-v5 Request").append("(").append(DateUtils.timeToString(null, 4)).append("):");
         requestInfo.append("\n\t\t").append("Url: ").append(this.url(request));
         requestInfo.append("\n\t\t").append("Method: ").append(method);
         requestInfo.append("\n\t\t").append("Headers: ");
