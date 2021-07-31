@@ -1,6 +1,9 @@
 package com.bitplay.okex.v5.helper;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -18,6 +21,7 @@ public class OkexObjectMapper {
     static {
         objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+//        objectMapper.enableDefaultTyping();
         objectMapper
                 .registerModule(new ParameterNamesModule())
                 .registerModule(new Jdk8Module())

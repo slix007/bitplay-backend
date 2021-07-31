@@ -8,13 +8,14 @@ import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.client.ApiClient;
 import com.bitplay.okex.v5.dto.adapter.AccountConverter;
 import com.bitplay.okex.v5.dto.result.Account;
-import com.bitplay.okex.v5.dto.result.OkexAllPositions;
-import com.bitplay.okex.v5.dto.result.OkexOnePosition;
+import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
+import com.bitplay.okex.v5.dto.result.OkexPosV5;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.exceptions.NotYetImplementedForExchangeException;
+import com.google.gson.JsonObject;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -35,22 +36,24 @@ public class PrivateApiV5 implements PrivateApi {
 
     @Override
     public Pos getPos(String instrumentId) {
-        final OkexOnePosition position = getInstrumentPositionApi(instrumentId);
+        final OkexOnePositionV5 position = getInstrumentPositionApi(instrumentId);
         return position.getOne().isPresent()
-                ? OkexAllPositions.toPos(position.getOne().get())
+                ? OkexPosV5.toPos(position.getOne().get())
                 : Pos.emptyPos();
     }
 
-    public OkexOnePosition getInstrumentPositionApi(String instrumentId) {
-//        return this.client.executeSync(this.api.getInstrumentPosition(instrumentId));
-        throw new NotYetImplementedForExchangeException();
+    public OkexOnePositionV5 getInstrumentPositionApi(String instrumentId) {
+        final OkexOnePositionV5 pos = this.client.executeSync(this.api.getInstrumentPosition(instType, instrumentId));
+//        System.out.println("POS_VAL");
+//        System.out.println(pos);
+        return pos;
     }
 
 
     @Override
     public AccountInfoContracts getAccount(String currencyCode) {
         final Account byCurrencyApi = this.client.executeSync(this.api.getBalance(currencyCode));
-        System.out.println(byCurrencyApi);
+//        System.out.println(byCurrencyApi);
         return AccountConverter.convert(byCurrencyApi);
 //        throw new NotYetImplementedForExchangeException();
 

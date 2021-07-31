@@ -787,7 +787,7 @@ public class OkCoinService extends MarketServicePreliq {
     @Override
     public String fetchPosition() throws Exception {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
-        final Pos pos = fplayOkexExchangeV3.getPrivateApi().getPos(instrumentId);
+        final Pos pos = fplayOkexExchangeV5.getPrivateApi().getPos(instrumentId);
         final Pos pos1 = setPosLeverage(pos);
         final Pos pos2 = updatePlPos(pos1);
         this.pos.set(pos2);
@@ -822,11 +822,11 @@ public class OkCoinService extends MarketServicePreliq {
 
     public AccountInfoContracts getAccountApiV3() {
         final String toolIdForApi = getToolIdForApi();
-        final AccountInfoContracts account3 = fplayOkexExchangeV3.getPrivateApi().getAccount(toolIdForApi);
-        System.out.println(account3);
+//        final AccountInfoContracts account3 = fplayOkexExchangeV3.getPrivateApi().getAccount(toolIdForApi);
+//        System.out.println(account3);
         final String ccy = okexContractType.getCurrencyPair().base.getCurrencyCode().toUpperCase();
         final AccountInfoContracts account5 = fplayOkexExchangeV5.getPrivateApi().getAccount(ccy);
-        System.out.println(account5);
+//        System.out.println(account5);
         return account5;
     }
 

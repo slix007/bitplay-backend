@@ -1,16 +1,16 @@
 package com.bitplay.okex.v5.service;
 
+import com.bitplay.okex.v5.dto.SwapLeverageCross;
 import com.bitplay.okex.v5.dto.param.Order;
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.Accounts;
 import com.bitplay.okex.v5.dto.result.LeverageResult;
+import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
 import com.bitplay.okex.v5.dto.result.OkexSwapAllPositions;
-import com.bitplay.okex.v5.dto.result.OkexSwapOnePosition;
 import com.bitplay.okex.v5.dto.result.OpenOrdersResult;
 import com.bitplay.okex.v5.dto.result.OrderDetail;
 import com.bitplay.okex.v5.dto.result.OrderResult;
 import com.bitplay.okex.v5.dto.result.SwapAccounts;
-import com.bitplay.okex.v5.dto.SwapLeverageCross;
 import com.google.gson.JsonObject;
 import retrofit2.Call;
 import retrofit2.http.Body;
@@ -28,12 +28,18 @@ interface TradeApi {
     @GET("/api/swap/v3/position")
     Call<OkexSwapAllPositions> getPositions();
 
-    @GET("/api/swap/v3/position")
-    Call<Object> testPositions();
+    @GET("/api/v5/account/positions")
+    Call<JsonObject> getInstrumentPositionTest(
+            @Query("instType") String instType,
+            @Query("instId") String instId
+    );
 
     // Rate Limit: 20 requests per 2 seconds
-    @GET("/api/swap/v3/{instrument_id}/position")
-    Call<OkexSwapOnePosition> getInstrumentPosition(@Path("instrument_id") String instrumentId);
+    @GET("/api/v5/account/positions")
+    Call<OkexOnePositionV5> getInstrumentPosition(
+            @Query("instType") String instType,
+            @Query("instId") String instId
+    );
 
     @GET("/api/swap/v3/{instrument_id}/position")
     Call<Object> testInstrumentPosition(@Path("instrument_id") String instrumentId);
@@ -61,10 +67,9 @@ interface TradeApi {
 
     @GET("/api/v5/asset/balances")
     Call<JsonObject> getAssetBalances(@Query("ccy") String currency);
+
     @GET("/api/v5/asset/balances")
     Call<JsonObject> getAssetBalances();
-
-
 
 //
 //    @GET("/api/futures/v3/accounts/{currency}/ledger")
@@ -76,13 +81,13 @@ interface TradeApi {
     @POST("/api/swap/v3/order")
     Call<OrderResult> order(@Body Order order);
 
-//    @POST("/api/futures/v3/orders")
+    //    @POST("/api/futures/v3/orders")
 //    Call<JSONObject> orders(@Body JSONObject orders);
 //
     @POST("/api/swap/v3/cancel_order/{instrument_id}/{order_id}")
     Call<OrderResult> cancelOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
 
-//    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
+    //    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
 //    Call<JSONObject> cancelOrders(@Path("instrument_id") String instrumentId, @Body JSONObject order_ids);
 //
 //    @GET("/api/futures/v3/orders/{instrument_id}")
@@ -91,11 +96,13 @@ interface TradeApi {
 //
     @GET("/api/swap/v3/orders/{instrument_id}")
     Call<OpenOrdersResult> getOrdersWithState(@Path("instrument_id") String instrumentId, @Query("status") int status);
-//
+
+    //
     // Rate limit: 40 requests per 2 seconds
     @GET("/api/swap/v3/orders/{instrument_id}/{order_id}")
     Call<OrderDetail> getOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
-//
+
+    //
 //    @GET("/api/futures/v3/fills")
 //    Call<JSONArray> getFills(@Query("instrument_id") String instrumentId, @Query("order_id") String orderId,
 //            @Query("from") int before, @Query("to") int after, @Query("limit") int limit);
@@ -104,12 +111,12 @@ interface TradeApi {
     @GET("/api/swap/v3/accounts/{instrumentId}/settings")
     Call<LeverageResult> getLeverRate(@Path("instrumentId") String instrumentId);
 
-//    @POST("/api/futures/v3/accounts/{currency}/leverage")
+    //    @POST("/api/futures/v3/accounts/{currency}/leverage")
 //    Call<JSONObject> changeLeverageOnFixed(@Path("currency") String currency,
 //            @Body JSONObject changeLeverage);
 //
     @POST("/api/swap/v3/accounts/{instrumentId}/leverage")
     Call<LeverageResult> changeLeverageOnCross(@Path("instrumentId") String instrumentId,
-                                               @Body SwapLeverageCross changeLeverage);
+            @Body SwapLeverageCross changeLeverage);
 
 }
