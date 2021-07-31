@@ -418,7 +418,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     private ApiCredentials getApiCredentials(Object[] exArgs) {
         final ApiCredentials cred = new ApiCredentials();
-        if (exArgs != null && exArgs.length == 3) {
+        if (exArgs != null && exArgs.length >= 3) {
             String exKey = (String) exArgs[0];
             String exSecret = (String) exArgs[1];
             String exPassphrase = (String) exArgs[2];
@@ -546,7 +546,7 @@ public class OkCoinService extends MarketServicePreliq {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
 
         // init xchange-stream
-        if (exArgs != null && exArgs.length == 3) {
+        if (exArgs != null && exArgs.length >= 3) {
             String exKey = (String) exArgs[0];
             String exSecret = (String) exArgs[1];
             String exPassphrase = (String) exArgs[2];
