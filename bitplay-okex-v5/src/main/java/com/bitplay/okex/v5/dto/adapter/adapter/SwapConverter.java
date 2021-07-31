@@ -4,7 +4,7 @@ import com.bitplay.model.SwapSettlement;
 import com.bitplay.okex.v5.dto.result.SwapFundingTime.SwapFundingTimeData;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 public class SwapConverter {
 
@@ -17,12 +17,12 @@ public class SwapConverter {
         final LocalDateTime localDate = t.getFundingTime() == null
                 ? LocalDateTime.MIN
                 : t.getFundingTime().toInstant()
-                        .atZone(ZoneId.systemDefault())
+                        .atZone(ZoneOffset.UTC)
                         .toLocalDateTime();
         final LocalDateTime localDateNext = t.getNextFundingTime() == null
                 ? LocalDateTime.MIN
                 : t.getNextFundingTime().toInstant()
-                        .atZone(ZoneId.systemDefault())
+                        .atZone(ZoneOffset.UTC)
                         .toLocalDateTime();
         return new SwapSettlement(localDate,
                 t.getFundingRate(), t.getNextFundingRate(),

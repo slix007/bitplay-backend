@@ -724,6 +724,10 @@ public class OkCoinService extends MarketServicePreliq {
                 return; // not in use for futures
             }
             swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+//            final SwapSettlement swapSettlement1 = fplayOkexExchangeV3.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+//            System.out.println(swapSettlement);
+//            System.out.println(swapSettlement1);
+//            System.out.println("swapSettlement1");
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 log.error("On fetchSwapSettlement timeout");
