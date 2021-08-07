@@ -19,6 +19,7 @@ import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
 import com.bitplay.okex.v5.dto.result.OkexPosV5;
 import com.bitplay.okex.v5.dto.result.OrderDetail;
 import com.bitplay.okex.v5.dto.result.OrderResult;
+import com.bitplay.okex.v5.dto.result.OrderResult.OrderResultData;
 import com.bitplay.okex.v5.dto.result.OrdersDetailResult;
 import com.bitplay.okex.v5.enums.FuturesOrderTypeEnum;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -26,6 +27,7 @@ import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PrivateApiV5 implements PrivateApi {
@@ -72,7 +74,14 @@ public class PrivateApiV5 implements PrivateApi {
         final FuturesOrderTypeEnum orderTypeEnum = (FuturesOrderTypeEnum) extraFlags.get(0);
         final Order order =
                 OkexOrderConverter.createOrder(instrumentId, orderType, thePrice, amount, orderTypeEnum, leverage);
+//        final Object orderResultO = this.client.executeSync(this.api.placeOrderTest(order));
+//        System.out.println(orderResultO);
         final OrderResult orderResult = this.client.executeSync(this.api.placeOrder(order));
+        // {code=1, data=[{clOrdId=, ordId=, sCode=51119, sMsg=Order placement failed due to insufficient balance. , tag=}], msg=}
+//        System.out.println(raw);
+//        final List<OrderResultData> or = new ArrayList<>();
+//        or.add(new OrderResultData());
+//        final OrderResult orderResult = new OrderResult(or);
         return OkexOrderConverter.convertOrderResult(orderResult);
 
     }

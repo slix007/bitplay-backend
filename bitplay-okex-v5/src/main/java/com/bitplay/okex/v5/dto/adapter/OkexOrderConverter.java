@@ -10,6 +10,7 @@ import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import java.math.BigDecimal;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -54,14 +55,19 @@ public class OkexOrderConverter implements SuperConverter<LimitOrder, Order> {
 
     public static OrderResultTiny convertOrderResult(OrderResult o) {
         if (o.getData() != null && o.getData().size() > 0) {
-            final OrderResultData r = o.getData().get(0);
+//            final NestedData n = o.getData().get(0);
+//            if (o.getData() != null && o.getData().size() > 0) {
+            final Map<String, Object> r = o.getData().get(0);
+            String sCode = r.get("sCode") != null ? r.get("sCode").toString() : "0";
+            String sMsg = r.get("sMsg") != null ? r.get("sMsg").toString() : "";
             return new OrderResultTiny(
-                    r.getClOrdId(),
-                    r.getOrdId(),
-                    r.getSCode() != null && r.getSCode().equals("0"),
-                    r.getSCode(),
-                    r.getSMsg()
-            );
+                    r.get("clOrdId") != null ? r.get("clOrdId").toString() : null,
+                    r.get("ordId") != null ? r.get("ordId").toString() : null,
+                    sCode.equals("0"),
+                    sCode,
+                    sMsg
+                );
+//            }
         }
         return null;
     }

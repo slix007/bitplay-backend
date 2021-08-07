@@ -81,6 +81,8 @@ interface TradeApi {
     //Rate Limit: 60 requests per 2 seconds
     @POST("/api/v5/trade/order")
     Call<OrderResult> placeOrder(@Body Order order);
+    @POST("/api/v5/trade/order")
+    Call<Object> placeOrderTest(@Body Order order);
 
     //    @POST("/api/futures/v3/orders")
 //    Call<JSONObject> orders(@Body JSONObject orders);

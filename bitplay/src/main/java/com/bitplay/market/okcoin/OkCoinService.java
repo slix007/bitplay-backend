@@ -746,7 +746,7 @@ public class OkCoinService extends MarketServicePreliq {
         return this.pos.toString();
     }
 
-    @Scheduled(fixedDelay = 200) // v3: Rate Limit: 20 requests per 2 seconds
+    @Scheduled(fixedDelay = 1000) // v3: Rate Limit: 20 requests per 2 seconds
     public void fetchUserInfoScheduled() {
         if (!isStarted()) {
             return;
@@ -1897,6 +1897,12 @@ public class OkCoinService extends MarketServicePreliq {
                             Collections.singletonList(futuresOrderType)
                     );
                     final String orderId = orderResult.getOrder_id();
+                    if (!orderResult.isResult()) {
+                        tradeResponse.setErrorCode(
+                                orderResult.getError_code() + " " + orderResult.getError_message()
+                        );
+                        return tradeResponse;
+                    }
 
                     final Instant endReq = Instant.now();
 
