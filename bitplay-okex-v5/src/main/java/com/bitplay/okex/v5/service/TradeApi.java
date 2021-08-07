@@ -1,6 +1,6 @@
 package com.bitplay.okex.v5.service;
 
-import com.bitplay.okex.v5.dto.SwapLeverageCross;
+import com.bitplay.okex.v5.dto.ChangeLeverRequest;
 import com.bitplay.okex.v5.dto.param.Order;
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.Accounts;
@@ -107,16 +107,21 @@ interface TradeApi {
 //    Call<JSONArray> getFills(@Query("instrument_id") String instrumentId, @Query("order_id") String orderId,
 //            @Query("from") int before, @Query("to") int after, @Query("limit") int limit);
 //
-    //Rate limit：5 requests per 2 seconds
-    @GET("/api/swap/v3/accounts/{instrumentId}/settings")
-    Call<LeverageResult> getLeverRate(@Path("instrumentId") String instrumentId);
+    //Rate Limit: 20 requests per 2 seconds
+    @GET("/api/v5/account/leverage-info")
+    Call<LeverageResult> getLeverRate(
+            @Query("instId") String instrumentId,
+            //Margin mode
+            //cross isolated
+            @Query("mgnMode") String mgnMode
+    );
 
     //    @POST("/api/futures/v3/accounts/{currency}/leverage")
 //    Call<JSONObject> changeLeverageOnFixed(@Path("currency") String currency,
 //            @Body JSONObject changeLeverage);
 //
-    @POST("/api/swap/v3/accounts/{instrumentId}/leverage")
-    Call<LeverageResult> changeLeverageOnCross(@Path("instrumentId") String instrumentId,
-            @Body SwapLeverageCross changeLeverage);
+    // Rate Limit: 5 requests per 2 seconds
+    @POST("/api/v5/account/set-leverage")
+    Call<LeverageResult> changeLeverageOnCross(@Body ChangeLeverRequest changeLeverage);
 
 }

@@ -18,6 +18,8 @@ package com.bitplay.okex.v5.dto.result;
 //}
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 import lombok.Data;
 
 /**
@@ -27,32 +29,31 @@ import lombok.Data;
 @Data
 public class LeverageResult {
 
-    /**
-     * crossed, fixed
-     */
-    private String margin_mode;
+    List<LeverageResultData> data;
 
-    private String currency;
-    private String leverage;
+    public LeverageResultData getOne() {
+        return data != null && data.size() > 0
+                ? data.get(0)
+                : null;
+    }
 
-    /**
-     * Used in change request.
-     */
-    private String result;
+    @Data
+    public static class LeverageResultData {
+        /**
+         * cross isolated
+         */
+        private String mgnMode;
+        private String instId;
+        // we use only net
+        private String posSide;
 
-    // crossed:
-    // {
-    //    "long_leverage":"10.0000",
-    //    "short_leverage":"10.0000",
-    //    "margin_mode":"crossed",
-    //    "instrument_id":"BTC-USD-SWAP"
-    //}
 
-    /**
-     * SWAP
-     */
-    private String instrument_id;
+        private BigDecimal lever;
 
-    private BigDecimal long_leverage;
-    private BigDecimal short_leverage;
+        /**
+         * Used in change request.
+         */
+        private String result;
+
+    }
 }

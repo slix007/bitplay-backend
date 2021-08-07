@@ -11,7 +11,6 @@ import com.bitplay.okex.v5.utils.HmacSHA256Base64Utils;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.Headers;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -19,17 +18,18 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okio.Buffer;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
-
-@Slf4j
 public class ApiHttpClient {
 
     private final ApiConfigurationV5 config;
     private final ApiCredentialsV5 credentials;
+    private final Logger log;
 
-    public ApiHttpClient(final ApiConfigurationV5 config, final ApiCredentialsV5 credentials) {
+    public ApiHttpClient(final ApiConfigurationV5 config, final ApiCredentialsV5 credentials, Logger log) {
         this.config = config;
         this.credentials = credentials;
+        this.log = log;
     }
 
     /**

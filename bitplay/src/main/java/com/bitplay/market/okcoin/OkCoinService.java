@@ -400,7 +400,7 @@ public class OkCoinService extends MarketServicePreliq {
         config.setReadTimeout(15);
         config.setWriteTimeout(15);
 
-        fplayOkexExchangeV5 = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract());
+        fplayOkexExchangeV5 = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract(), getArbType().name());
     }
 
     private void initExchangeV52Sec(ApiCredentialsV5 cred) {
@@ -413,7 +413,7 @@ public class OkCoinService extends MarketServicePreliq {
         config.setReadTimeout(2);
         config.setWriteTimeout(2);
 
-        fplayOkexExchangeV52sec = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract());
+        fplayOkexExchangeV52sec = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract(), getArbType().name());
     }
 
     private ApiCredentials getApiCredentials(Object[] exArgs) {
@@ -1318,7 +1318,7 @@ public class OkCoinService extends MarketServicePreliq {
 
                 final BigDecimal bestAsk = Utils.getBestAsks(ob, 1).get(0).getLimitPrice();
                 final BigDecimal bestBid = Utils.getBestBids(ob, 1).get(0).getLimitPrice();
-                final BigDecimal leverage = position.getLeverage().signum() != 0 ? position.getLeverage() : getLeverage();
+                    final BigDecimal leverage = position.getLeverage().signum() != 0 ? position.getLeverage() : getLeverage();
 
                 if (available != null && equity != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
 
@@ -1716,8 +1716,8 @@ public class OkCoinService extends MarketServicePreliq {
         }
         Instant start = Instant.now();
         try {
-            final String toolName = getToolIdForApi();
-            final Leverage lv = fplayOkexExchangeV3.getPrivateApi().getLeverage(toolName);
+            final String toolName = instrDtos.get(0).getInstrumentId();
+            final Leverage lv = fplayOkexExchangeV5.getPrivateApi().getLeverage(toolName);
             if (lv == null) {
                 log.error("lv is null");
             } else {
@@ -1737,8 +1737,8 @@ public class OkCoinService extends MarketServicePreliq {
     public String changeOkexLeverage(BigDecimal okexLeverage) {
         String resultDescription = "";
         try {
-            final String toolIdForApi = getToolIdForApi();
-            final Leverage r = fplayOkexExchangeV3.getPrivateApi().changeLeverage(
+            final String toolIdForApi = instrDtos.get(0).getInstrumentId();
+            final Leverage r = fplayOkexExchangeV5.getPrivateApi().changeLeverage(
                     toolIdForApi,
                     okexLeverage.setScale(0, RoundingMode.DOWN).toPlainString()
             );

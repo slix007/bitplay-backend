@@ -202,12 +202,25 @@
         </encoder>
     </appender>
 
-    <appender name="HTTP_APPENDER_OKEX_V5" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/http_okex_v5.log</file>
+    <appender name="HTTP_APPENDER_OKEX_V5_RIGHT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/http_okex_v5_right.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>logs/http_okex_v5.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <!-- keep 30 days' worth of history capped at 3GB total size -->
+            <fileNamePattern>logs/http_okex_v5_right.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 1GB total size -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %msg %xEx%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="HTTP_APPENDER_OKEX_V5_LEFT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/http_okex_v5_left.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs/http_okex_v5_left.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- keep 30 days' worth of history capped at 1GB total size -->
             <maxHistory>30</maxHistory>
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
@@ -267,8 +280,11 @@
         <appender-ref ref="HTTP_APPENDER"/>
     </logger>
     <!-- Logging all REST api requests -->
-    <logger name="com.bitplay.okex.v5" level="trace" additivity="false">
-        <appender-ref ref="HTTP_APPENDER_OKEX_V5"/>
+    <logger name="OKEX_V5_RIGHT" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER_OKEX_V5_RIGHT"/>
+    </logger>
+    <logger name="OKEX_V5_LEFT" level="trace" additivity="false">
+        <appender-ref ref="HTTP_APPENDER_OKEX_V5_LEFT"/>
     </logger>
 
     <logger name="io.micrometer" level="debug" additivity="false">

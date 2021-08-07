@@ -6,8 +6,11 @@ import com.bitplay.model.Pos;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.client.ApiClient;
+import com.bitplay.okex.v5.dto.ChangeLeverRequest;
 import com.bitplay.okex.v5.dto.adapter.AccountConverter;
 import com.bitplay.okex.v5.dto.result.Account;
+import com.bitplay.okex.v5.dto.result.LeverageResult;
+import com.bitplay.okex.v5.dto.result.LeverageResult.LeverageResultData;
 import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
 import com.bitplay.okex.v5.dto.result.OkexPosV5;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -15,12 +18,9 @@ import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.exceptions.NotYetImplementedForExchangeException;
-import com.google.gson.JsonObject;
 import java.math.BigDecimal;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class PrivateApiV5 implements PrivateApi {
 
     private volatile ApiClient client;
@@ -28,8 +28,8 @@ public class PrivateApiV5 implements PrivateApi {
     private String instType;
 
 
-    public PrivateApiV5(ApiConfigurationV5 config, String instType) {
-        this.client = new ApiClient(config);
+    public PrivateApiV5(ApiConfigurationV5 config, String instType, String arbTypeUpperCase) {
+        this.client = new ApiClient(config, arbTypeUpperCase);
         this.api = client.createService(TradeApi.class);
         this.instType = instType;
     }
@@ -96,24 +96,23 @@ public class PrivateApiV5 implements PrivateApi {
     }
 
     @Override
-    public Leverage getLeverage(String currencyPair) {
-//        final LeverageResult r = getInstrumentLeverRate(currencyPair);
-//        if (!r.getMargin_mode().equals("crossed")) {
-//            log.warn("LeverageResult WARNING: margin_mode is " + r.getMargin_mode());
-//        } else {
-//            return new Leverage(new BigDecimal(r.getLeverage()), r.getResult());
-//        }
-//        return null;
-        throw new NotYetImplementedForExchangeException();
+    public Leverage getLeverage(String instrumentId) {
+        final LeverageResult r = this.client.executeSync(this.api.getLeverRate(instrumentId, "cross"));
 
+        if (r != null && r.getOne() != null) {
+            return new Leverage(r.getOne().getLever(), "");
+        }
+        return null;
     }
 
     @Override
-    public Leverage changeLeverage(String newCurrOrInstrId, String newLeverageStr) {
-//        final LeverageResult r = changeLeverageOnCross(newCurrOrInstrId, newLeverageStr);
-//        return new Leverage(new BigDecimal(r.getLeverage()), r.getResult());
-        throw new NotYetImplementedForExchangeException();
-
+    public Leverage changeLeverage(String instId, String newLeverageStr) {
+        final LeverageResult r = this.client.executeSync(this.api.changeLeverageOnCross(new ChangeLeverRequest(instId, newLeverageStr)));
+        if (r != null && r.getOne() != null) {
+            final LeverageResultData l = r.getOne();
+            return new Leverage(l.getLever(), "instId=" + l.getInstId() + " , lever=" + l.getLever());
+        }
+        return null;
     }
 
 

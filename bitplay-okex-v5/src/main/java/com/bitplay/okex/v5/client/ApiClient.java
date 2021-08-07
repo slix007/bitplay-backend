@@ -10,16 +10,19 @@ import com.bitplay.okex.v5.utils.DateUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
 
-@Slf4j
 public class ApiClient {
+
+    private final Logger log;
 
     private final ApiConfigurationV5 config;
     private final ApiCredentialsV5 credentials;
@@ -30,13 +33,14 @@ public class ApiClient {
     /**
      * Initialize the apis client
      */
-    public ApiClient(final ApiConfigurationV5 config) {
+    public ApiClient(final ApiConfigurationV5 config, String arbTypeUpperCase) {
         if (config == null || StringUtils.isEmpty(config.getEndpoint())) {
             throw new RuntimeException("The ApiClient params can't be empty.");
         }
+        log = LoggerFactory.getLogger("OKEX_V5_" + arbTypeUpperCase);
         this.config = config;
         this.credentials = new ApiCredentialsV5(config);
-        this.client = new ApiHttpClient(config, this.credentials).client();
+        this.client = new ApiHttpClient(config, this.credentials, log).client();
         this.retrofit = new ApiRetrofit(config, this.client).retrofit();
         this.apiHttp = new ApiHttp(config, this.client);
     }
@@ -81,8 +85,10 @@ public class ApiClient {
                 throw new ApiException(message);
             }
         } catch (final SocketTimeoutException e) {
+            printResponse(e, call.request());
             throw new ApiException("ApiClient executeSync exception." + e.getMessage());
         } catch (final IOException e) {
+            printResponse(e, call.request());
             throw new ApiException("ApiClient executeSync exception.", e);
         }
     }
@@ -117,6 +123,18 @@ public class ApiClient {
 //        }
 //    }
 
+    private void printResponse(final Exception e, final Request request) {
+        final StringBuilder responseInfo = new StringBuilder();
+        responseInfo.append("\n\tOkex-v5 Request error").append("(").append(DateUtils.timeToString(null, 4)).append("):");
+        responseInfo.append("\n\t\t")
+                .append(request.method())
+                .append("Url: ").append(request.url());
+        responseInfo.append("\n\t\t")
+                .append("Exception: ").append(e.getClass())
+                .append(": ").append(e.getMessage());
+        log.trace(responseInfo.toString());
+    }
+
     private void printResponse(final Response response, final String requestUrl) {
         final StringBuilder responseInfo = new StringBuilder();
         responseInfo.append("\n\tOkex-v5 Response").append("(").append(DateUtils.timeToString(null, 4)).append("):");
@@ -137,6 +155,19 @@ public class ApiClient {
             responseInfo.append("\n\t\t").append("Message: ").append(response.message());
             final ObjectMapper objectMapper = OkexObjectMapper.get();
             responseInfo.append("\n\t\t").append("Body: ").append(response.body());
+//            try {
+//                final ResponseBody rawBody = response.raw().body();
+//                if (rawBody != null && rawBody.contentLength() > 0) {
+//                    final String str = rawBody
+//                            .source()
+//                            .readUtf8();
+//                    responseInfo.append("\n\t\t").append("RawBody: ").append(str);
+//
+//                }
+//
+//            } catch (Exception e) {
+//                responseInfo.append("\n\t\t").append("RawBody exception ").append(e.getMessage());
+//            }
         } else {
             responseInfo.append("\n\t\t").append("\n\tRequest Error: response is null");
         }

@@ -292,6 +292,9 @@ public abstract class MarketService extends MarketServiceWithState {
      * Initiated by orderBook or position change.
      */
     protected void stateRecalcInStateUpdaterThread() {
+        if (!isStarted()) {
+            return;
+        }
         final Completable startSample = Completable.fromAction(() -> {
             getMetricsDictionary().startRecalcAfterUpdate(getArbType());
         });

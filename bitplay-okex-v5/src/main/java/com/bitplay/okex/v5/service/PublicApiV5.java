@@ -21,8 +21,8 @@ public class PublicApiV5 implements PublicApi {
     private MarketApiV5 api;
     private String instType;
 
-    public PublicApiV5(ApiConfigurationV5 config, String instType) {
-        this.client = new ApiClient(config);
+    public PublicApiV5(ApiConfigurationV5 config, String instType, String arbTypeUpperCase) {
+        this.client = new ApiClient(config, arbTypeUpperCase);
         this.api = client.createService(MarketApiV5.class);
         this.instType = instType;
     }

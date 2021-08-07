@@ -9,7 +9,6 @@ import com.bitplay.xchange.okcoin.FuturesContract;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Getter
 public class FplayExchangeOkexV5 extends FplayExchange {
 
@@ -26,10 +25,10 @@ public class FplayExchangeOkexV5 extends FplayExchange {
         return futuresContract.getName().equals("swap") ? "SWAP" : "FUTURES";
     }
 
-    public static FplayExchangeOkexV5 create(ApiConfigurationV5 config, FuturesContract futuresContract) {
+    public static FplayExchangeOkexV5 create(ApiConfigurationV5 config, FuturesContract futuresContract, String arbTypeUpperCase) {
         final String instType = defineInstType(futuresContract);
-        final PublicApi publicApi = new PublicApiV5(config, instType);
-        final PrivateApi privateApi = new PrivateApiV5(config, instType);
+        final PublicApi publicApi = new PublicApiV5(config, instType, arbTypeUpperCase);
+        final PrivateApi privateApi = new PrivateApiV5(config, instType, arbTypeUpperCase);
 //        if (futuresContractName.equals("swap")) {
 //            publicApi = new SwapPublicApi(config);
 //            privateApi = new SwapPrivateApi(config);
