@@ -1,5 +1,6 @@
 package com.bitplay.okex.v5.dto.result;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,20 +10,28 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrderResult {
 
-    /**
-     * You setting order id.
-     */
-    private String client_oid;
-    /**
-     * The order id provided by OKEx.
-     */
-    private String order_id;
-    /**
-     * The Server processing results: true: successful, false: failure.
-     */
-    private boolean result;
+    List<OrderResultData> data;
 
-    private String error_code;
-    private String error_message;
+    @Data
+    public static class OrderResultData {
+
+        /**
+         * You setting order id.
+         */
+        private String clOrdId;
+        /**
+         * The order id provided by OKEx.
+         */
+        private String ordId;
+        /**
+         * The code of the event execution result, 0 means success..
+         */
+        private String sCode;
+
+        /**
+         * Message shown when the event execution fails.
+         */
+        private String sMsg;
+    }
 
 }

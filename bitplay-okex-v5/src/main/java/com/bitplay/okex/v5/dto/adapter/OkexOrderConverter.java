@@ -3,8 +3,8 @@ package com.bitplay.okex.v5.dto.adapter;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v5.dto.param.Order;
 import com.bitplay.okex.v5.dto.result.OrderResult;
+import com.bitplay.okex.v5.dto.result.OrderResult.OrderResultData;
 import com.bitplay.okex.v5.enums.FuturesOrderTypeEnum;
-import com.bitplay.okex.v5.enums.FuturesTransactionTypeEnum;
 import com.bitplay.okex.v5.utils.OkexErrors;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
@@ -18,11 +18,11 @@ public class OkexOrderConverter implements SuperConverter<LimitOrder, Order> {
     @Override
     public Order apply(LimitOrder limitOrder) {
         return Order.builder()
-                .type(convertType(limitOrder.getType()))
-                .leverage(BigDecimal.valueOf(20))
-                .size(limitOrder.getTradableAmount().intValue())
-                .instrument_id(convertInstrumentId(limitOrder.getCurrencyPair()))
-                .price(limitOrder.getLimitPrice())
+                .side(convertSide(limitOrder.getType()))
+//                .leverage(BigDecimal.valueOf(20))
+                .sz(limitOrder.getTradableAmount().intValue())
+                .instId(convertInstrumentId(limitOrder.getCurrencyPair()))
+                .px(limitOrder.getLimitPrice())
                 .build();
     }
 
@@ -30,37 +30,40 @@ public class OkexOrderConverter implements SuperConverter<LimitOrder, Order> {
         return "";
     }
 
-    private static Integer convertType(OrderType orderType) {
-        // 1:open long 2:open short 3:close long 4:close short
-        if (orderType == OrderType.BID) {
-            return FuturesTransactionTypeEnum.OPEN_LONG.code();
+    private static String convertSide(OrderType orderType) {
+        if (orderType == OrderType.BID || orderType == OrderType.EXIT_ASK) {
+            return "buy";
         }
-        if (orderType == OrderType.ASK) {
-            return FuturesTransactionTypeEnum.OPEN_SHORT.code();
+        if (orderType == OrderType.ASK || orderType == OrderType.EXIT_BID) {
+            return "sell";
         }
-        if (orderType == OrderType.EXIT_BID) {
-            return FuturesTransactionTypeEnum.CLOSE_LONG.code();
-        }
-        if (orderType == OrderType.EXIT_ASK) {
-            return FuturesTransactionTypeEnum.CLOSE_SHORT.code();
-        }
-        return 0;
+        return "";
     }
 
     public static Order createOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal tradeableAmount,
             FuturesOrderTypeEnum orderTypeEnum, BigDecimal leverage) {
         return Order.builder()
-                .instrument_id(instrumentId)
-                .leverage(leverage)
-                .type(convertType(orderType))
-                .price(thePrice)
-                .size(tradeableAmount.intValue())
-                .order_type(orderTypeEnum.code())
+                .instId(instrumentId)
+//                .leverage(leverage)
+                .side(convertSide(orderType))
+                .px(thePrice)
+                .sz(tradeableAmount.intValue())
+                .ordType(orderTypeEnum.code())
                 .build();
     }
 
     public static OrderResultTiny convertOrderResult(OrderResult o) {
-        return new OrderResultTiny(o.getClient_oid(), o.getOrder_id(), o.isResult(), o.getError_code(), o.getError_message());
+        if (o.getData() != null && o.getData().size() > 0) {
+            final OrderResultData r = o.getData().get(0);
+            return new OrderResultTiny(
+                    r.getClOrdId(),
+                    r.getOrdId(),
+                    r.getSCode() != null && r.getSCode().equals("0"),
+                    r.getSCode(),
+                    r.getSMsg()
+            );
+        }
+        return null;
     }
 
     public static String getErrorCodeTranslation(OrderResultTiny result) {

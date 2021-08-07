@@ -2,13 +2,13 @@ package com.bitplay.okex.v5.service;
 
 import com.bitplay.okex.v5.dto.ChangeLeverRequest;
 import com.bitplay.okex.v5.dto.param.Order;
+import com.bitplay.okex.v5.dto.param.OrderCnlRequest;
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.Accounts;
 import com.bitplay.okex.v5.dto.result.LeverageResult;
 import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
 import com.bitplay.okex.v5.dto.result.OkexSwapAllPositions;
-import com.bitplay.okex.v5.dto.result.OpenOrdersResult;
-import com.bitplay.okex.v5.dto.result.OrderDetail;
+import com.bitplay.okex.v5.dto.result.OrdersDetailResult;
 import com.bitplay.okex.v5.dto.result.OrderResult;
 import com.bitplay.okex.v5.dto.result.SwapAccounts;
 import com.google.gson.JsonObject;
@@ -78,14 +78,15 @@ interface TradeApi {
 //    @GET("/api/futures/v3/accounts/{instrument_id}/holds")
 //    Call<JSONObject> getAccountsHoldsByInstrumentId(@Path("instrument_id") String instrumentId);
 
-    @POST("/api/swap/v3/order")
-    Call<OrderResult> order(@Body Order order);
+    //Rate Limit: 60 requests per 2 seconds
+    @POST("/api/v5/trade/order")
+    Call<OrderResult> placeOrder(@Body Order order);
 
     //    @POST("/api/futures/v3/orders")
 //    Call<JSONObject> orders(@Body JSONObject orders);
 //
-    @POST("/api/swap/v3/cancel_order/{instrument_id}/{order_id}")
-    Call<OrderResult> cancelOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
+    @POST("/api/v5/trade/cancel-order")
+    Call<OrderResult> cancelOrder(@Body OrderCnlRequest order);
 
     //    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
 //    Call<JSONObject> cancelOrders(@Path("instrument_id") String instrumentId, @Body JSONObject order_ids);
@@ -94,13 +95,27 @@ interface TradeApi {
 //    Call<OrderDetail> getOrders(@Path("instrument_id") String instrumentId, @Query("status") int status,
 //            @Query("from") int from, @Query("to") int to, @Query("limit") int limit);
 //
-    @GET("/api/swap/v3/orders/{instrument_id}")
-    Call<OpenOrdersResult> getOrdersWithState(@Path("instrument_id") String instrumentId, @Query("status") int status);
+    // Rate Limit: 20 requests per 2 seconds
+    @GET("/api/v5/trade/orders-pending")
+    Call<OrdersDetailResult> getOrdersWithState(
+            @Query("instType") String instType,
+            @Query("instId") String instId
+            //market: market order
+            //limit: limit order
+            //post_only: Post-only order
+            //fok: Fill-or-kill order
+            //ioc: Immediate-or-cancel order
+            //Optimal_limit_ioc :Market order with immediate-or-cancel order
+//            @Query("ordType") String ordType
+    );
 
     //
-    // Rate limit: 40 requests per 2 seconds
-    @GET("/api/swap/v3/orders/{instrument_id}/{order_id}")
-    Call<OrderDetail> getOrder(@Path("instrument_id") String instrumentId, @Path("order_id") String orderId);
+    // Rate Limit: 60 requests per 2 seconds
+    @GET("/api/v5/trade/order")
+    Call<OrdersDetailResult> getOrder(
+            @Query("instId") String instId,
+            @Query("ordId") String ordId
+    );
 
     //
 //    @GET("/api/futures/v3/fills")

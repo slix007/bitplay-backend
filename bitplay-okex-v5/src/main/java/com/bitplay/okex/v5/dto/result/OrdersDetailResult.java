@@ -4,9 +4,9 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-public class OpenOrdersResult {
+public class OrdersDetailResult {
 
-    Boolean result; // true
-    List<OrderDetail> order_info;
+    List<OrderDetail> data;
+
 
 }

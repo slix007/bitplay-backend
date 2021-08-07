@@ -8,16 +8,23 @@ import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.client.ApiClient;
 import com.bitplay.okex.v5.dto.ChangeLeverRequest;
 import com.bitplay.okex.v5.dto.adapter.AccountConverter;
+import com.bitplay.okex.v5.dto.adapter.DtoToModelConverter;
+import com.bitplay.okex.v5.dto.adapter.OkexOrderConverter;
+import com.bitplay.okex.v5.dto.param.Order;
+import com.bitplay.okex.v5.dto.param.OrderCnlRequest;
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.LeverageResult;
 import com.bitplay.okex.v5.dto.result.LeverageResult.LeverageResultData;
 import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
 import com.bitplay.okex.v5.dto.result.OkexPosV5;
+import com.bitplay.okex.v5.dto.result.OrderDetail;
+import com.bitplay.okex.v5.dto.result.OrderResult;
+import com.bitplay.okex.v5.dto.result.OrdersDetailResult;
+import com.bitplay.okex.v5.enums.FuturesOrderTypeEnum;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
-import com.bitplay.xchange.exceptions.NotYetImplementedForExchangeException;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -62,36 +69,39 @@ public class PrivateApiV5 implements PrivateApi {
     @Override
     public OrderResultTiny limitOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal amount, BigDecimal leverage,
             List<Object> extraFlags) {
-//        final FuturesOrderTypeEnum orderTypeEnum = (FuturesOrderTypeEnum) extraFlags.get(0);
-//        final Order order =
-//                OkexOrderConverter.createOrder(instrumentId, orderType, thePrice, amount, orderTypeEnum, leverage);
-//        final OrderResult orderResult = orderApi(order);
-//        return OkexOrderConverter.convertOrderResult(orderResult);
-        throw new NotYetImplementedForExchangeException();
+        final FuturesOrderTypeEnum orderTypeEnum = (FuturesOrderTypeEnum) extraFlags.get(0);
+        final Order order =
+                OkexOrderConverter.createOrder(instrumentId, orderType, thePrice, amount, orderTypeEnum, leverage);
+        final OrderResult orderResult = this.client.executeSync(this.api.placeOrder(order));
+        return OkexOrderConverter.convertOrderResult(orderResult);
 
     }
 
     @Override
     public OrderResultTiny cnlOrder(String instrumentId, String orderId) {
-//        final OrderResult orderResult = cancelOrder(instrumentId, orderId);
-//        return OkexOrderConverter.convertOrderResult(orderResult);
-        throw new NotYetImplementedForExchangeException();
-
+        final OrderResult orderResult = this.client.executeSync(this.api.cancelOrder(
+                new OrderCnlRequest(instrumentId, orderId)
+        ));
+        return OkexOrderConverter.convertOrderResult(orderResult);
     }
 
     @Override
     public List<LimitOrder> getOpenLimitOrders(String instrumentId, CurrencyPair currencyPair) {
 //        final List<OrderDetail> orders = getOpenOrders(instrumentId);
-//        return DtoToModelConverter.convertOrders(orders, currencyPair);
-        throw new NotYetImplementedForExchangeException();
+        final OrdersDetailResult openOrdersDetailResult = this.client.executeSync(this.api.getOrdersWithState(instType, instrumentId));
+        final List<OrderDetail> orders = openOrdersDetailResult.getData();
+        return DtoToModelConverter.convertOrders(orders, currencyPair);
+//        throw new NotYetImplementedForExchangeException();
 
     }
 
     @Override
     public LimitOrder getLimitOrder(String instrumentId, String orderId, CurrencyPair currencyPair) {
+        final OrdersDetailResult openOrdersDetailResult = this.client.executeSync(this.api.getOrder(instrumentId, orderId));
+        final List<OrderDetail> orders = openOrdersDetailResult.getData();
 //        final OrderDetail order = getOrder(instrumentId, orderId);
-//        return DtoToModelConverter.convertOrder(order, currencyPair);
-        throw new NotYetImplementedForExchangeException();
+        return DtoToModelConverter.convertOrder(orders.get(0), currencyPair);
+//        throw new NotYetImplementedForExchangeException();
 
     }
 

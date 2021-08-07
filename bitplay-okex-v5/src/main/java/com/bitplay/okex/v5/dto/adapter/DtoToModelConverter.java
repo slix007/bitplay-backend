@@ -15,52 +15,50 @@ public class DtoToModelConverter {
 
     // WARN: may return null, if market does not update info yet and sends null fields
     public static LimitOrder convertOrder(OrderDetail orderDetail, CurrencyPair currencyPair) {
-        if (orderDetail.getType() == null) {
-            log.info("DEBUG_okex_v3: " + orderDetail);
-        }
+//        if (orderDetail.getOrdType() == null) {
+//            log.info("DEBUG_okex_v5: " + orderDetail);
+//        }
         LimitOrder order = null;
         try {
-            final OrderType orderType = convertType(orderDetail.getType());
+            final OrderType orderType = convertType(orderDetail.getSide());
             final OrderStatus orderStatus = convertStatus(orderDetail.getState());
             // we asked for this, don't spend resources to convert.
             order = new Builder(orderType, currencyPair)
-                    .tradableAmount(orderDetail.getSize())
-                    .timestamp(orderDetail.getTimestamp())
-                    .id(orderDetail.getOrder_id())
-                    .limitPrice(orderDetail.getPrice())
-                    .averagePrice(orderDetail.getPrice_avg())
+                    .tradableAmount(orderDetail.getSz())
+                    .timestamp(orderDetail.getUTime())
+                    .id(orderDetail.getOrdId())
+                    .limitPrice(orderDetail.getPx())
+                    .averagePrice(orderDetail.getAvgPx())
                     .orderStatus(orderStatus)
                     .build();
-            order.setCumulativeAmount(orderDetail.getFilled_qty());
+            order.setCumulativeAmount(orderDetail.getAccFillSz());
         } catch (Exception e) {
-            log.info("DEBUG_okex_v3: " + orderDetail, e);
+            log.info("DEBUG_okex_v5: " + orderDetail, e);
         }
         // There is also pnl and fee.
         return order;
     }
 
     private static OrderStatus convertStatus(String state) {
-        // -2:Failed,
-        // -1:Canceled,
-        // 0:Open ,
-        // 1:Partially Filled,
-        // 2:Fully Filled,
-        // 3:Submitting,
-        // 4:Canceling
+        // for OPEN ORDERS:
+        //live
+        //partially_filled
+
+        // for DETAILS:
+        //State
+        //canceled
+        //live
+        //partially_filled
+        //filled
         switch (state) {
-            case "-2": // no value of using OrderStatus.REJECTED so far.
-            case "-1":
+            case "canceled":
                 return OrderStatus.CANCELED;
-            case "0":
+            case "live":
                 return OrderStatus.NEW;
-            case "1":
+            case "partially_filled":
                 return OrderStatus.PARTIALLY_FILLED;
-            case "2":
+            case "filled":
                 return OrderStatus.FILLED;
-            case "3":
-                return OrderStatus.PENDING_NEW;
-            case "4":
-                return OrderStatus.PENDING_CANCEL;
         }
         throw new IllegalArgumentException("wrong orderStatus " + state);
     }
@@ -71,14 +69,14 @@ public class DtoToModelConverter {
         }
         // Type (1: open long 2: open short 3: close long 4: close short)
         switch (orderType) {
-            case "1"://OPEN_LONG:
+            case "buy"://OPEN_LONG:
                 return OrderType.BID;
-            case "2"://OPEN_SHORT:
+            case "sell"://OPEN_SHORT:
                 return OrderType.ASK;
-            case "3"://CLOSE_LONG:
-                return OrderType.EXIT_BID;
-            case "4"://CLOSE_SHORT:
-                return OrderType.EXIT_ASK;
+//            case "3"://CLOSE_LONG:
+//                return OrderType.EXIT_BID;
+//            case "4"://CLOSE_SHORT:
+//                return OrderType.EXIT_ASK;
             default:
                 throw new IllegalArgumentException("enum is wrong");
         }
