@@ -2,27 +2,10 @@ package com.bitplay.okex.v5.dto.adapter;
 
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.Account.AccountData.DetailsData;
-import com.bitplay.okex.v5.dto.result.Accounts;
-import com.bitplay.xchange.currency.Currency;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import java.math.BigDecimal;
 
 public class AccountConverter {
-
-    public static AccountInfoContracts convert(Accounts accounts, Currency baseTool) {
-        Account acc;
-        switch (baseTool.getCurrencyCode()) {
-            case "BTC":
-                acc = accounts.getInfo().getBtc();
-                break;
-            case "ETH":
-                acc = accounts.getInfo().getEth();
-                break;
-            default:
-                throw new IllegalArgumentException("Unsuported baseTool " + baseTool);
-        }
-        return convert(acc);
-    }
 
     public static AccountInfoContracts convert(Account dto) {
         if (dto.getData() != null && !dto.getData().isEmpty() && dto.getData().get(0).getDetails() != null) {

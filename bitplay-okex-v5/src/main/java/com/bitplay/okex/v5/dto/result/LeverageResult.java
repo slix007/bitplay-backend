@@ -19,7 +19,6 @@ package com.bitplay.okex.v5.dto.result;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import lombok.Data;
 
 /**
@@ -39,6 +38,7 @@ public class LeverageResult {
 
     @Data
     public static class LeverageResultData {
+
         /**
          * cross isolated
          */
