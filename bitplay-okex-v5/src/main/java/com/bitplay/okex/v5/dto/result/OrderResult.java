@@ -1,5 +1,6 @@
 package com.bitplay.okex.v5.dto.result;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,14 +11,9 @@ import lombok.Data;
 public class OrderResult {
 
     // {code=1, data=[{clOrdId=, ordId=, sCode=51119, sMsg=Order placement failed due to insufficient balance. , tag=}], msg=}
-
-
     private String code;
     private String msg;
-//    private List<Object> data = new ArrayList<>();
-    private List<HashMap<String, Object>> data = new ArrayList<>();
-//    private List<OrderResultData> data = new ArrayList<>();
-//    JacksonUtils.fromJSON(properties, Map .class);
+    private List<OrderResultData> data = new ArrayList<>();
 
     @Data
     public static class OrderResultData {
@@ -34,12 +30,17 @@ public class OrderResult {
         /**
          * The code of the event execution result, 0 means success..
          */
-        private Object sCode;
+        @JsonProperty("sCode")
+        private String sCode;
 
         /**
          * Message shown when the event execution fails.
          */
-        private Object sMsg;
+        @JsonProperty("sMsg")
+        private String sMsg;
+
+
+
     }
 
 }

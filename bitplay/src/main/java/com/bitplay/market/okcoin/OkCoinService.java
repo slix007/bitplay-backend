@@ -1164,7 +1164,8 @@ public class OkCoinService extends MarketServicePreliq {
 //            final MarketOrder marketOrder = new MarketOrder(orderType, amount, currencyPair, new Date());
 //            final String orderId = tradeService.placeMarketOrder(marketOrder);
 
-            BigDecimal thePrice = createBestTakerPrice(orderType, null, okexContractType);
+//            BigDecimal thePrice = createBestTakerPrice(orderType, null, okexContractType);
+            BigDecimal thePrice = BigDecimal.ZERO;
 
             // metrics
             final Mon monPlacing = monitoringDataService.fetchMon(getNameWithType(), "placeOrder");
@@ -1177,7 +1178,7 @@ public class OkCoinService extends MarketServicePreliq {
                     thePrice,
                     amount,
                     leverage,
-                    Collections.singletonList(FuturesOrderTypeEnum.LIMIT)
+                    Collections.singletonList(FuturesOrderTypeEnum.MARKET)
             );
             final String orderId = orderResult.getOrder_id();
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
@@ -2145,7 +2146,7 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile CounterToDiff counterToDiff = new CounterToDiff(null, null);
 
     /**
-     * Moves Taker orders as well.
+     * Amend order. It is possible with API v5.
      */
     @Override
     public MoveResponse moveMakerOrder(MoveMakerOrderArg moveMakerOrderArg) {
@@ -3066,30 +3067,34 @@ public class OkCoinService extends MarketServicePreliq {
                 // specialHanding when openOrder && one openPos
                 // "closePos/cancelOpenOrder" steps in different order
                 if (onlyOpenOrders.size() == 1) {
-                    if (position.getPositionLong().signum() > 0 && position.getPositionShort().signum() == 0) { // one
+                    if (position.getPositionLong().signum() > 0) { // one
                         specialHandling = true;
                         final LimitOrder oo = onlyOpenOrders.get(0);
                         final String orderId;
-                        if ((oo.getType() == OrderType.BID || oo.getType() == OrderType.EXIT_ASK)
-                                && position.getPositionLong().compareTo(position.getLongAvailToClose()) == 0) {
+                        final BigDecimal posAmount = position.getPositionLong();
+                        if ((oo.getType() == OrderType.BID || oo.getType() == OrderType.EXIT_ASK)) {
+                            // TODO check V5. position.getLongAvailToClose was removed
+//                                && posAmount.compareTo(position.getLongAvailToClose()) == 0) {
                             // если pos == long, ордер == long (avail == holding)
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, posAmount);
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                         } else {
                             // если pos === long, ордер == short (avail < holding),
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, posAmount);
                         }
                         tradeResponse.setOrderId(orderId);
 
-                    } else if (position.getPositionShort().signum() > 0 && position.getPositionLong().signum() == 0) {
+                    } else if (position.getPositionLong().signum() < 0) {
+                        final BigDecimal posShortAmount = position.getPositionLong().negate();
                         specialHandling = true;
                         final LimitOrder oo = onlyOpenOrders.get(0);
                         final String orderId;
-                        if ((oo.getType() == OrderType.ASK || oo.getType() == OrderType.EXIT_BID)
-                                && position.getPositionShort().compareTo(position.getShortAvailToClose()) == 0) {
+                        if ((oo.getType() == OrderType.ASK || oo.getType() == OrderType.EXIT_BID)) {
+                            // TODO check V5. position.getLongAvailToClose was removed
+                            // && posAmount.compareTo(position.getShortAvailToClose()) == 0) {
                             // если pos == short, ордер == short (avail == holding),
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionShort());
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, posShortAmount);
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                         } else {
                             // если pos === short, ордер == long (avail < holding),
@@ -3106,20 +3111,10 @@ public class OkCoinService extends MarketServicePreliq {
                     }
 
                     String orderId = null;
-                    if (position.getPositionLong().compareTo(position.getPositionShort()) >= 0) { // long >= short => long first
-                        if (position.getPositionLong().signum() > 0) {
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
-                        }
-                        if (position.getPositionShort().signum() > 0) {
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionShort());
-                        }
-                    } else { // short first
-                        if (position.getPositionShort().signum() > 0) {
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionShort());
-                        }
-                        if (position.getPositionLong().signum() > 0) {
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
-                        }
+                    if (position.getPositionLong().signum() > 0) {
+                        orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
+                    } else if (position.getPositionLong().signum() < 0) {
+                        orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionLong().negate());
                     }
                     if (orderId != null) {
                         tradeResponse.setOrderId(orderId);
@@ -3221,7 +3216,11 @@ public class OkCoinService extends MarketServicePreliq {
         if (result.isResult()
                 || result.getError_code().contains("32004") // result.getError_message()=="You have not uncompleted order at the moment"
                 || translatedError.contains("order does not exist")
-                || result.getError_message().contains("rder does not exist")) {
+                || result.getError_message().contains("rder does not exist")
+                || result.getError_code().contains("51400")
+                || result.getError_message().contains("Cancellation failed as the order does not exist.")
+
+        ) {
             order.setOrderStatus(OrderStatus.CANCELED); // may be FILLED, but it's ok here.
             res.append(":CANCELED");
 

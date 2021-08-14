@@ -6,6 +6,8 @@ import com.bitplay.xchange.dto.Order.OrderStatus;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.dto.trade.LimitOrder.Builder;
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -23,11 +25,17 @@ public class DtoToModelConverter {
             final OrderType orderType = convertType(orderDetail.getSide());
             final OrderStatus orderStatus = convertStatus(orderDetail.getState());
             // we asked for this, don't spend resources to convert.
+
+            // workaround for taker orders. Use averagePx as Px.
+            final BigDecimal px = orderDetail.getPx() == null && orderDetail.getAvgPx() != null
+                    ? orderDetail.getAvgPx()
+                    : orderDetail.getPx();
+
             order = new Builder(orderType, currencyPair)
                     .tradableAmount(orderDetail.getSz())
                     .timestamp(orderDetail.getUTime())
                     .id(orderDetail.getOrdId())
-                    .limitPrice(orderDetail.getPx())
+                    .limitPrice(px)
                     .averagePrice(orderDetail.getAvgPx())
                     .orderStatus(orderStatus)
                     .build();

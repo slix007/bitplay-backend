@@ -77,9 +77,9 @@ public class ApiClient {
                     throw new ApiException("ApiClient executeSync exception=" + content);
                 }
                 if (result.getCode() == 0 && result.getMessage() == null) {
-                    throw new ApiException(result.getError_code(), result.getError_message());
+                    throw new ApiException(result.getError_code(), content);
                 } else {
-                    throw new ApiException(result.getCode(), result.getMessage());
+                    throw new ApiException(result.getCode(), result.getMessage() + "raw: " + content);
                 }
             } else {
                 throw new ApiException(message);

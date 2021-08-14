@@ -1,5 +1,6 @@
 package com.bitplay.okex.v5.dto.result;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.util.Date;
 import lombok.AllArgsConstructor;
@@ -52,7 +53,7 @@ public class OrderDetail {
     //	Accumulated fill quantity
     private BigDecimal accFillSz;
 
-
+    @JsonProperty("uTime")
     private Date uTime;
 //    /**
 //     * Type (1: open long 2: open short 3: close long 4: close short)

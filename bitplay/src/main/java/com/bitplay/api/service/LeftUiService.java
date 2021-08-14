@@ -41,16 +41,6 @@ public class LeftUiService extends AbstractUiService<MarketServicePreliq> {
         return arbitrageService.getLeftMarketService();
     }
 
-    @Override
-    protected String getPositionString(Pos position) {
-        if (arbitrageService.getLeftMarketService().getMarketStaticData() == MarketStaticData.BITMEX) {
-            return position.getPositionLong().signum() > 0
-                    ? "+" + position.getPositionLong().toPlainString()
-                    : position.getPositionLong().toPlainString();
-        }
-        return super.getPositionString(position);
-    }
-
     @SuppressWarnings("Duplicates")
     public TradeResponseJson doTrade(TradeRequestJson tradeRequestJson) {
         final BigDecimal amount = new BigDecimal(tradeRequestJson.getAmount());

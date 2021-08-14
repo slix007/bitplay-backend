@@ -347,9 +347,9 @@ public abstract class AbstractUiService<T extends MarketService> {
     }
 
     protected String getPositionString(final Pos position) {
-        return String.format("%s%s",
-                "+" + position.getPositionLong().toPlainString(),
-                "-" + position.getPositionShort().toPlainString());
+        return position.getPositionLong().signum() >= 0
+                ? "+" + position.getPositionLong().toPlainString()
+                : position.getPositionLong().toPlainString();
     }
 
     protected TickerJson convertTicker(Ticker ticker) {
