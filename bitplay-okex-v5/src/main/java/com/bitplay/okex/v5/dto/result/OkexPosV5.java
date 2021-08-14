@@ -2,6 +2,7 @@ package com.bitplay.okex.v5.dto.result;
 
 import com.bitplay.model.Pos;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 import lombok.Data;
 
@@ -24,7 +25,7 @@ public class OkexPosV5 {
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 p.getLever(),
-                p.getLiqPx(),
+                p.getLiqPx() != null ? p.getLiqPx().setScale(2, RoundingMode.HALF_UP) : null,
                 BigDecimal.ZERO, //mark value
                 p.getAvgPx() == null || p.getAvgPx().signum() == 0 ? BigDecimal.ZERO : p.getAvgPx(),
                 BigDecimal.ZERO,

@@ -20,7 +20,6 @@ import com.bitplay.okex.v5.dto.result.OkexOnePositionV5;
 import com.bitplay.okex.v5.dto.result.OkexPosV5;
 import com.bitplay.okex.v5.dto.result.OrderDetail;
 import com.bitplay.okex.v5.dto.result.OrderResult;
-import com.bitplay.okex.v5.dto.result.OrderResult.OrderResultData;
 import com.bitplay.okex.v5.dto.result.OrdersDetailResult;
 import com.bitplay.okex.v5.enums.FuturesOrderTypeEnum;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -28,7 +27,6 @@ import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
 public class PrivateApiV5 implements PrivateApi {
@@ -46,17 +44,10 @@ public class PrivateApiV5 implements PrivateApi {
 
     @Override
     public Pos getPos(String instrumentId) {
-        final OkexOnePositionV5 position = getInstrumentPositionApi(instrumentId);
+        final OkexOnePositionV5 position = this.client.executeSync(this.api.getInstrumentPosition(instType, instrumentId));
         return position.getOne().isPresent()
                 ? OkexPosV5.toPos(position.getOne().get())
                 : Pos.emptyPos();
-    }
-
-    public OkexOnePositionV5 getInstrumentPositionApi(String instrumentId) {
-        final OkexOnePositionV5 pos = this.client.executeSync(this.api.getInstrumentPosition(instType, instrumentId));
-//        System.out.println("POS_VAL");
-//        System.out.println(pos);
-        return pos;
     }
 
 
