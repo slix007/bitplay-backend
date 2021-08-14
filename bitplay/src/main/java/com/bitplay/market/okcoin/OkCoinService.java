@@ -24,6 +24,7 @@ import com.bitplay.market.model.LiqInfo;
 import com.bitplay.market.model.MarketState;
 import com.bitplay.market.model.MoveMakerOrderArg;
 import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.metrics.MetricsDictionary;
@@ -713,8 +714,8 @@ public class OkCoinService extends MarketServicePreliq {
 //        Utils.logIfLong(start, end, logger, "fetchEstimatedDeliveryPrice");
 //    }
 
-    @Scheduled(fixedDelay = 200)
-    // Rate Limit: 20 requests per 2 seconds
+    @Scheduled(fixedDelay = 300)
+    // Rate Limit: 10 requests per 2 seconds
     public void fetchPositionScheduled() {
         if (!isStarted()) {
             return;
@@ -2150,17 +2151,17 @@ public class OkCoinService extends MarketServicePreliq {
      */
     @Override
     public MoveResponse moveMakerOrder(MoveMakerOrderArg moveMakerOrderArg) {
-        FplayOrder fOrderToCancel = moveMakerOrderArg.getFplayOrder();
+        FplayOrder fPlayOrder = moveMakerOrderArg.getFplayOrder();
         BigDecimal bestMarketPrice = moveMakerOrderArg.getNewPrice();
         Object[] reqMovingArgs = moveMakerOrderArg.getReqMovingArgs();
-        final LimitOrder limitOrder = LimitOrder.Builder.from(fOrderToCancel.getOrder()).build();
-        final SignalType signalType = fOrderToCancel.getSignalType() != null ? fOrderToCancel.getSignalType() : getArbitrageService().getSignalType();
+        final LimitOrder limitOrder = LimitOrder.Builder.from(fPlayOrder.getOrder()).build();
+        final SignalType signalType = fPlayOrder.getSignalType() != null ? fPlayOrder.getSignalType() : getArbitrageService().getSignalType();
 
-        final Long tradeId = fOrderToCancel.getTradeId();
-        final String counterWithPortion = fOrderToCancel.getCounterWithPortion();
+        final Long tradeId = fPlayOrder.getTradeId();
+        final String counterWithPortion = fPlayOrder.getCounterWithPortion();
         if (limitOrder.getStatus() == Order.OrderStatus.CANCELED || limitOrder.getStatus() == Order.OrderStatus.FILLED) {
             tradeLogger.error(String.format("#%s do not move ALREADY_CLOSED order", counterWithPortion));
-            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null, fOrderToCancel);
+            return new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null, fPlayOrder);
         }
         if (getMarketState() == MarketState.PLACING_ORDER) { // !arbitrageService.getParams().getOkCoinOrderType().equals("maker")
             return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "no moving for taker");
@@ -2174,71 +2175,61 @@ public class OkCoinService extends MarketServicePreliq {
 
         MoveResponse response;
         try {
-            // IT doesn't support moving
-            // Do cancel and place
-            BestQuotes bestQuotes = orderIdToSignalInfo.get(limitOrder.getId());
-            // TODO remove orderIdToSignalInfo
-//            final BestQuotes bestQuotes = fOrderToCancel.getBestQuotes();
-
-            // 1. cancel old order
-            // 2. We got result on cancel(true/false), but double-check status of an old order
-            CancelOrderRes cancelOrderRes = cancelOrderWithCheck(limitOrder.getId(), "Moving1:cancelling:", "Moving2:cancelStatus:", counterWithPortion);
-            if (cancelOrderRes.getOrder().getId().equals("empty")) {
-                return new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "Failed to check status of cancelled order on moving id=" + limitOrder.getId());
-            }
-            LimitOrder cancelledOrder = cancelOrderRes.getOrder();
-
-            final FplayOrder cancelledFplayOrd = FplayOrderUtils.updateFplayOrder(fOrderToCancel, cancelledOrder);
-            final LimitOrder cancelledLimitOrder = (LimitOrder) cancelledFplayOrd.getOrder();
-            orderRepositoryService.updateSync(cancelledFplayOrd);
-
-            // 3. Already closed?
-            final boolean alreadyFilled = cancelledLimitOrder.getStatus() == OrderStatus.FILLED;
-            final boolean cancelFailed = !cancelOrderRes
-                    .getCancelSucceed(); // WORKAROUND: CANCELLED, but was cancelled/placedNew on a previous moving-iteration
-            // workaround. PlacingType == null often occurs with old orders. If res was never answered true then skip it.
-            final boolean oldOrder = cancelOrderRes.res != null && !cancelOrderRes.res && cancelledFplayOrd.getPlacingType() == null;
-            if (cancelFailed || alreadyFilled || oldOrder) {
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.ALREADY_CLOSED, "", null, null,
-                        cancelledFplayOrd);
-
-                final String logString = String.format("#%s %s %s status=%s,amount=%s/%s,quote=%s/%s,id=%s,lastException=%s",
-                        counterWithPortion,
-                        "Moving3:Already closed:",
-                        limitOrder.getType(),
-                        cancelledLimitOrder.getStatus(),
-                        limitOrder.getTradableAmount(), cancelledLimitOrder.getCumulativeAmount(),
-                        limitOrder.getLimitPrice().toPlainString(), cancelledLimitOrder.getAveragePrice(),
-                        limitOrder.getId(),
-                        null);
-                tradeLogger.info(logString);
-                log.info(logString);
-
-                // 3. Place order
-            } else if (cancelledOrder.getStatus() == OrderStatus.CANCELED) {
-                TradeResponse tradeResponse = new TradeResponse();
-                if (cancelledFplayOrd.getPlacingType() == null) {
-                    getTradeLogger().warn("WARNING: PlaceType is null." + cancelledFplayOrd);
-                }
-
-                tradeResponse = finishMovingSync(tradeId, limitOrder, signalType, bestQuotes, cancelledLimitOrder, tradeResponse, cancelledFplayOrd);
-
-                if (tradeResponse.getLimitOrder() != null) {
-                    final LimitOrder newOrder = tradeResponse.getLimitOrder();
-                    final FplayOrder newFplayOrder = cancelledFplayOrd.cloneWithUpdate(newOrder);
-                    response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID, tradeResponse.getOrderId(),
-                            newOrder, newFplayOrder, cancelledFplayOrd);
+            final InstrumentDto instrumentDto = instrDtos.get(0);
+            final OrderResultTiny result = fplayOkexExchangeV5.getPrivateApi()
+                    .moveLimitOrder(instrumentDto.getInstrumentId(), fPlayOrder.getOrderId(), bestMarketPrice);
+            if (result.isResult()) {
+                final String orderId = result.getOrder_id();
+                // 2. Status check
+                LimitOrder updatedOrder = getFinalOrderInfoSync(orderId, fPlayOrder.getCounterWithPortion(), "MovingStatus:");
+                final FplayOrder newFplayOrder;
+                final String logString;
+                if (updatedOrder != null) {
+                    persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, updatedOrder.getAveragePrice());
+                    newFplayOrder = FplayOrderUtils.updateFplayOrder(fPlayOrder, updatedOrder);
+                    addOpenOrder(newFplayOrder);
+                    logString = String
+                            .format("#%s Moved %s from %s to %s(real %s) status=%s, amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s; OB: %s",
+                                    counterWithPortion,
+                                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                                    limitOrder.getLimitPrice(),
+                                    bestMarketPrice.toPlainString(),
+                                    updatedOrder.getLimitPrice(),
+                                    updatedOrder.getStatus(),
+                                    limitOrder.getTradableAmount(),
+                                    limitOrder.getCumulativeAmount(),
+                                    limitOrder.getAveragePrice(),
+                                    limitOrder.getId(),
+                                    getPositionAsString(),
+                                    moveMakerOrderArg.getObBestFive());
                 } else {
-                    final String warnMsg = String.format("#%s Can not move orderId=%s, ONLY_CANCEL!!!",
-                            counterWithPortion, limitOrder.getId());
-                    warningLogger.info(warnMsg);
-                    log.info(warnMsg);
-                    response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, tradeResponse.getOrderId(),
-                            null, null, cancelledFplayOrd);
+                    updatedOrder = limitOrder;
+                    newFplayOrder = fPlayOrder;
+                    logString = String
+                            .format("#%s Moved but can not details. Initial: %s from %s to %s amount=%s, filled=%s, avgPrice=%s, id=%s, pos=%s; OB: %s",
+                                    counterWithPortion,
+                                    limitOrder.getType() == Order.OrderType.BID ? "BUY" : "SELL",
+                                    limitOrder.getLimitPrice(),
+                                    bestMarketPrice.toPlainString(),
+                                    limitOrder.getTradableAmount(),
+                                    limitOrder.getCumulativeAmount(),
+                                    limitOrder.getAveragePrice(),
+                                    limitOrder.getId(),
+                                    getPositionAsString(),
+                                    moveMakerOrderArg.getObBestFive());
                 }
+                log.info(logString);
+                tradeLogger.info(logString);
+                ordersLogger.info(logString);
 
+                if (updatedOrder.getStatus() == Order.OrderStatus.CANCELED) {
+                    response = new MoveResponse(MoveResponse.MoveOrderStatus.ONLY_CANCEL, logString, null, null, newFplayOrder);
+                } else {
+                    response = new MoveResponse(MoveResponse.MoveOrderStatus.MOVED, updatedOrder.getId(),
+                            updatedOrder, newFplayOrder);
+                }
             } else {
-                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, "wrong status on cancel/new: " + cancelledLimitOrder.getStatus());
+                response = new MoveResponse(MoveResponse.MoveOrderStatus.EXCEPTION, result.getError_code() + " " + result.getError_message());
             }
         } finally {
             setMarketState(savedState, counterWithPortion);
@@ -2910,11 +2901,14 @@ public class OkCoinService extends MarketServicePreliq {
                                     // update the order
                                     resultOOList.add(cancelledFplayOrder);
                                 }
-                            } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED_WITH_NEW_ID) {
+                                if (response.getMoveOrderStatus() == MoveOrderStatus.EXCEPTION) {
+                                    // Additional sleep if exception
+                                    final OkexPostOnlyArgs poArgs = settingsRepositoryService.getSettings().getAllPostOnlyArgs().get(getArbType());
+                                    final int betweenAttemptsMsSafe = poArgs.getPostOnlyBetweenAttemptsMs();
+                                    Thread.sleep(betweenAttemptsMsSafe);
+                                }
+                            } else if (response.getMoveOrderStatus() == MoveResponse.MoveOrderStatus.MOVED) {
                                 final FplayOrder newOrder = response.getNewFplayOrder();
-                                final FplayOrder cancelledOrder = response.getCancelledFplayOrder();
-
-                                resultOOList.add(cancelledOrder);
                                 resultOOList.add(newOrder);
                             } else {
                                 resultOOList.add(openOrder); // keep the same

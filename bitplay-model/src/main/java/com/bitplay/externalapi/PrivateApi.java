@@ -38,6 +38,10 @@ public interface PrivateApi {
 
     Leverage changeLeverage(String newCurrOrInstrId, String newLeverageStr);
 
+    default OrderResultTiny moveLimitOrder(String instrumentId, String orderId, BigDecimal newPrice) {
+        return new OrderResultTiny();
+    }
+
 //    OrderBook getOrderBook(String newCurrOrInstrId, String newLeverageStr);
 
     boolean notCreated();

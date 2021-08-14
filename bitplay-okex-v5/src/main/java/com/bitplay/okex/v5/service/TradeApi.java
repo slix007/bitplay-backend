@@ -2,6 +2,7 @@ package com.bitplay.okex.v5.service;
 
 import com.bitplay.okex.v5.dto.ChangeLeverRequest;
 import com.bitplay.okex.v5.dto.param.Order;
+import com.bitplay.okex.v5.dto.param.OrderAmendRequest;
 import com.bitplay.okex.v5.dto.param.OrderCnlRequest;
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.Accounts;
@@ -89,6 +90,10 @@ interface TradeApi {
 //
     @POST("/api/v5/trade/cancel-order")
     Call<OrderResult> cancelOrder(@Body OrderCnlRequest order);
+
+    // Rate Limit: 60 requests per 2 seconds
+    @POST("/api/v5/trade/amend-order")
+    Call<OrderResult> amendOrder(@Body OrderAmendRequest order);
 
     //    @POST("/api/futures/v3/cancel_batch_orders/{instrument_id}")
 //    Call<JSONObject> cancelOrders(@Path("instrument_id") String instrumentId, @Body JSONObject order_ids);

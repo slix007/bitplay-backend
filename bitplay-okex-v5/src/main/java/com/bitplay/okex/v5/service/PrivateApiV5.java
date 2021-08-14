@@ -11,6 +11,7 @@ import com.bitplay.okex.v5.dto.adapter.AccountConverter;
 import com.bitplay.okex.v5.dto.adapter.DtoToModelConverter;
 import com.bitplay.okex.v5.dto.adapter.OkexOrderConverter;
 import com.bitplay.okex.v5.dto.param.Order;
+import com.bitplay.okex.v5.dto.param.OrderAmendRequest;
 import com.bitplay.okex.v5.dto.param.OrderCnlRequest;
 import com.bitplay.okex.v5.dto.result.Account;
 import com.bitplay.okex.v5.dto.result.LeverageResult;
@@ -72,18 +73,9 @@ public class PrivateApiV5 implements PrivateApi {
     public OrderResultTiny limitOrder(String instrumentId, OrderType orderType, BigDecimal thePrice, BigDecimal amount, BigDecimal leverage,
             List<Object> extraFlags) {
         final FuturesOrderTypeEnum orderTypeEnum = (FuturesOrderTypeEnum) extraFlags.get(0);
-        final Order order =
-                OkexOrderConverter.createOrder(instrumentId, orderType, thePrice, amount, orderTypeEnum, leverage);
-//        final Object orderResultO = this.client.executeSync(this.api.placeOrderTest(order));
-//        System.out.println(orderResultO);
+        final Order order = OkexOrderConverter.createOrder(instrumentId, orderType, thePrice, amount, orderTypeEnum, leverage);
         final OrderResult orderResult = this.client.executeSync(this.api.placeOrder(order));
-        // {code=1, data=[{clOrdId=, ordId=, sCode=51119, sMsg=Order placement failed due to insufficient balance. , tag=}], msg=}
-//        System.out.println(raw);
-//        final List<OrderResultData> or = new ArrayList<>();
-//        or.add(new OrderResultData());
-//        final OrderResult orderResult = new OrderResult(or);
         return OkexOrderConverter.convertOrderResult(orderResult);
-
     }
 
     @Override
@@ -96,23 +88,25 @@ public class PrivateApiV5 implements PrivateApi {
 
     @Override
     public List<LimitOrder> getOpenLimitOrders(String instrumentId, CurrencyPair currencyPair) {
-//        final List<OrderDetail> orders = getOpenOrders(instrumentId);
         final OrdersDetailResult openOrdersDetailResult = this.client.executeSync(this.api.getOrdersWithState(instType, instrumentId));
         final List<OrderDetail> orders = openOrdersDetailResult.getData();
         return DtoToModelConverter.convertOrders(orders, currencyPair);
-//        throw new NotYetImplementedForExchangeException();
-
     }
 
     @Override
     public LimitOrder getLimitOrder(String instrumentId, String orderId, CurrencyPair currencyPair) {
         final OrdersDetailResult openOrdersDetailResult = this.client.executeSync(this.api.getOrder(instrumentId, orderId));
         final List<OrderDetail> orders = openOrdersDetailResult.getData();
-//        final OrderDetail order = getOrder(instrumentId, orderId);
         return DtoToModelConverter.convertOrder(orders.get(0), currencyPair);
-//        throw new NotYetImplementedForExchangeException();
-
     }
+
+    @Override
+    public OrderResultTiny moveLimitOrder(String instrumentId, String orderId, BigDecimal newPrice) {
+
+        final OrderResult orderResult = this.client.executeSync(this.api.amendOrder(
+                new OrderAmendRequest(instrumentId, orderId, newPrice)
+        ));
+        return OkexOrderConverter.convertOrderResult(orderResult);    }
 
     @Override
     public Leverage getLeverage(String instrumentId) {
