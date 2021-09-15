@@ -1,124 +1,126 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>1.5.9.RELEASE</version>
-        <relativePath /> <!-- lookup parent from repository -->
-    </parent>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+    <relativePath/> <!-- lookup parent from repository -->
+  </parent>
 
-    <groupId>com.bitplay</groupId>
-    <artifactId>bitplay-aggregator</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+  <groupId>com.bitplay</groupId>
+  <artifactId>bitplay-aggregator</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
 
-    <properties>
-        <java.version>1.8</java.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+  <properties>
+    <java.version>1.8</java.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
 
-    <scm>
-        <connection>scm:git:git@gitlab.com:slixsl007/bitplay-backend.git</connection>
-        <developerConnection>scm:git:git@gitlab.com:slixsl007/bitplay-backend.git</developerConnection>
-        <url>git@gitlab.com:slixsl007/bitplay-backend.git</url>
-        <tag>bitplay-0.0.1</tag>
-    </scm>
+  <scm>
+    <connection>scm:git:git@gitlab.com:slixsl007/bitplay-backend.git</connection>
+    <developerConnection>scm:git:git@gitlab.com:slixsl007/bitplay-backend.git</developerConnection>
+    <url>git@gitlab.com:slixsl007/bitplay-backend.git</url>
+    <tag>bitplay-0.0.1</tag>
+  </scm>
 
-    <modules>
-        <module>bitplay</module>
-        <module>xchange-bitmex</module>
-        <module>xchange-bitmex-stream</module>
-        <module>bitplay-model</module>
-        <module>bitplay-okex-v3</module>
-      <module>bitplay-model-stream</module>
-      <module>bitplay-okex-v3-stream</module>
-        <module>bitplay-okex-v5</module>
-    </modules>
-    <packaging>pom</packaging>
+  <modules>
+    <module>bitplay</module>
+    <module>xchange-bitmex</module>
+    <module>xchange-bitmex-stream</module>
+    <module>bitplay-model</module>
+<!--    <module>bitplay-okex-v3</module>-->
+    <module>bitplay-model-stream</module>
+    <module>bitplay-okex-v3-stream</module>
+    <module>bitplay-okex-v5</module>
+    <module>bitplay-okex-v5-stream</module>
+  </modules>
+  <packaging>pom</packaging>
 
-    <name>bitplay-aggregator</name>
-    <description>Aggregator for bitplay</description>
+  <name>bitplay-aggregator</name>
+  <description>Aggregator for bitplay</description>
 
-<!--    <pluginRepositories>-->
-<!--        <pluginRepository>-->
-<!--            <id>vmlens</id>-->
-<!--            <url>https://vmlens.com/download</url>-->
-<!--        </pluginRepository>-->
-<!--    </pluginRepositories>-->
+  <!--    <pluginRepositories>-->
+  <!--        <pluginRepository>-->
+  <!--            <id>vmlens</id>-->
+  <!--            <url>https://vmlens.com/download</url>-->
+  <!--        </pluginRepository>-->
+  <!--    </pluginRepositories>-->
 
-    <build>
-        <plugins>
-            <!-- for deploying to Maven Central -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.3</version>
-                <configuration>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                </configuration>
-            </plugin>
+  <build>
+    <plugins>
+      <!-- for deploying to Maven Central -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+        <configuration>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+        </configuration>
+      </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <filesets>
-                        <fileset>
-                            <directory>logs</directory>
-<!--                            <includes>-->
-<!--                                <include>**/*</include>-->
-<!--                            </includes>-->
-                            <followSymlinks>false</followSymlinks>
-                        </fileset>
-                    </filesets>
-                </configuration>
-            </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>logs</directory>
+              <!--                            <includes>-->
+              <!--                                <include>**/*</include>-->
+              <!--                            </includes>-->
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
 
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.4</version>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                    <timestampFormat>{0,date,yyyy-MM-dd HH:mm:ss}</timestampFormat>
-                </configuration>
-            </plugin>
-<!--            <plugin>-->
-<!--                <groupId>com.vmlens</groupId>-->
-<!--                <artifactId>interleave</artifactId>-->
-<!--                <version>1.0.8</version>-->
-<!--                <configuration>-->
-<!--&lt;!&ndash;                    <trimStackTrace>false</trimStackTrace>&ndash;&gt;-->
-<!--&lt;!&ndash;                    <trace>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <method>com.vmlens.test.state.report.**</method>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </trace>&ndash;&gt;-->
-<!--                    <suppress>-->
-<!--                        <race>Array@io.micrometer.shaded.io.netty.util.Recycler$WeakOrderQueue.add</race>-->
-<!--                        <race>io.micrometer.shaded.**</race>-->
-<!--                    </suppress>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>test</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>1.4</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <doCheck>false</doCheck>
+          <doUpdate>false</doUpdate>
+          <timestampFormat>{0,date,yyyy-MM-dd HH:mm:ss}</timestampFormat>
+        </configuration>
+      </plugin>
+      <!--            <plugin>-->
+      <!--                <groupId>com.vmlens</groupId>-->
+      <!--                <artifactId>interleave</artifactId>-->
+      <!--                <version>1.0.8</version>-->
+      <!--                <configuration>-->
+      <!--&lt;!&ndash;                    <trimStackTrace>false</trimStackTrace>&ndash;&gt;-->
+      <!--&lt;!&ndash;                    <trace>&ndash;&gt;-->
+      <!--&lt;!&ndash;                        <method>com.vmlens.test.state.report.**</method>&ndash;&gt;-->
+      <!--&lt;!&ndash;                    </trace>&ndash;&gt;-->
+      <!--                    <suppress>-->
+      <!--                        <race>Array@io.micrometer.shaded.io.netty.util.Recycler$WeakOrderQueue.add</race>-->
+      <!--                        <race>io.micrometer.shaded.**</race>-->
+      <!--                    </suppress>-->
+      <!--                </configuration>-->
+      <!--                <executions>-->
+      <!--                    <execution>-->
+      <!--                        <goals>-->
+      <!--                            <goal>test</goal>-->
+      <!--                        </goals>-->
+      <!--                    </execution>-->
+      <!--                </executions>-->
+      <!--            </plugin>-->
 
-        </plugins>
-    </build>
+    </plugins>
+  </build>
 
 </project>

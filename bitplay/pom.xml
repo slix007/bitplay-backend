@@ -134,6 +134,11 @@
         </dependency>
         <dependency>
             <groupId>com.bitplay</groupId>
+            <artifactId>bitplay-okex-v5-stream</artifactId>
+            <version>${bitplay.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bitplay</groupId>
             <artifactId>bitplay-model</artifactId>
             <version>${bitplay.version}</version>
         </dependency>

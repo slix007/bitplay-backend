@@ -1,6 +1,6 @@
 package com.bitplay.market.okcoin;
 
-import com.bitplay.okexv3.dto.privatedata.OkExUserOrder;
+import com.bitplay.okexv5.dto.privatedata.OkExUserOrder;
 import java.util.ArrayList;
 import java.util.List;
 import com.bitplay.xchange.currency.Currency;

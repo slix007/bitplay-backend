@@ -219,26 +219,28 @@ public abstract class MarketService extends MarketServiceWithState {
         return this.orderBookShort.getOb();
     }
 
-    public OrderBook fetchOrderBookMain() {
-        try {
-            if (getName().equals(BitmexService.NAME)) {
-                final BitmexObType obType = getPersistenceService().getSettingsRepositoryService().getSettings().getBitmexObType();
-                if (obType != BitmexObType.TRADITIONAL_10) {
-                    final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
-                    final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids()); // timestamp may be null
-                    return ob; // for bitmex incremental
-                }
-            }
-            // okex v1 alredy deleted
-//            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
-//            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
-//            this.orderBook = ob;
-//            this.orderBookShort.setOb(ob);
-        } catch (IOException e) {
-            log.error("can not fetch orderBook", e);
-        }
-        return this.orderBookShort.getOb();
-    }
+    public abstract OrderBook fetchOrderBookMain();
+
+//    public OrderBook fetchOrderBookMain() {
+//        try {
+//            if (getName().equals(BitmexService.NAME)) {
+//                final BitmexObType obType = getPersistenceService().getSettingsRepositoryService().getSettings().getBitmexObType();
+//                if (obType != BitmexObType.TRADITIONAL_10) {
+//                    final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
+//                    final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids()); // timestamp may be null
+//                    return ob; // for bitmex incremental
+//                }
+//            }
+//            // okex v1 alredy deleted
+////            final OrderBook orderBook = getExchange().getMarketDataService().getOrderBook(getCurrencyPair());
+////            final OrderBook ob = new OrderBook(new Date(), orderBook.getAsks(), orderBook.getBids());
+////            this.orderBook = ob;
+////            this.orderBookShort.setOb(ob);
+//        } catch (IOException e) {
+//            log.error("can not fetch orderBook", e);
+//        }
+//        return this.orderBookShort.getOb();
+//    }
 
     public abstract SlackNotifications getSlackNotifications();
 
@@ -838,7 +840,7 @@ public abstract class MarketService extends MarketServiceWithState {
      * @return list of open orders.
      */
     protected List<FplayOrder> fetchOpenOrders() {
-        if (getExchange() != null) {
+        if (isStarted()) {
             try {
                 final List<LimitOrder> fetchedList = getApiOpenOrders();
                 if (fetchedList.size() > 1) {

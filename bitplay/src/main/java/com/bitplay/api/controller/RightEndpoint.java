@@ -42,7 +42,7 @@ public class RightEndpoint {
 
     @RequestMapping(value = "/right/raw-account", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public AccountInfoContracts rawAccount() {
-        return ((OkCoinService) arbitrageService.getRightMarketService()).getAccountApiV3();
+        return ((OkCoinService) arbitrageService.getRightMarketService()).getAccountApiV5();
     }
 
     @RequestMapping(value = "/right/order-book", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

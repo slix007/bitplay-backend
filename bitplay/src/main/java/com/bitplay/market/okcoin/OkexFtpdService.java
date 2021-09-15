@@ -1,6 +1,6 @@
 package com.bitplay.market.okcoin;
 
-import com.bitplay.okexv3.dto.marketdata.OkcoinPriceRange;
+import com.bitplay.okexv5.dto.marketdata.OkcoinPriceRange;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.OkexFtpdType;
 import com.bitplay.arbitrage.dto.ThrottledWarn;

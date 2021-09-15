@@ -15,6 +15,7 @@ import com.bitplay.xchange.utils.DateUtils;
  */
 public final class Ticker {
 
+  private final String instId;
   private final CurrencyPair currencyPair;
   private final BigDecimal last;
   private final BigDecimal bid;
@@ -40,9 +41,10 @@ public final class Ticker {
    * @param volume 24h volume
    * @param timestamp - the timestamp of the ticker according to the exchange's server, null if not provided
    */
-  private Ticker(CurrencyPair currencyPair, BigDecimal last, BigDecimal bid, BigDecimal ask, BigDecimal high, BigDecimal low, BigDecimal vwap,
+  private Ticker(String instId, CurrencyPair currencyPair, BigDecimal last, BigDecimal bid, BigDecimal ask, BigDecimal high, BigDecimal low, BigDecimal vwap,
       BigDecimal volume, Date timestamp) {
 
+    this.instId = instId;
     this.currencyPair = currencyPair;
     this.last = last;
     this.bid = bid;
@@ -52,6 +54,10 @@ public final class Ticker {
     this.vwap = vwap;
     this.volume = volume;
     this.timestamp = timestamp;
+  }
+
+  public String getInstId() {
+    return instId;
   }
 
   public CurrencyPair getCurrencyPair() {
@@ -117,6 +123,7 @@ public final class Ticker {
    */
   public static class Builder {
 
+    private String instId;
     private CurrencyPair currencyPair;
     private BigDecimal last;
     private BigDecimal bid;
@@ -134,7 +141,7 @@ public final class Ticker {
 
       validateState();
 
-      Ticker ticker = new Ticker(currencyPair, last, bid, ask, high, low, vwap, volume, timestamp);
+      Ticker ticker = new Ticker(instId, currencyPair, last, bid, ask, high, low, vwap, volume, timestamp);
 
       isBuilt = true;
 
@@ -146,6 +153,12 @@ public final class Ticker {
       if (isBuilt) {
         throw new IllegalStateException("The entity has been built");
       }
+    }
+
+    public Builder instId(String instId) {
+
+      this.instId = instId;
+      return this;
     }
 
     public Builder currencyPair(CurrencyPair currencyPair) {
