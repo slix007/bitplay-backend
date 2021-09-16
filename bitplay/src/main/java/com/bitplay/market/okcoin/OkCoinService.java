@@ -11,6 +11,7 @@ import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.core.ProductSubscription;
 import com.bitplay.core.dto.PositionStream;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
@@ -90,7 +91,6 @@ import com.bitplay.xchange.okcoin.FuturesContract;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
-import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import java.io.IOException;
@@ -164,7 +164,8 @@ public class OkCoinService extends MarketServicePreliq {
     private MetricsDictionary metricsDictionary;
 
     //    private OkExStreamingExchange exchange; // for streaming only
-    private OkExStreamingExchangeV5 streamingExchangeV5; // for streaming only
+    private OkExStreamingExchangeV5 streamingExchangeV5Pub; // for streaming only
+    private OkExStreamingExchangeV5 streamingExchangeV5Private; // for streaming only
     private FplayExchangeOkexV5 fplayOkexExchangeV5;
     private ApiCredentialsV5 apiCredentialsV5;
     // FplayExchangeOkexV5 with 2 sec REST timeout (connect/read/write)
@@ -174,13 +175,13 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable userPositionSub;
     private Disposable userAccountSub;
     private Disposable userOrderSub;
-    private Disposable pingStatSub;
+    private Disposable pingStatSubPublic;
+    private Disposable pingStatSubPrivate;
     private Disposable markPriceSubscription;
     private Disposable tickerSubscription;
     private Disposable priceRangeSub;
     private Disposable tickerEthSubscription;
     private Disposable indexPriceSub;
-    private Observable<OkCoinDepth> orderBookObservable;
     private OkexContractType okexContractType;
     private OkexContractType okexContractTypeBTCUSD = OkexContractType.BTC_ThisWeek;
     private volatile Map<String, OkexContractType> instrIdToContractType = new HashMap<>();
@@ -312,7 +313,8 @@ public class OkCoinService extends MarketServicePreliq {
         initExchangeV5(apiCredentialsV5);
         initExchangeV52Sec(apiCredentialsV5);
 //        exchange = initExchange(exArgs);
-        streamingExchangeV5 = initStreamingExchangeV5(exArgs);
+        streamingExchangeV5Pub = initStreamingExchangeV5(ProductSubscription.PUBLIC, exArgs);
+        streamingExchangeV5Private = initStreamingExchangeV5(ProductSubscription.PRIVATE, exArgs);
 
         // for testing
 //        final EstimatedPrice result = fplayOkexExchangeV5.getPublicApi().getEstimatedPrice(mainInstr.getInstrumentId());
@@ -457,13 +459,14 @@ public class OkCoinService extends MarketServicePreliq {
 //            userAccountSub = startAccountInfoSubscription();
 //            userOrderSub = startUserOrderSub();
 //        }
-//        pingStatSub = startPingStatSub();
+        pingStatSubPrivate = startPingStatSub(streamingExchangeV5Pub);
+        pingStatSubPublic = startPingStatSub(streamingExchangeV5Private);
         markPriceSubscription = startMarkPriceListener();
-//        tickerSubscription = startTickerListener();
-//        reSubscribePriceRangeListener();
-//        if (!okexContractType.isBtc()) {
-//            tickerEthSubscription = startEthTickerListener();
-//        }
+        tickerSubscription = startTickerListener();
+        reSubscribePriceRangeListener();
+        if (!okexContractType.isBtc()) {
+            tickerEthSubscription = startEthTickerListener();
+        }
         indexPriceSub = startIndexPriceSub();
         fetchOpenOrders();
 
@@ -487,7 +490,8 @@ public class OkCoinService extends MarketServicePreliq {
         userPositionSub.dispose();
         userAccountSub.dispose();
         userOrderSub.dispose();
-        pingStatSub.dispose();
+        pingStatSubPrivate.dispose();
+        pingStatSubPublic.dispose();
         if (markPriceSubscription != null) {
             markPriceSubscription.dispose();
         }
@@ -497,7 +501,8 @@ public class OkCoinService extends MarketServicePreliq {
             tickerEthSubscription.dispose();
         }
         indexPriceSub.dispose();
-        return streamingExchangeV5.disconnect();
+        return streamingExchangeV5Pub.disconnect()
+                .andThen(streamingExchangeV5Private.disconnect());
     }
 
     private OkExStreamingExchange initExchange(Object... exArgs) {
@@ -517,7 +522,7 @@ public class OkCoinService extends MarketServicePreliq {
         return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
 
-    private OkExStreamingExchangeV5 initStreamingExchangeV5(Object... exArgs) {
+    private OkExStreamingExchangeV5 initStreamingExchangeV5(ProductSubscription productSubscription, Object... exArgs) {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchangeV5.class);
 
         // init xchange-stream
@@ -531,17 +536,28 @@ public class OkCoinService extends MarketServicePreliq {
             spec.setExchangeSpecificParametersItem("okex-v5-passphrase", exPassphrase);
         }
 
+        spec.setExchangeSpecificParametersItem("productSubscription", productSubscription);
         return (OkExStreamingExchangeV5) ExchangeFactory.INSTANCE.createExchange(spec);
     }
 
 
     private void initWebSocketConnection() {
         // Connect to the Exchange WebSocket API. Blocking wait for the connection.
-        streamingExchangeV5.connect().blockingAwait();
+        streamingExchangeV5Pub.connect().blockingAwait();
+        streamingExchangeV5Private.connect().blockingAwait();
 
         // Retry on disconnect. (It's disconneced each 5 min)
-        onDisconnectHook = streamingExchangeV5.onDisconnect()
+        streamingExchangeV5Private.onDisconnect().doOnComplete(() -> {
+            if (streamingExchangeV5Pub.isAlive()) {
+                streamingExchangeV5Pub.disconnect();
+            }
+        });
+
+        onDisconnectHook = streamingExchangeV5Pub.onDisconnect()
                 .doOnComplete(() -> {
+                    if (streamingExchangeV5Private.isAlive()) {
+                        streamingExchangeV5Private.disconnect();
+                    }
                     ifDisconnetedString += " okex disconnected at " + LocalTime.now();
                     if (!shutdown) {
                         log.warn("onClientDisconnect okCoinService");
@@ -559,15 +575,21 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private void subscribeOnOrderBook() {
+        List<InstrumentDto> mainInst = new ArrayList<>();
+        final InstrumentDto main = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
+        mainInst.add(main);
 
-        orderBookObservable = ((com.bitplay.okexv5.OkExStreamingMarketDataService) streamingExchangeV5.getStreamingMarketDataService())
-                .getOrderBooks(instrDtos)
+        List<InstrumentDto> extraInst = new ArrayList<>();
+        final InstrumentDto extra = new InstrumentDto(okexContractTypeBTCUSD.getCurrencyPair(), okexContractTypeBTCUSD.getFuturesContract());
+        extraInst.add(extra);
+
+        orderBookSubscriptionExtra = ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
+                .getOrderBooks(extraInst)
                 .doOnDispose(() -> log.info("okex orderBook subscription doOnDispose"))
                 .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
-                .doOnError(throwable -> log.error("okex orderBook onError", throwable))
-                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS));
-
-        orderBookSubscriptionExtra = orderBookObservable.filter(this::isObExtra)
+                .doOnError(throwable1 -> log.error("okex orderBook onError", throwable1))
+                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
+//                .filter(this::isObExtra)
                 .toFlowable(BackpressureStrategy.LATEST)
                 .observeOn(stateUpdater, false, 1)
                 .subscribe(okcoinDepth -> {
@@ -576,7 +598,13 @@ public class OkCoinService extends MarketServicePreliq {
                     this.orderBookXBTUSDShort = this.orderBookXBTUSD;
                 }, throwable -> log.error("ERROR in getting extra OrderBook: ", throwable));
 
-        orderBookSubscription = orderBookObservable.filter(d -> !isObExtra(d))
+        orderBookSubscription = ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
+                .getOrderBooks(mainInst)
+                .doOnDispose(() -> log.info("okex orderBook subscription doOnDispose"))
+                .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
+                .doOnError(throwable1 -> log.error("okex orderBook onError", throwable1))
+                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
+//                .filter(d -> !isObExtra(d))
                 .toFlowable(BackpressureStrategy.LATEST)
                 .observeOn(stateUpdater, false, 1)
                 .subscribe(d -> {
@@ -816,7 +844,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startUserPositionSub() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
 
-        return streamingExchangeV5.getStreamingPrivateDataService()
+        return streamingExchangeV5Pub.getStreamingPrivateDataService()
                 .getPositionObservable(instrumentDto)
                 .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
@@ -956,7 +984,7 @@ public class OkCoinService extends MarketServicePreliq {
     @SuppressWarnings("Duplicates")
     private Disposable startAccountInfoSubscription() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-        return streamingExchangeV5.getStreamingPrivateDataService()
+        return streamingExchangeV5Pub.getStreamingPrivateDataService()
                 .getAccountInfoObservable(okexContractType.getCurrencyPair(), instrumentDto)
                 .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
@@ -972,7 +1000,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startUserOrderSub() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
 
-        return ((OkExStreamingPrivateDataServiceV5) streamingExchangeV5.getStreamingPrivateDataService())
+        return ((OkExStreamingPrivateDataServiceV5) streamingExchangeV5Pub.getStreamingPrivateDataService())
                 .getTradesObservableRaw(instrumentDto)
                 .map(TmpAdapter::adaptTradeResult)
                 .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
@@ -993,7 +1021,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> log.error("TradesObservable.Exception: ", throwable)); // TODO placingType is null!!!
     }
 
-    private Disposable startPingStatSub() {
+    private Disposable startPingStatSub(OkExStreamingExchangeV5 streamingExchangeV5) {
         return streamingExchangeV5.subscribePingStats()
                 .map(PingStatEvent::getPingPongMs)
                 .subscribe(ms -> {
@@ -1007,7 +1035,7 @@ public class OkCoinService extends MarketServicePreliq {
         List<InstrumentDto> instrumentDtos = new ArrayList<>();
         instrumentDtos.add(new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract()));
         final Integer scale = okexContractType.getScale();
-        return ((OkExStreamingMarketDataService) streamingExchangeV5.getStreamingMarketDataService())
+        return ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
                 .getMarkPrices(instrumentDtos)
                 .doOnError(throwable -> log.error("Error on MarkPrice observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
@@ -1023,8 +1051,8 @@ public class OkCoinService extends MarketServicePreliq {
     // futures ticker
     private Disposable startTickerListener() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-        return streamingExchangeV5.getStreamingMarketDataService()
-                .getTicker(okexContractType.getCurrencyPair(), instrumentDto)
+        return streamingExchangeV5Pub.getStreamingMarketDataService()
+                .getTicker(okexContractType.getCurrencyPair(), instrumentDto.getInstrumentId())
                 .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -1035,8 +1063,7 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> log.error("OkexFutureTicker.Exception: ", throwable));
     }
 
-    //TODO enable it
-//    @Scheduled(initialDelay = 60000, fixedDelay = 60000)
+    @Scheduled(initialDelay = 60000, fixedDelay = 60000)
     public void checkPriceRangeTime() {
         if (priceRange == null || priceRange.getTimestamp() == null ||
                 priceRange.getTimestamp().plusSeconds(60).isBefore(Instant.now())) {
@@ -1069,7 +1096,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     private Disposable startPriceRangeListener() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-        return ((OkExStreamingMarketDataService) streamingExchangeV5.getStreamingMarketDataService())
+        return ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
                 .getPriceRange(instrumentDto)
                 .doOnError(throwable -> log.error("Error on PriceRange observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
@@ -1107,8 +1134,8 @@ public class OkCoinService extends MarketServicePreliq {
             throttledLog.error("no baseTool=" + baseTool);
             return null;
         }
-        return streamingExchangeV5.getStreamingMarketDataService()
-                .getTicker(currencyPairForResult, null, tickerNameForRequest)
+        return streamingExchangeV5Pub.getStreamingMarketDataService()
+                .getTicker(currencyPairForResult, tickerNameForRequest)
                 .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))
                 .subscribeOn(Schedulers.io())
@@ -1131,7 +1158,7 @@ public class OkCoinService extends MarketServicePreliq {
 //                    new InstrumentDto(okexContractTypeBTCUSD.getCurrencyPair(), okexContractTypeBTCUSD.getFuturesContract())
 //            );
 //        }
-        return ((OkExStreamingMarketDataService) streamingExchangeV5.getStreamingMarketDataService())
+        return ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
                 .getIndexTickers(pairs)
                 .doOnError(throwable -> log.error("Error on Ticker observing", throwable))
                 .retryWhen(throwables -> throwables.delay(10, TimeUnit.SECONDS))

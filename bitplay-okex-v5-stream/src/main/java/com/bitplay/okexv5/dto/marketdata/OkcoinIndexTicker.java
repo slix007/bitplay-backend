@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public class OkcoinTicker {
+public class OkcoinIndexTicker {
 
     private final BigDecimal last;
     private final BigDecimal bestBid;
@@ -15,13 +15,13 @@ public class OkcoinTicker {
     private final String instrumentId;
     private final Instant timestamp;
 
-    public OkcoinTicker(
-            @JsonProperty("last") BigDecimal last,
-            @JsonProperty("bidPx") BigDecimal bestBid,
-            @JsonProperty("askPx") BigDecimal bestAsk,
-            @JsonProperty("high24h") BigDecimal high24h,
-            @JsonProperty("low24h") BigDecimal low24h,
-            @JsonProperty("vol24h") BigDecimal volume24h,
+    public OkcoinIndexTicker(
+            @JsonProperty("idxPx") BigDecimal last,
+            @JsonProperty("best_bid") BigDecimal bestBid,
+            @JsonProperty("best_ask") BigDecimal bestAsk,
+            @JsonProperty("high_24h") BigDecimal high24h,
+            @JsonProperty("low_24h") BigDecimal low24h,
+            @JsonProperty("volume_24h") BigDecimal volume24h,
             @JsonProperty("instId") String instrumentId,
             @JsonProperty("ts") Instant timestamp) {
         this.last = last;

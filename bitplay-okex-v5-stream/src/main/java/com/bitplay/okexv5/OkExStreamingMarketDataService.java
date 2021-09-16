@@ -4,6 +4,7 @@ import com.bitplay.core.StreamingMarketDataService;
 import com.bitplay.core.helper.WsObjectMapperHelper;
 import com.bitplay.okexv5.dto.InstrumentDto;
 import com.bitplay.okexv5.dto.marketdata.OkCoinDepth;
+import com.bitplay.okexv5.dto.marketdata.OkcoinIndexTicker;
 import com.bitplay.okexv5.dto.marketdata.OkcoinMarkPrice;
 import com.bitplay.okexv5.dto.marketdata.OkcoinPriceRange;
 import com.bitplay.okexv5.dto.marketdata.OkcoinTicker;
@@ -68,22 +69,12 @@ public class OkExStreamingMarketDataService implements StreamingMarketDataServic
      */
     @Override
     public Observable<Ticker> getTicker(CurrencyPair currencyPair, Object... args) {
-        if (args.length < 1) {
+        if (args.length != 1) {
             throw new IllegalArgumentException("Missing required params:\n"
-                    + "- InstrumentDto"
-                    + "- spot instrument string(optional)");
+                    + "- InstrumentDto");
         }
-        final String channelName;
-        if (args.length == 1) {
-            final InstrumentDto instrumentDto = (InstrumentDto) args[0];
-            final String instrumentId = instrumentDto.getInstrumentId();
-            channelName = instrumentDto.getFuturesContract() == FuturesContract.Swap
-                    ? "swap/ticker:" + instrumentId
-                    : "futures/ticker:" + instrumentId;
-        } else { //if (args.length == 2) {
-            final String instrument = (String) args[1];
-            channelName = "spot/ticker:" + instrument;
-        }
+        final String instrument = (String) args[0];
+        final String channelName = RequestDto.TICKERS + "/" + instrument;
         return service.subscribeChannel(channelName)
                 .map(s -> s.get("data"))
                 .filter(Objects::nonNull)
@@ -95,9 +86,7 @@ public class OkExStreamingMarketDataService implements StreamingMarketDataServic
 
     public Observable<OkcoinPriceRange> getPriceRange(InstrumentDto instrumentDto) {
         final String instrumentId = instrumentDto.getInstrumentId();
-        final String channelName = instrumentDto.getFuturesContract() == FuturesContract.Swap
-                ? "swap/price_range:" + instrumentId
-                : "futures/price_range:" + instrumentId;
+        final String channelName = RequestDto.PRICE_LIMIT + "/" + instrumentId;
         return service.subscribeChannel(channelName)
                 .map(s -> s.get("data"))
                 .filter(Objects::nonNull)
@@ -184,10 +173,10 @@ public class OkExStreamingMarketDataService implements StreamingMarketDataServic
                 .map(s -> s.get("data"))
                 .filter(Objects::nonNull)
                 .flatMap(Observable::fromIterable)
-                .map(dataNode -> objectMapper.treeToValue(dataNode, OkcoinTicker.class))
+                .map(dataNode -> objectMapper.treeToValue(dataNode, OkcoinIndexTicker.class))
                 .map(okCoinTicker -> {
                     final CurrencyPair currencyPair = instrumentIdToCurrencyPair.get(okCoinTicker.getInstrumentId());
-                    return OkExAdapters.adaptTicker(okCoinTicker, currencyPair);
+                    return OkExAdapters.adaptIndexTicker(okCoinTicker, currencyPair);
                 })
                 .share();
     }

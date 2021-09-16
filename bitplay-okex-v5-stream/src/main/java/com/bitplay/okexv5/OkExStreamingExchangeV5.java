@@ -14,33 +14,20 @@ import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.meta.ExchangeMetaData;
 import com.bitplay.xchange.exceptions.ExchangeException;
 import com.bitplay.xchange.exceptions.NotYetImplementedForExchangeException;
-import com.bitplay.xchange.okcoin.FuturesContract;
-import com.bitplay.xchange.okcoin.service.OkCoinAccountService;
-import com.bitplay.xchange.okcoin.service.OkCoinFuturesAccountService;
-import com.bitplay.xchange.okcoin.service.OkCoinFuturesMarketDataService;
-import com.bitplay.xchange.okcoin.service.OkCoinFuturesTradeService;
-import com.bitplay.xchange.okcoin.service.OkCoinMarketDataService;
-import com.bitplay.xchange.okcoin.service.OkCoinTradeService;
-import com.bitplay.xchange.service.BaseExchangeService;
 import com.bitplay.xchange.service.account.AccountService;
 import com.bitplay.xchange.service.marketdata.MarketDataService;
 import com.bitplay.xchange.service.trade.TradeService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import si.mazi.rescu.SynchronizedValueFactory;
 
 /**
  * Created by Sergei Shurmin on 02.03.19.
  */
 public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
+
     protected static final String PUBLIC_API_URI = "wss://ws.okex.com:8443/ws/v5/public";
     protected static final String PRIVATE_API_URI = "wss://ws.okex.com:8443/ws/v5/private";
 
@@ -48,40 +35,17 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
     private OkExStreamingPrivateDataServiceV5 streamingPrivateDataService;
     private OkExStreamingMarketDataService streamingMarketDataService;
 
-    protected OkexStreamingServiceWsToRxV5 streamingServicePrivate;
-    protected OkexStreamingServiceWsToRxV5 streamingServicePublic;
+    protected OkexStreamingServiceWsToRxV5 streamingService;
 
     protected ExchangeSpecification exchangeSpecification;
 
 
-    protected void initServices() {
-
-        // init REST
-//
-//        concludeHostParams(exchangeSpecification);
-//
-//        if (exchangeSpecification.getExchangeSpecificParameters() != null
-//                && exchangeSpecification.getExchangeSpecificParametersItem("Use_Futures").equals(true)) {
-//            FuturesContract contract = futuresContractOfConfig(exchangeSpecification);
-//
-//            this.marketDataService = new OkCoinFuturesMarketDataService(this, contract);
-//            if (exchangeSpecification.getApiKey() != null) {
-//                this.accountService = new OkCoinFuturesAccountService(this);
-//                this.tradeService = new OkCoinFuturesTradeService(this, contract, futuresLeverageOfConfig(exchangeSpecification));
-//            }
-//        } else {
-//            this.marketDataService = new OkCoinMarketDataService(this);
-//            if (exchangeSpecification.getApiKey() != null) {
-//                this.accountService = new OkCoinAccountService(this);
-//                this.tradeService = new OkCoinTradeService(this);
-//            }
-//        }
-
+    protected void initServices(ProductSubscription productSubscription) {
         // init Streaming
-        streamingServicePublic = createStreamingService(PUBLIC_API_URI);
-        streamingServicePrivate = createStreamingService(PRIVATE_API_URI);
-        streamingMarketDataService = new OkExStreamingMarketDataService(streamingServicePublic);
-        streamingPrivateDataService = new OkExStreamingPrivateDataServiceV5(streamingServicePrivate, this);
+        streamingService = createStreamingService(productSubscription == ProductSubscription.PUBLIC
+                ? PUBLIC_API_URI : PRIVATE_API_URI);
+        streamingMarketDataService = new OkExStreamingMarketDataService(streamingService);
+        streamingPrivateDataService = new OkExStreamingPrivateDataServiceV5(streamingService, this);
     }
 
     protected OkexStreamingServiceWsToRxV5 createStreamingService(String apiUrl) {
@@ -93,7 +57,6 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
 //        }
         return streamingService;
     }
-
 
 
     @Override
@@ -118,20 +81,17 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
 
     @Override
     public Completable connect(ProductSubscription... args) {
-        return streamingServicePublic.connect();
-//                .andThen(
-//                        streamingServicePrivate.connect()
-//                );
+        return streamingService.connect();
     }
 
     @Override
     public Completable disconnect() {
-        return null;
+        return streamingService.disconnect();
     }
 
     @Override
     public boolean isAlive() {
-        return false;
+        return streamingService.isSocketOpen();
     }
 
     @Override
@@ -142,7 +102,7 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
 
     @Override
     public Completable onDisconnect() {
-        return streamingServicePublic.onDisconnect();
+        return streamingService.onDisconnect();
     }
 
     @Override
@@ -213,7 +173,10 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
             this.exchangeSpecification = exchangeSpecification;
         }
 
-        initServices();
+        final ProductSubscription productSubscription =
+                (ProductSubscription) exchangeSpecification.getExchangeSpecificParametersItem("productSubscription");
+
+        initServices(productSubscription);
 
         //// from OkCoinExchange
 //        if (exchangeSpecification.getExchangeSpecificParameters() != null) {
@@ -251,8 +214,7 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
     }
 
     public Observable<PingStatEvent> subscribePingStats() {
-        //TODO private also
-        return streamingServicePublic.subscribePingStats();
+        return streamingService.subscribePingStats();
 
     }
 

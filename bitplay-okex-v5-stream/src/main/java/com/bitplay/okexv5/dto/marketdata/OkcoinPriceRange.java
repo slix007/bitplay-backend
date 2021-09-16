@@ -12,10 +12,10 @@ public class OkcoinPriceRange {
     private Instant timestamp;
 
     public OkcoinPriceRange(
-            @JsonProperty("highest") BigDecimal highest,
-            @JsonProperty("lowest") BigDecimal lowest,
-            @JsonProperty("instrument_id") String instrumentId,
-            @JsonProperty("timestamp") Instant timestamp) {
+            @JsonProperty("buyLmt") BigDecimal highest,
+            @JsonProperty("sellLmt") BigDecimal lowest,
+            @JsonProperty("instId") String instrumentId,
+            @JsonProperty("ts") Instant timestamp) {
         this.highest = highest;
         this.lowest = lowest;
         this.instrumentId = instrumentId;

@@ -2,6 +2,7 @@ package com.bitplay.okexv5;
 
 import com.bitplay.core.dto.PositionStream;
 import com.bitplay.okexv5.dto.marketdata.OkCoinDepth;
+import com.bitplay.okexv5.dto.marketdata.OkcoinIndexTicker;
 import com.bitplay.okexv5.dto.marketdata.OkcoinTicker;
 import com.bitplay.okexv5.dto.privatedata.OkExPosition;
 import com.bitplay.okexv5.dto.privatedata.OkExSwapUserInfoResult;
@@ -102,6 +103,20 @@ public class OkExAdapters {
     }
 
     public static Ticker adaptTicker(OkcoinTicker okCoinTicker, CurrencyPair currencyPair) {
+        return (new Ticker.Builder())
+                .instId(okCoinTicker.getInstrumentId())
+                .currencyPair(currencyPair)
+                .high(null)
+                .low(null)
+                .bid(okCoinTicker.getBestBid())
+                .ask(okCoinTicker.getBestAsk())
+                .last(okCoinTicker.getLast())
+                .volume(okCoinTicker.getVolume24h())
+                .timestamp(Date.from(okCoinTicker.getTimestamp())).build();
+
+    }
+
+    public static Ticker adaptIndexTicker(OkcoinIndexTicker okCoinTicker, CurrencyPair currencyPair) {
         return (new Ticker.Builder())
                 .instId(okCoinTicker.getInstrumentId())
                 .currencyPair(currencyPair)
