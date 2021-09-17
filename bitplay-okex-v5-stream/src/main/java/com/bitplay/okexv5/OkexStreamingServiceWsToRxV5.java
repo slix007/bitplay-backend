@@ -2,7 +2,6 @@ package com.bitplay.okexv5;
 
 import com.bitplay.core.helper.WsObjectMapperHelper;
 import com.bitplay.okexv5.dto.OkCoinAuthSigner;
-import com.bitplay.okexv5.dto.request.LoginDto;
 import com.bitplay.okexv5.dto.request.RequestDto;
 import com.bitplay.okexv5.dto.request.RequestDto.OP;
 import com.bitplay.service.ws.AuthSigner;
@@ -159,7 +158,7 @@ public class OkexStreamingServiceWsToRxV5 extends WsToRxStreamingService<JsonNod
         if (channelName.equals("login")) {
             final OkCoinAuthSigner s = (OkCoinAuthSigner) args[0];
             s.sign();
-            final LoginDto loginDto = LoginDto.create(s.getApikey(), s.getPassphrase(),
+            final RequestDto loginDto = RequestDto.loginRequestDto(s.getApikey(), s.getPassphrase(),
                     s.getTimestamp(), s.getSign());
             return objectMapper.writeValueAsString(loginDto);
         }

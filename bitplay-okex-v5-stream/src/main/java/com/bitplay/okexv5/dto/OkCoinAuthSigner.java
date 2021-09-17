@@ -39,13 +39,13 @@ public class OkCoinAuthSigner implements AuthSigner {
 
     public static OkCoinAuthSigner fromExchange(Exchange exchange) {
         final ExchangeSpecification spec = exchange.getExchangeSpecification();
-        final Boolean v3AsExtra = (Boolean) spec.getExchangeSpecificParametersItem("okex-v3-as-extra");
+        final Boolean v5AsExtra = (Boolean) spec.getExchangeSpecificParametersItem("okex-v5-as-extra");
 
         final OkCoinAuthSigner signer;
-        if (v3AsExtra != null && v3AsExtra) {
-            final String apikey = (String) spec.getExchangeSpecificParametersItem("okex-v3-key");
-            final String secretKey = (String) spec.getExchangeSpecificParametersItem("okex-v3-secret");
-            final String passphrase = (String) spec.getExchangeSpecificParametersItem("okex-v3-passphrase");
+        if (v5AsExtra != null && v5AsExtra) {
+            final String apikey = (String) spec.getExchangeSpecificParametersItem("okex-v5-key");
+            final String secretKey = (String) spec.getExchangeSpecificParametersItem("okex-v5-secret");
+            final String passphrase = (String) spec.getExchangeSpecificParametersItem("okex-v5-passphrase");
             signer = new OkCoinAuthSigner(apikey, secretKey, passphrase);
         } else {
             final String apikey = spec.getApiKey();

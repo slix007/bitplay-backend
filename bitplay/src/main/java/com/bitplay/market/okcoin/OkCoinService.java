@@ -441,11 +441,11 @@ public class OkCoinService extends MarketServicePreliq {
 
         subscribeOnOrderBook();
 
-        final boolean loginSuccess = false;
-//        final boolean loginSuccess = streamingExchangeV5.getStreamingPrivateDataService()
-//                .login()
-//                .blockingAwait(5, TimeUnit.SECONDS);
-//        log.info("Login success=" + loginSuccess);
+//        final boolean loginSuccess = false;
+        final boolean loginSuccess = streamingExchangeV5Private.getStreamingPrivateDataService()
+                .login()
+                .blockingAwait(5, TimeUnit.SECONDS);
+        log.info("Login success=" + loginSuccess);
 
         try {
             // workaround. some waiting after login.
@@ -579,24 +579,26 @@ public class OkCoinService extends MarketServicePreliq {
         final InstrumentDto main = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
         mainInst.add(main);
 
-        List<InstrumentDto> extraInst = new ArrayList<>();
-        final InstrumentDto extra = new InstrumentDto(okexContractTypeBTCUSD.getCurrencyPair(), okexContractTypeBTCUSD.getFuturesContract());
-        extraInst.add(extra);
+        if (okexContractType != okexContractTypeBTCUSD) {
+            List<InstrumentDto> extraInst = new ArrayList<>();
+            final InstrumentDto extra = new InstrumentDto(okexContractTypeBTCUSD.getCurrencyPair(), okexContractTypeBTCUSD.getFuturesContract());
+            extraInst.add(extra);
 
-        orderBookSubscriptionExtra = ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
-                .getOrderBooks(extraInst)
-                .doOnDispose(() -> log.info("okex orderBook subscription doOnDispose"))
-                .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
-                .doOnError(throwable1 -> log.error("okex orderBook onError", throwable1))
-                .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
+            orderBookSubscriptionExtra = ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
+                    .getOrderBooks(extraInst)
+                    .doOnDispose(() -> log.info("okex orderBook subscription doOnDispose"))
+                    .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
+                    .doOnError(throwable1 -> log.error("okex orderBook onError", throwable1))
+                    .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
 //                .filter(this::isObExtra)
-                .toFlowable(BackpressureStrategy.LATEST)
-                .observeOn(stateUpdater, false, 1)
-                .subscribe(okcoinDepth -> {
-                    final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
-                    this.orderBookXBTUSD = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
-                    this.orderBookXBTUSDShort = this.orderBookXBTUSD;
-                }, throwable -> log.error("ERROR in getting extra OrderBook: ", throwable));
+                    .toFlowable(BackpressureStrategy.LATEST)
+                    .observeOn(stateUpdater, false, 1)
+                    .subscribe(okcoinDepth -> {
+                        final OkexContractType ct = instrIdToContractType.get(okcoinDepth.getInstrumentId());
+                        this.orderBookXBTUSD = OkExAdapters.adaptOrderBook(okcoinDepth, ct.getCurrencyPair());
+                        this.orderBookXBTUSDShort = this.orderBookXBTUSD;
+                    }, throwable -> log.error("ERROR in getting extra OrderBook: ", throwable));
+        }
 
         orderBookSubscription = ((OkExStreamingMarketDataService) streamingExchangeV5Pub.getStreamingMarketDataService())
                 .getOrderBooks(mainInst)

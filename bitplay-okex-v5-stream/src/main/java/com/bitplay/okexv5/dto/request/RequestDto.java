@@ -1,19 +1,17 @@
 package com.bitplay.okexv5.dto.request;
 
-import java.lang.Character.Subset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.Data;
 
 @Data
 public class RequestDto {
 
-    private final OP op;
-    private final List<SubscriptionTopic> args;
+    protected final OP op;
+    protected final List<Args> args;
 
     public RequestDto(OP op, List<String> args) {
-        final List<SubscriptionTopic> topics = new ArrayList<>();
+        final List<Args> topics = new ArrayList<>();
         for (String arg : args) {
             final String[] a = arg.split("/");
             topics.add(new SubscriptionTopic(a[0], a[1]));
@@ -22,12 +20,37 @@ public class RequestDto {
         this.op = op;
     }
 
+    private RequestDto(LoginRequestArgs loginArgs) {
+        this.op = OP.login;
+        final List<Args> args = new ArrayList<>();
+        args.add(loginArgs);
+        this.args = args;
+    }
+
+    public static RequestDto loginRequestDto(String apiKey, String passphrase, String timestamp, String sign) {
+        return new RequestDto(new LoginRequestArgs(apiKey, passphrase, timestamp, sign));
+    }
+
+    @Data
+    public static class LoginRequestArgs extends Args {
+
+        private final String apiKey;
+        private final String passphrase;
+        private final String timestamp;
+        private final String sign;
+    }
+
+
     public enum OP {
         subscribe, unsubscribe, login
     }
 
+    public static class Args {
+
+    }
+
     @Data
-    public static class SubscriptionTopic {
+    public static class SubscriptionTopic extends Args {
 
         private final String channel;
         private final String instId;

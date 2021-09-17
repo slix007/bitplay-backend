@@ -121,7 +121,14 @@ public abstract class WsToRxStreamingService<T> extends WsConnectableService imp
                 channels.remove(channelId);
                 sendMessage(getUnsubscribeMessage(channelNames));
             }
-        }).share();
+        }).doOnTerminate(() -> {
+            log.warn("Unsubscribing from channels {}", allChannelNames);
+            if (channels.containsKey(channelId)) {
+                channels.remove(channelId);
+                sendMessage(getUnsubscribeMessage(channelNames));
+            }
+        })
+        .share();
     }
 
     public Observable<T> subscribeChannel(String channelName, Object... args) {
