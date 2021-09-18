@@ -41,7 +41,6 @@ import com.bitplay.okex.v5.client.ApiCredentialsV5;
 import com.bitplay.okex.v5.dto.adapter.OkexOrderConverter;
 import com.bitplay.okex.v5.enums.FuturesOrderTypeEnum;
 import com.bitplay.okex.v5.exception.ApiException;
-import com.bitplay.okexv3.OkExStreamingExchange;
 import com.bitplay.okexv5.OkExAdapters;
 import com.bitplay.okexv5.OkExStreamingExchangeV5;
 import com.bitplay.okexv5.OkExStreamingMarketDataService;
@@ -501,23 +500,6 @@ public class OkCoinService extends MarketServicePreliq {
         indexPriceSub.dispose();
         return streamingExchangeV5Pub.disconnect()
                 .andThen(streamingExchangeV5Private.disconnect());
-    }
-
-    private OkExStreamingExchange initExchange(Object... exArgs) {
-        ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchange.class);
-
-        // init xchange-stream
-        if (exArgs != null && exArgs.length >= 3) {
-            String exKey = (String) exArgs[0];
-            String exSecret = (String) exArgs[1];
-            String exPassphrase = (String) exArgs[2];
-            spec.setExchangeSpecificParametersItem("okex-v3-as-extra", true);
-            spec.setExchangeSpecificParametersItem("okex-v3-key", exKey);
-            spec.setExchangeSpecificParametersItem("okex-v3-secret", exSecret);
-            spec.setExchangeSpecificParametersItem("okex-v3-passphrase", exPassphrase);
-        }
-
-        return (OkExStreamingExchange) ExchangeFactory.INSTANCE.createExchange(spec);
     }
 
     private OkExStreamingExchangeV5 initStreamingExchangeV5(ProductSubscription productSubscription, Object... exArgs) {

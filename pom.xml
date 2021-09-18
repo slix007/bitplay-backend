@@ -32,9 +32,7 @@
     <module>xchange-bitmex</module>
     <module>xchange-bitmex-stream</module>
     <module>bitplay-model</module>
-<!--    <module>bitplay-okex-v3</module>-->
     <module>bitplay-model-stream</module>
-    <module>bitplay-okex-v3-stream</module>
     <module>bitplay-okex-v5</module>
     <module>bitplay-okex-v5-stream</module>
   </modules>
