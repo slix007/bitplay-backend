@@ -47,7 +47,6 @@ import com.bitplay.okexv5.OkExStreamingExchangeV5;
 import com.bitplay.okexv5.OkExStreamingMarketDataService;
 import com.bitplay.okexv5.OkExStreamingPrivateDataServiceV5;
 import com.bitplay.okexv5.dto.InstrumentDto;
-import com.bitplay.okexv5.dto.marketdata.OkCoinDepth;
 import com.bitplay.okexv5.dto.marketdata.OkcoinPriceRange;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
@@ -441,7 +440,6 @@ public class OkCoinService extends MarketServicePreliq {
 
         subscribeOnOrderBook();
 
-//        final boolean loginSuccess = false;
         final boolean loginSuccess = streamingExchangeV5Private.getStreamingPrivateDataService()
                 .login()
                 .blockingAwait(5, TimeUnit.SECONDS);
@@ -454,11 +452,11 @@ public class OkCoinService extends MarketServicePreliq {
             log.error("error while sleep after login");
         }
 
-//        if (loginSuccess) {
-//            userPositionSub = startUserPositionSub();
-//            userAccountSub = startAccountInfoSubscription();
+        if (loginSuccess) {
+            userPositionSub = startUserPositionSub();
+            userAccountSub = startAccountInfoSubscription();
 //            userOrderSub = startUserOrderSub();
-//        }
+        }
         pingStatSubPrivate = startPingStatSub(streamingExchangeV5Pub);
         pingStatSubPublic = startPingStatSub(streamingExchangeV5Private);
         markPriceSubscription = startMarkPriceListener();
@@ -590,7 +588,6 @@ public class OkCoinService extends MarketServicePreliq {
                     .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
                     .doOnError(throwable1 -> log.error("okex orderBook onError", throwable1))
                     .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
-//                .filter(this::isObExtra)
                     .toFlowable(BackpressureStrategy.LATEST)
                     .observeOn(stateUpdater, false, 1)
                     .subscribe(okcoinDepth -> {
@@ -606,7 +603,6 @@ public class OkCoinService extends MarketServicePreliq {
                 .doOnTerminate(() -> log.info("okex orderBook subscription doOnTerminate"))
                 .doOnError(throwable1 -> log.error("okex orderBook onError", throwable1))
                 .retryWhen(throwableObservable -> throwableObservable.delay(5, TimeUnit.SECONDS))
-//                .filter(d -> !isObExtra(d))
                 .toFlowable(BackpressureStrategy.LATEST)
                 .observeOn(stateUpdater, false, 1)
                 .subscribe(d -> {
@@ -653,14 +649,6 @@ public class OkCoinService extends MarketServicePreliq {
             log.error("can not fetch orderBook", e);
         }
         return this.getOrderBookShort().getOb();
-    }
-
-    private boolean isObExtra(OkCoinDepth okCoinDepth) {
-        if (okexContractType == okexContractTypeBTCUSD) {
-            return false;
-        }
-        final OkexContractType ct = instrIdToContractType.get(okCoinDepth.getInstrumentId());
-        return ct == okexContractTypeBTCUSD;
     }
 
     @Override
@@ -846,18 +834,14 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startUserPositionSub() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
 
-        return streamingExchangeV5Pub.getStreamingPrivateDataService()
+        return streamingExchangeV5Private.getStreamingPrivateDataService()
                 .getPositionObservable(instrumentDto)
                 .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .toFlowable(BackpressureStrategy.LATEST)
                 .subscribeOn(Schedulers.io())
                 .subscribe(newPos -> {
-                    final Pos pos;
-                    if (okexContractType.getFuturesContract() == FuturesContract.Swap) {
-                        pos = mergeSwapPosSafe(newPos);
-                    } else {
-                        pos = positionStreamToPos(newPos);
-                    }
+                    final Pos pos = mergeStreamPosSafe(newPos);
                     this.pos.set(pos);
 
                     getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
@@ -866,13 +850,13 @@ public class OkCoinService extends MarketServicePreliq {
                 }, throwable -> log.error("PositionObservable.Exception: ", throwable));
     }
 
-    protected Pos mergeSwapPosSafe(PositionStream newInfo) {
+    protected Pos mergeStreamPosSafe(PositionStream newInfo) {
         int iter = 0;
         boolean success = false;
         while (!success) {
             Pos current = this.pos.get();
             log.debug("Pos.Websocket: " + current.toString());
-            final Pos updated = mergeSwapPos(newInfo, current);
+            final Pos updated = mergeStreamPos(newInfo, current);
             success = this.pos.compareAndSet(current, updated);
             if (++iter > 1) {
                 log.warn("merge account iter=" + iter);
@@ -896,24 +880,6 @@ public class OkCoinService extends MarketServicePreliq {
                 p.getTimestamp(),
                 p.getRaw(),
                 p.getPlPos(),
-                null);
-    }
-
-
-    private Pos positionStreamToPos(PositionStream n) {
-        return new Pos(
-                n.getPositionLong(),
-                n.getPositionShort(),
-                n.getLongAvailToClose(),
-                n.getShortAvailToClose(),
-                leverage,
-                n.getLiquidationPrice(),
-                BigDecimal.ZERO, //mark value
-                n.getPriceAvgLong(),
-                n.getPriceAvgShort(),
-                n.getTimestamp(),
-                n.getRaw(),
-                n.getPlPos(),
                 null);
     }
 
@@ -947,49 +913,35 @@ public class OkCoinService extends MarketServicePreliq {
         return plPos;
     }
 
-    private Pos mergeSwapPos(PositionStream n, Pos current) {
-        final BigDecimal leverage = n.getLeverage().signum() != 0 ? n.getLeverage() : getLeverage();
-        if (n.getPositionLong() != null) {
-            return new Pos(
-                    n.getPositionLong(),
-                    current.getPositionShort(),
-                    n.getLongAvailToClose(),
-                    current.getShortAvailToClose(),
-                    leverage,
-                    n.getLiquidationPrice(),
-                    BigDecimal.ZERO, //mark value
-                    n.getPriceAvgLong(),
-                    current.getPriceAvgShort(),
-                    n.getTimestamp(),
-                    n.getRaw(),
-                    current.getPlPos(),
-                    null);
-        }
-        //else
+    private Pos mergeStreamPos(PositionStream n, Pos current) {
+        final BigDecimal leverage = n.getLeverage() != null && n.getLeverage().signum() != 0
+                ? n.getLeverage() : getLeverage();
         return new Pos(
-                current.getPositionLong(),
-                n.getPositionShort(),
-                current.getLongAvailToClose(),
-                n.getShortAvailToClose(),
+                n.getPositionLong() != null ? n.getPositionLong() : current.getPositionLong(),
+                BigDecimal.ZERO,
+                n.getLongAvailToClose() != null ? n.getLongAvailToClose() : current.getLongAvailToClose(),
+                BigDecimal.ZERO,
                 leverage,
-                n.getLiquidationPrice(),
+                n.getLiquidationPrice() != null
+                        ? n.getLiquidationPrice().setScale(2, RoundingMode.HALF_UP)
+                        : current.getLiquidationPrice(),
                 BigDecimal.ZERO, //mark value
-                current.getPriceAvgLong(),
-                n.getPriceAvgShort(),
-                n.getTimestamp(),
+                n.getPriceAvgLong() != null ? n.getPriceAvgLong() : current.getPriceAvgLong(),
+                BigDecimal.ZERO,
+                n.getTimestamp() != null ? n.getTimestamp() : current.getTimestamp(),
                 n.getRaw(),
                 current.getPlPos(),
-                null
-        );
+                null);
     }
 
     @SuppressWarnings("Duplicates")
     private Disposable startAccountInfoSubscription() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
-        return streamingExchangeV5Pub.getStreamingPrivateDataService()
+        return streamingExchangeV5Private.getStreamingPrivateDataService()
                 .getAccountInfoObservable(okexContractType.getCurrencyPair(), instrumentDto)
                 .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))
                 .retryWhen(throwables -> throwables.delay(5, TimeUnit.SECONDS))
+                .toFlowable(BackpressureStrategy.LATEST)
                 .subscribeOn(Schedulers.io())
                 .filter(Objects::nonNull)
                 .subscribe(newInfo -> {

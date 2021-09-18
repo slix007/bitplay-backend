@@ -101,7 +101,9 @@ public class OkexStreamingServiceWsToRxV5 extends WsToRxStreamingService<JsonNod
 
         } else if (message.get("arg") != null
                 && message.get("arg").get("channel") != null
-                && message.get("arg").get("instId") != null
+                && (message.get("arg").get("instId") != null
+                        || message.get("arg").get("ccy") != null
+                        || message.get("arg").get("instType") != null)
         ) {
             try {
                 String channel = getChannel(message);
@@ -119,9 +121,16 @@ public class OkexStreamingServiceWsToRxV5 extends WsToRxStreamingService<JsonNod
     }
 
     private String getChannel(JsonNode message) {
+        JsonNode jsonNode = message.get("arg").get("instId");
+        if (jsonNode == null) {
+            jsonNode = message.get("arg").get("instType");
+        }
+        if (jsonNode == null) {
+            jsonNode = message.get("arg").get("ccy");
+        }
         return message.get("arg").get("channel").asText()
                 + "/"
-                + message.get("arg").get("instId").asText();
+                + jsonNode.asText();
 //        return message.get("table") != null ? message.get("table").asText() : UNKNOWN_CHANNEL_ID;
     }
 
@@ -161,6 +170,11 @@ public class OkexStreamingServiceWsToRxV5 extends WsToRxStreamingService<JsonNod
             final RequestDto loginDto = RequestDto.loginRequestDto(s.getApikey(), s.getPassphrase(),
                     s.getTimestamp(), s.getSign());
             return objectMapper.writeValueAsString(loginDto);
+        }
+
+        if (args[0] instanceof RequestDto) {
+            final RequestDto requestDto = (RequestDto) args[0];
+            return objectMapper.writeValueAsString(requestDto);
         }
 
         throw new IllegalArgumentException("can not create subscribe message for params:"

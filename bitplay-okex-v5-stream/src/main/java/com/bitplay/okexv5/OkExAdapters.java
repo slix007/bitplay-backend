@@ -5,10 +5,11 @@ import com.bitplay.okexv5.dto.marketdata.OkCoinDepth;
 import com.bitplay.okexv5.dto.marketdata.OkcoinIndexTicker;
 import com.bitplay.okexv5.dto.marketdata.OkcoinTicker;
 import com.bitplay.okexv5.dto.privatedata.OkExPosition;
-import com.bitplay.okexv5.dto.privatedata.OkExSwapUserInfoResult;
 import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult;
 import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult.BalanceInfo;
 import com.bitplay.okexv5.dto.privatedata.OkExUserOrder;
+import com.bitplay.okexv5.dto.privatedata.OkexAccountResult;
+import com.bitplay.okexv5.dto.privatedata.OkexPos;
 import com.bitplay.okexv5.dto.privatedata.OkexSwapPosition;
 import com.bitplay.xchange.currency.Currency;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -20,6 +21,7 @@ import com.bitplay.xchange.dto.marketdata.Ticker;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.okcoin.OkCoinAdapters;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -30,18 +32,23 @@ public class OkExAdapters {
     }
 
 
-    public static AccountInfoContracts adaptSwapUserInfo(Currency baseTool, OkExSwapUserInfoResult acc) {
-        final String inst = acc.getInstrument_id();
-        if (inst != null && inst.length() > 2 && inst.split("-")[0].equals(baseTool.getCurrencyCode())) { // BTC, ETH
-            BigDecimal equity = acc.getEquity().setScale(8, 4);
-            BigDecimal margin = acc.getMargin().setScale(8, 4);
-            BigDecimal upl = acc.getUnrealized_pnl().setScale(8, 4);
-            BigDecimal wallet = equity.subtract(upl).setScale(8, 4);
-            BigDecimal available = acc.getTotal_avail_balance().setScale(8, 4);
-//        BigDecimal available = equity.subtract(margin).setScale(8, 4);
-            BigDecimal rpl = acc.getRealized_pnl().setScale(8, 4);
-            BigDecimal riskRate = acc.getMargin_ratio() == null ? BigDecimal.ZERO
-                    : acc.getMargin_ratio().setScale(8, 4);
+    public static AccountInfoContracts adaptAccountInfo(Currency baseTool, OkexAccountResult acc) {
+        final String ccy = acc.getCcy();
+        if (ccy != null && ccy.length() > 2 && ccy.equals(baseTool.getCurrencyCode())) { // BTC, ETH
+            BigDecimal equity = acc.getEq() == null ? null :
+                    acc.getEq().setScale(8, RoundingMode.HALF_UP);
+            BigDecimal margin = acc.getIsoEq() == null ? null :
+                    acc.getIsoEq().setScale(8, RoundingMode.HALF_UP);
+            BigDecimal upl = acc.getUpl() == null ? null :
+                    acc.getUpl().setScale(8, RoundingMode.HALF_UP);
+            BigDecimal wallet = equity == null || upl == null ? null :
+                    equity.subtract(upl).setScale(8, RoundingMode.HALF_UP);
+            BigDecimal available = acc.getAvailEq() == null ? null :
+                    acc.getAvailEq().setScale(8, RoundingMode.HALF_UP);
+            BigDecimal rpl = acc.getLiab() == null ? BigDecimal.ZERO :
+                    acc.getLiab().setScale(8, RoundingMode.HALF_UP);
+            BigDecimal riskRate = acc.getMgnRatio() == null ? BigDecimal.ZERO
+                    : acc.getMgnRatio().setScale(8, RoundingMode.HALF_UP);
             return new AccountInfoContracts(wallet, available, (BigDecimal) null, equity, (BigDecimal) null, (BigDecimal) null, margin, upl, rpl, riskRate);
 
         }
@@ -199,6 +206,23 @@ public class OkExAdapters {
                 p.getLongPnl().add(p.getShortPnl())
         );
 
+    }
+
+    public static PositionStream adaptPos(OkexPos p) {
+        return new PositionStream(
+                p.getPos(),
+                BigDecimal.ZERO,
+                p.getAvailPos(),
+                BigDecimal.ZERO,
+                p.getLever(),
+                p.getLiqPx(),
+                p.getAvgPx(),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO, //mark value
+                p.getInstId(),
+                p.getTimestamp(),
+                p.toString(),
+                null);
     }
 
     public static PositionStream adaptSwapPosition(OkexSwapPosition p) {

@@ -10,6 +10,9 @@ public class RequestDto {
     protected final OP op;
     protected final List<Args> args;
 
+    /**
+     * Used by Public channels
+     */
     public RequestDto(OP op, List<String> args) {
         final List<Args> topics = new ArrayList<>();
         for (String arg : args) {
@@ -20,15 +23,26 @@ public class RequestDto {
         this.op = op;
     }
 
-    private RequestDto(LoginRequestArgs loginArgs) {
-        this.op = OP.login;
-        final List<Args> args = new ArrayList<>();
-        args.add(loginArgs);
-        this.args = args;
+    /**
+     * Used by Private channels
+     */
+    public RequestDto(OP op, Args args) {
+        this.op = op;
+        final List<Args> argsList = new ArrayList<>();
+        argsList.add(args);
+        this.args = argsList;
     }
 
     public static RequestDto loginRequestDto(String apiKey, String passphrase, String timestamp, String sign) {
-        return new RequestDto(new LoginRequestArgs(apiKey, passphrase, timestamp, sign));
+        return new RequestDto(OP.login, new LoginRequestArgs(apiKey, passphrase, timestamp, sign));
+    }
+
+    public enum OP {
+        subscribe, unsubscribe, login
+    }
+
+    public static class Args {
+
     }
 
     @Data
@@ -40,14 +54,22 @@ public class RequestDto {
         private final String sign;
     }
 
+    @Data
+    public static class AccountRequestArgs extends Args {
 
-    public enum OP {
-        subscribe, unsubscribe, login
+        private final String channel;   // required
+        private final String ccy;    // optional - 	Currency
     }
 
-    public static class Args {
+    @Data
+    public static class PositionRequestArgs extends Args {
 
+        private final String channel;   // required
+        private final String instType;  // required
+        //        private final String uly;       // optional
+        private final String instId;    // optional
     }
+
 
     @Data
     public static class SubscriptionTopic extends Args {

@@ -5,11 +5,13 @@ import com.bitplay.core.dto.PositionStream;
 import com.bitplay.core.helper.WsObjectMapperHelper;
 import com.bitplay.okexv5.dto.InstrumentDto;
 import com.bitplay.okexv5.dto.OkCoinAuthSigner;
-import com.bitplay.okexv5.dto.privatedata.OkExPosition;
-import com.bitplay.okexv5.dto.privatedata.OkExSwapUserInfoResult;
-import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult;
+import com.bitplay.okexv5.dto.privatedata.OkexAccountResult;
 import com.bitplay.okexv5.dto.privatedata.OkExUserOrder;
-import com.bitplay.okexv5.dto.privatedata.OkexSwapPosition;
+import com.bitplay.okexv5.dto.privatedata.OkexPos;
+import com.bitplay.okexv5.dto.request.RequestDto;
+import com.bitplay.okexv5.dto.request.RequestDto.AccountRequestArgs;
+import com.bitplay.okexv5.dto.request.RequestDto.OP;
+import com.bitplay.okexv5.dto.request.RequestDto.PositionRequestArgs;
 import com.bitplay.xchange.Exchange;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
@@ -48,30 +50,20 @@ public class OkExStreamingPrivateDataServiceV5 implements StreamingPrivateDataSe
 
     @Override
     public Observable<AccountInfoContracts> getAccountInfoObservable(CurrencyPair currencyPair, Object... args) {
-        // {"op": "subscribe", "args": ["futures/account:BTC"]}
-        final String curr = currencyPair.base.toString().toUpperCase();
-        final InstrumentDto instrumentDto = args.length == 0 ? null : (InstrumentDto) args[0];
-        final boolean isSwap = instrumentDto != null && instrumentDto.getFuturesContract() == FuturesContract.Swap;
-        final String channelName = isSwap
-                ? "swap/account:" + instrumentDto.getInstrumentId()
-                : "futures/account:" + curr;
+        final String currency = currencyPair.base.toString().toUpperCase();
+        final RequestDto requestDto = new RequestDto(OP.subscribe, new AccountRequestArgs("account", currency));
 
-        final Observable<AccountInfoContracts> observable;
-        if (isSwap) {
-            observable = service.subscribeChannel(channelName)
-                    .observeOn(Schedulers.computation())
-                    .map(s -> s.get("data"))
-                    .flatMap(Observable::fromIterable)
-                    .map(s -> objectMapper.treeToValue(s, OkExSwapUserInfoResult.class))
-                    .map(result -> OkExAdapters.adaptSwapUserInfo(currencyPair.base, result));
-        } else {
-            observable = service.subscribeChannel(channelName)
-                    .observeOn(Schedulers.computation())
-                    .map(s -> s.get("data"))
-                    .flatMap(Observable::fromIterable)
-                    .map(s -> objectMapper.treeToValue(s, OkExUserInfoResult.class))
-                    .map(result -> OkExAdapters.adaptUserInfo(currencyPair.base, result));
-        }
+        final String channelName = "account/" + currency;
+        final Observable<AccountInfoContracts> observable = service.subscribeChannel(channelName, requestDto)
+                .observeOn(Schedulers.computation())
+//                .doOnNext(d -> System.out.println("account: " + d))
+                .map(s -> s.get("data"))
+                .flatMap(Observable::fromIterable)
+                .map(s -> s.get("details"))
+//                .doOnNext(d -> System.out.println("details: " + d))
+                .flatMap(Observable::fromIterable)
+                .map(s -> objectMapper.treeToValue(s, OkexAccountResult.class))
+                .map(result -> OkExAdapters.adaptAccountInfo(currencyPair.base, result));
 
         return service.isLoggedInSuccessfully()
                 ? observable
@@ -80,31 +72,26 @@ public class OkExStreamingPrivateDataServiceV5 implements StreamingPrivateDataSe
 
     @Override
     public Observable<PositionStream> getPositionObservable(Object instrumentDtoObj, Object... args) {
-        InstrumentDto instrumentDto = (InstrumentDto) instrumentDtoObj;
-        // {"op": "subscribe", "args": ["futures/position:BTC-USD-170317"]}
+        final InstrumentDto instrumentDto = (InstrumentDto) instrumentDtoObj;
         final String instrumentId = instrumentDto.getInstrumentId();
-        final Observable<PositionStream> observable;
-        if (instrumentDto.getFuturesContract() == FuturesContract.Swap) {
-            final String channelName = "swap/position:" + instrumentId;
-            observable = service.subscribeChannel(channelName)
-                    .observeOn(Schedulers.computation())
-                    .map(s -> s.get("data"))
-                    .flatMap(Observable::fromIterable)
-                    .map(s -> s.get("holding"))
-                    .flatMap(Observable::fromIterable)
+        final boolean isSwap = instrumentDto.getFuturesContract() == FuturesContract.Swap;
+        final String instType = isSwap ? "SWAP" : "FUTURES";
+
+        final RequestDto requestDto = new RequestDto(OP.subscribe, new PositionRequestArgs("positions", instType, instrumentId));
+
+        final String channelName = "positions/" + instrumentId;
+
+        final Observable<PositionStream> observable = service.subscribeChannel(channelName, requestDto)
+                .observeOn(Schedulers.computation())
+//                .doOnNext(d -> System.out.println("positions: " + d))
+                .map(s -> s.get("data"))
+//                .flatMap(Observable::fromIterable)
+//                .map(s -> s.get("holding"))
+                .flatMap(Observable::fromIterable)
+//                    .doOnNext(d -> System.out.println("data: " + d))
+                .map(s -> objectMapper.treeToValue(s, OkexPos.class))
 //                    .doOnNext(System.out::println)
-                    .map(s -> objectMapper.treeToValue(s, OkexSwapPosition.class))
-//                    .doOnNext(System.out::println)
-                    .map(OkExAdapters::adaptSwapPosition);
-        } else {
-            final String channelName = "futures/position:" + instrumentId;
-            observable = service.subscribeChannel(channelName)
-                    .observeOn(Schedulers.computation())
-                    .map(s -> s.get("data"))
-                    .flatMap(Observable::fromIterable)
-                    .map(s -> objectMapper.treeToValue(s, OkExPosition.class))
-                    .map(OkExAdapters::adaptPosition);
-        }
+                .map(OkExAdapters::adaptPos);
 
         return service.isLoggedInSuccessfully()
                 ? observable

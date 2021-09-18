@@ -88,7 +88,9 @@ public class PrivateApiV5 implements PrivateApi {
     public LimitOrder getLimitOrder(String instrumentId, String orderId, CurrencyPair currencyPair) {
         final OrdersDetailResult openOrdersDetailResult = this.client.executeSync(this.api.getOrder(instrumentId, orderId));
         final List<OrderDetail> orders = openOrdersDetailResult.getData();
-        return DtoToModelConverter.convertOrder(orders.get(0), currencyPair);
+        return orders.size() > 0
+                ? DtoToModelConverter.convertOrder(orders.get(0), currencyPair)
+                : null;
     }
 
     @Override
@@ -97,7 +99,8 @@ public class PrivateApiV5 implements PrivateApi {
         final OrderResult orderResult = this.client.executeSync(this.api.amendOrder(
                 new OrderAmendRequest(instrumentId, orderId, newPrice)
         ));
-        return OkexOrderConverter.convertOrderResult(orderResult);    }
+        return OkexOrderConverter.convertOrderResult(orderResult);
+    }
 
     @Override
     public Leverage getLeverage(String instrumentId) {
