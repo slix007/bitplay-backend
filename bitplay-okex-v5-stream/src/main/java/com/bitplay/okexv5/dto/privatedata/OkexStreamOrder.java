@@ -9,7 +9,7 @@ import java.util.Date;
  * Created by Sergey Shurmin on 6/10/17.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OkExUserOrder {
+public class OkexStreamOrder {
 
     private BigDecimal leverage;
     private String clientOid;
@@ -17,30 +17,37 @@ public class OkExUserOrder {
     private BigDecimal filledQty;
     private BigDecimal price;
     private BigDecimal fee;
-    private BigDecimal contractVal;
+//    private BigDecimal contractVal;
     private BigDecimal priceAvg;
-    private String type;
-    private Integer orderType;
+    private String side;
+//    private Integer orderType;
     private String instrumentId;
     private String orderId;
     private Date timestamp;
-    private Integer status;
+    /**
+     * Order status
+     * live: to be effective
+     * effective: effective
+     * canceled: canceled
+     * order_failed: order failed
+     */
+    private String state;
 
-    public OkExUserOrder(
-            @JsonProperty("leverage") BigDecimal leverage,
-            @JsonProperty("client_oid") String clientOid,
-            @JsonProperty("size") BigDecimal size,
-            @JsonProperty("filled_qty") BigDecimal filledQty,
-            @JsonProperty("price") BigDecimal price,
+    public OkexStreamOrder(
+            @JsonProperty("lever") BigDecimal leverage,
+            @JsonProperty("clOrdId") String clientOid,
+            @JsonProperty("sz") BigDecimal size,
+            @JsonProperty("accFillSz") BigDecimal filledQty,
+            @JsonProperty("px") BigDecimal price,
             @JsonProperty("fee") BigDecimal fee,
-            @JsonProperty("contract_val") BigDecimal contractVal,
-            @JsonProperty("price_avg") BigDecimal priceAvg,
-            @JsonProperty("type") String type,
-            @JsonProperty("order_type") Integer orderType,
-            @JsonProperty("instrument_id") String instrumentId,
-            @JsonProperty("order_id") String orderId,
-            @JsonProperty("timestamp") Date timestamp,
-            @JsonProperty("status") Integer status
+//            @JsonProperty("contract_val") BigDecimal contractVal, //TODO
+            @JsonProperty("avgPx") BigDecimal priceAvg,
+            @JsonProperty("side") String side,
+//            @JsonProperty("order_type") Integer orderType,
+            @JsonProperty("instId") String instrumentId,
+            @JsonProperty("ordId") String orderId,
+            @JsonProperty("uTime") Date timestamp,
+            @JsonProperty("state") String state
     ) {
         this.leverage = leverage;
         this.clientOid = clientOid;
@@ -48,14 +55,14 @@ public class OkExUserOrder {
         this.filledQty = filledQty;
         this.price = price;
         this.fee = fee;
-        this.contractVal = contractVal;
+//        this.contractVal = contractVal;
         this.priceAvg = priceAvg;
-        this.type = type;
-        this.orderType = orderType;
+        this.side = side;
+//        this.orderType = orderType;
         this.instrumentId = instrumentId;
         this.orderId = orderId;
         this.timestamp = timestamp;
-        this.status = status;
+        this.state = state;
     }
 
 
@@ -83,20 +90,12 @@ public class OkExUserOrder {
         return fee;
     }
 
-    public BigDecimal getContractVal() {
-        return contractVal;
-    }
-
     public BigDecimal getPriceAvg() {
         return priceAvg;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public Integer getOrderType() {
-        return orderType;
+    public String getSide() {
+        return side;
     }
 
     public String getInstrumentId() {
@@ -111,8 +110,8 @@ public class OkExUserOrder {
         return timestamp;
     }
 
-    public Integer getStatus() {
-        return status;
+    public String getState() {
+        return state;
     }
 
     @Override
@@ -124,14 +123,14 @@ public class OkExUserOrder {
                 ", filledQty=" + filledQty +
                 ", price=" + price +
                 ", fee=" + fee +
-                ", contractVal=" + contractVal +
+//                ", contractVal=" + contractVal +
                 ", priceAvg=" + priceAvg +
-                ", type='" + type + '\'' +
-                ", orderType=" + orderType +
+                ", type='" + side + '\'' +
+//                ", orderType=" + orderType +
                 ", instrumentId='" + instrumentId + '\'' +
                 ", orderId='" + orderId + '\'' +
                 ", timestamp=" + timestamp +
-                ", status=" + status +
+                ", state=" + state +
                 '}';
     }
 }

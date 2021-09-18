@@ -70,6 +70,15 @@ public class RequestDto {
         private final String instId;    // optional
     }
 
+    @Data
+    public static class OrdersRequestArgs extends Args {
+
+        private final String channel;   // required
+        private final String instType;  // required
+        private final String instId;    // optional
+//                private final String uly;       // optional
+    }
+
 
     @Data
     public static class SubscriptionTopic extends Args {

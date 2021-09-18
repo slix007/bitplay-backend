@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrderDetail {
 
-    private String instType;
+    private String instee;
     /**
      * The id of the futures, eg: BTC-USD-180629
      */

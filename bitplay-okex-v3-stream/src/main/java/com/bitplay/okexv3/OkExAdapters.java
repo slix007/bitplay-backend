@@ -127,7 +127,7 @@ public class OkExAdapters {
             OrderType orderType = adaptOrderType(okExUserOrder.getType());
             CurrencyPair currencyPair = parseCurrencyPair(okExUserOrder.getInstrumentId());
 //            String orderId = String.valueOf(okExUserOrder.getOrderId());
-            OrderStatus orderStatus = OkCoinAdapters.adaptOrderStatus(okExUserOrder.getStatus());
+            OrderStatus orderStatus = OkCoinAdapters.convertStatus(okExUserOrder.getStatus().toString());
 //        return new ContractLimitOrder(orderType, okExUserOrder.getAmount(), currencyPair, orderId, okExUserOrder.getCreateDate(), okExUserOrder.getPrice(), okExUserOrder.getPriceAvg(), okExUserOrder.getDealAmount(), orderStatus);
 
 //            final Date timestamp = Date.from(okExUserOrder.getTimestamp());

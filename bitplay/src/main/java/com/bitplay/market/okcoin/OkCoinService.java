@@ -455,7 +455,7 @@ public class OkCoinService extends MarketServicePreliq {
         if (loginSuccess) {
             userPositionSub = startUserPositionSub();
             userAccountSub = startAccountInfoSubscription();
-//            userOrderSub = startUserOrderSub();
+            userOrderSub = startUserOrderSub();
         }
         pingStatSubPrivate = startPingStatSub(streamingExchangeV5Pub);
         pingStatSubPublic = startPingStatSub(streamingExchangeV5Private);
@@ -954,7 +954,7 @@ public class OkCoinService extends MarketServicePreliq {
     private Disposable startUserOrderSub() {
         final InstrumentDto instrumentDto = new InstrumentDto(okexContractType.getCurrencyPair(), okexContractType.getFuturesContract());
 
-        return ((OkExStreamingPrivateDataServiceV5) streamingExchangeV5Pub.getStreamingPrivateDataService())
+        return ((OkExStreamingPrivateDataServiceV5) streamingExchangeV5Private.getStreamingPrivateDataService())
                 .getTradesObservableRaw(instrumentDto)
                 .map(TmpAdapter::adaptTradeResult)
                 .doOnError(throwable -> log.error("Error on PrivateData observing", throwable))

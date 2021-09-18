@@ -6,11 +6,12 @@ import com.bitplay.core.helper.WsObjectMapperHelper;
 import com.bitplay.okexv5.dto.InstrumentDto;
 import com.bitplay.okexv5.dto.OkCoinAuthSigner;
 import com.bitplay.okexv5.dto.privatedata.OkexAccountResult;
-import com.bitplay.okexv5.dto.privatedata.OkExUserOrder;
+import com.bitplay.okexv5.dto.privatedata.OkexStreamOrder;
 import com.bitplay.okexv5.dto.privatedata.OkexPos;
 import com.bitplay.okexv5.dto.request.RequestDto;
 import com.bitplay.okexv5.dto.request.RequestDto.AccountRequestArgs;
 import com.bitplay.okexv5.dto.request.RequestDto.OP;
+import com.bitplay.okexv5.dto.request.RequestDto.OrdersRequestArgs;
 import com.bitplay.okexv5.dto.request.RequestDto.PositionRequestArgs;
 import com.bitplay.xchange.Exchange;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -109,7 +110,7 @@ public class OkExStreamingPrivateDataServiceV5 implements StreamingPrivateDataSe
         final Observable<List<LimitOrder>> observable = service.subscribeChannel(channelName)
                 .observeOn(Schedulers.computation())
                 .map(s -> s.get("data"))
-                .map(s -> objectMapper.treeToValue(s, OkExUserOrder[].class))
+                .map(s -> objectMapper.treeToValue(s, OkexStreamOrder[].class))
 //                .doOnNext(s -> System.out.println(Arrays.asList(s)))
                 .map(OkExAdapters::adaptTradeResult);
 
@@ -120,16 +121,17 @@ public class OkExStreamingPrivateDataServiceV5 implements StreamingPrivateDataSe
     }
 
     // try workaround java.lang.NoSuchMethodError because of different XChange lib versions
-    public Observable<OkExUserOrder[]> getTradesObservableRaw(InstrumentDto instrumentDto) {
-        // {"op": "subscribe", "args": ["futures/order:BTC-USD-170317"]}
+    public Observable<OkexStreamOrder[]> getTradesObservableRaw(InstrumentDto instrumentDto) {
         final String instrumentId = instrumentDto.getInstrumentId();
-        final String channelName = instrumentDto.getFuturesContract() == FuturesContract.Swap
-                ? "swap/order:" + instrumentId
-                : "futures/order:" + instrumentId;
-        final Observable<OkExUserOrder[]> observable = service.subscribeChannel(channelName)
+        boolean isSwap = instrumentDto.getFuturesContract() == FuturesContract.Swap;
+        final String instType = isSwap ? "SWAP" : "FUTURES";
+        final RequestDto requestDto = new RequestDto(OP.subscribe, new OrdersRequestArgs("orders", instType, instrumentId));
+        final String channelName = "orders/" + instrumentId;
+
+        final Observable<OkexStreamOrder[]> observable = service.subscribeChannel(channelName, requestDto)
                 .observeOn(Schedulers.computation())
                 .map(s -> s.get("data"))
-                .map(s -> objectMapper.treeToValue(s, OkExUserOrder[].class));
+                .map(s -> objectMapper.treeToValue(s, OkexStreamOrder[].class));
 
         return service.isLoggedInSuccessfully()
                 ? observable

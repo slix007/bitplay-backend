@@ -7,7 +7,7 @@ import com.bitplay.okexv5.dto.marketdata.OkcoinTicker;
 import com.bitplay.okexv5.dto.privatedata.OkExPosition;
 import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult;
 import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult.BalanceInfo;
-import com.bitplay.okexv5.dto.privatedata.OkExUserOrder;
+import com.bitplay.okexv5.dto.privatedata.OkexStreamOrder;
 import com.bitplay.okexv5.dto.privatedata.OkexAccountResult;
 import com.bitplay.okexv5.dto.privatedata.OkexPos;
 import com.bitplay.okexv5.dto.privatedata.OkexSwapPosition;
@@ -144,25 +144,41 @@ public class OkExAdapters {
 //        return contractLimitOrder;
 //    }
 
-    public static List<LimitOrder> adaptTradeResult(OkExUserOrder[] okExUserOrders) {
+    private static OrderType convertType(String orderType) {
+        if (orderType == null) {
+            return null;
+        }
+        // Type (1: open long 2: open short 3: close long 4: close short)
+        switch (orderType) {
+            case "buy"://OPEN_LONG:
+                return OrderType.BID;
+            case "sell"://OPEN_SHORT:
+                return OrderType.ASK;
+//            case "3"://CLOSE_LONG:
+//                return OrderType.EXIT_BID;
+//            case "4"://CLOSE_SHORT:
+//                return OrderType.EXIT_ASK;
+            default:
+                throw new IllegalArgumentException("enum is wrong");
+        }
+    }
+
+    public static List<LimitOrder> adaptTradeResult(OkexStreamOrder[] okexStreamOrders) {
         List<LimitOrder> res = new ArrayList<>();
-        for (OkExUserOrder okExUserOrder : okExUserOrders) {
+        for (OkexStreamOrder okexStreamOrder : okexStreamOrders) {
 
-            OrderType orderType = adaptOrderType(okExUserOrder.getType());
-            CurrencyPair currencyPair = parseCurrencyPair(okExUserOrder.getInstrumentId());
-//            String orderId = String.valueOf(okExUserOrder.getOrderId());
-            OrderStatus orderStatus = OkCoinAdapters.adaptOrderStatus(okExUserOrder.getStatus());
-//        return new ContractLimitOrder(orderType, okExUserOrder.getAmount(), currencyPair, orderId, okExUserOrder.getCreateDate(), okExUserOrder.getPrice(), okExUserOrder.getPriceAvg(), okExUserOrder.getDealAmount(), orderStatus);
+            final OrderType orderType = OkCoinAdapters.convertType(okexStreamOrder.getSide());
+            final OrderStatus orderStatus = OkCoinAdapters.convertStatus(okexStreamOrder.getState());
 
-//            final Date timestamp = Date.from(okExUserOrder.getTimestamp());
+            CurrencyPair currencyPair = parseCurrencyPair(okexStreamOrder.getInstrumentId());
             final LimitOrder limitOrder = new LimitOrder(orderType,
-                    okExUserOrder.getSize(),
+                    okexStreamOrder.getSize(),
                     currencyPair,
-                    okExUserOrder.getOrderId(),
-                    okExUserOrder.getTimestamp(),
-                    okExUserOrder.getPrice(),
-                    okExUserOrder.getPriceAvg(),
-                    okExUserOrder.getFilledQty(),
+                    okexStreamOrder.getOrderId(),
+                    okexStreamOrder.getTimestamp(),
+                    okexStreamOrder.getPrice(),
+                    okexStreamOrder.getPriceAvg(),
+                    okexStreamOrder.getFilledQty(),
 //                    okExUserOrder.getFee(),
                     orderStatus);
             res.add(limitOrder);
@@ -175,18 +191,6 @@ public class OkExAdapters {
         final String base = split[0];
         final String counter = split[1];
         return new CurrencyPair(Currency.getInstance(base), Currency.getInstance(counter));
-    }
-
-    private static OrderType adaptOrderType(String type) {
-        if (type.equals("1")) {
-            return OrderType.BID;
-        } else if (type.equals("2")) {
-            return OrderType.ASK;
-        } else if (type.equals("3")) {
-            return OrderType.EXIT_BID;
-        } else {
-            return type.equals("4") ? OrderType.EXIT_ASK : null;
-        }
     }
 
     public static PositionStream adaptPosition(OkExPosition p) {
