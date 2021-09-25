@@ -13,7 +13,6 @@ import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import com.bitplay.xchange.dto.marketdata.Ticker;
 import com.bitplay.xchange.dto.marketdata.Trade;
-import com.bitplay.xchange.okcoin.FuturesContract;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.reactivex.Observable;
 import java.util.ArrayList;

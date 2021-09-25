@@ -1,9 +1,9 @@
 package com.bitplay.xchange.bitmex;
 
 import com.bitplay.model.Pos;
+import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
-import com.bitplay.xchange.dto.account.Balance;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchange.dto.trade.OpenOrders;
@@ -16,7 +16,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.swagger.client.model.Margin;
 import io.swagger.client.model.OrderBookL2;
 import io.swagger.client.model.Position;
-import io.swagger.client.model.Wallet;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -25,8 +24,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import com.bitplay.xchange.currency.Currency;
-import com.bitplay.xchange.currency.CurrencyPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,16 +94,6 @@ public class BitmexAdapters {
                 margin,
                 upl
         );
-    }
-
-    public static Balance adaptBitmexBalance(Wallet wallet) {
-        return new Balance(new Currency(wallet.getCurrency()),
-                satoshiToBtc(wallet.getAmount()),
-                satoshiToBtc(wallet.getAmount()));
-    }
-
-    public static String adaptSymbol(CurrencyPair currencyPair) {
-        return currencyPair.base.getSymbol().toUpperCase() + currencyPair.counter.getSymbol().toUpperCase();
     }
 
     public static Pos adaptBitmexPosition(Position position, String symbol) {
