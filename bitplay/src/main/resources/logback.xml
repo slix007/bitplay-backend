@@ -241,7 +241,7 @@
 
 
     <!--com.bitplay.xchangestream.poloniex - orderBook increment update for Poloniex-->
-    <logger name="DEBUG_LOG" level="debug" additivity="false">
+    <logger name="DEBUG_LOG" level="OFF" additivity="false">
         <appender-ref ref="DEBUG_APPENDER"/>
     </logger>
 
