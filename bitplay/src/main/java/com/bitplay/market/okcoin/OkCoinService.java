@@ -201,7 +201,8 @@ public class OkCoinService extends MarketServicePreliq {
 
     private volatile String ifDisconnetedString = "";
     private volatile boolean shutdown = false;
-    private Disposable onDisconnectHook;
+    private Disposable onDisconnectHookPub;
+    private Disposable onDisconnectHookPrivate;
 
     private volatile BigDecimal markPrice = BigDecimal.ZERO;
     private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
@@ -527,25 +528,31 @@ public class OkCoinService extends MarketServicePreliq {
         streamingExchangeV5Private.connect().blockingAwait();
 
         // Retry on disconnect. (It's disconneced each 5 min)
-        streamingExchangeV5Private.onDisconnect().doOnComplete(() -> {
-            if (streamingExchangeV5Pub.isAlive()) {
-                streamingExchangeV5Pub.disconnect();
-            }
-        });
-
-        onDisconnectHook = streamingExchangeV5Pub.onDisconnect()
+        onDisconnectHookPrivate = streamingExchangeV5Private.onDisconnect()
                 .doOnComplete(() -> {
+                    if (streamingExchangeV5Pub.isAlive()) {
+                        log.warn("force disconnect okCoinService streamingExchangeV5Pub" + getNameWithType());
+                        streamingExchangeV5Pub.disconnect();
+                    }
+                }).subscribe();
+
+        onDisconnectHookPub = streamingExchangeV5Pub.onDisconnect()
+                .doOnComplete(() -> {
+                    Completable disconnectPrivate = Completable.complete();
                     if (streamingExchangeV5Private.isAlive()) {
-                        streamingExchangeV5Private.disconnect();
+                        log.warn("force disconnect okCoinService streamingExchangeV5Private" + getNameWithType());
+                        disconnectPrivate = streamingExchangeV5Private.disconnect();
                     }
-                    ifDisconnetedString += " okex disconnected at " + LocalTime.now();
-                    if (!shutdown) {
-                        log.warn("onClientDisconnect okCoinService");
-                        initWebSocketAndAllSubscribers();
-                        log.info("Exchange Reconnect finished");
-                    } else {
-                        log.info("Exchange Disconnect finished");
-                    }
+                    disconnectPrivate.doOnComplete(() -> {
+                        ifDisconnetedString += " okex disconnected at " + LocalTime.now();
+                        if (!shutdown) {
+                            log.warn("onClientDisconnect okCoinService " + getNameWithType());
+                            initWebSocketAndAllSubscribers();
+                            log.info("Exchange Reconnect finished");
+                        } else {
+                            log.info("Exchange Disconnect finished");
+                        }
+                    }).subscribe();
                 })
                 .subscribe();
     }
