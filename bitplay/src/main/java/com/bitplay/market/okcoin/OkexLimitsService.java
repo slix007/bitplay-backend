@@ -16,6 +16,7 @@ import com.bitplay.utils.Utils;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -77,8 +78,9 @@ public class OkexLimitsService implements LimitsService {
         final OrderBook ob = okCoinService.getOrderBook();
         final BigDecimal limitBid = ob.getBids().get(ind).getLimitPrice();
         final BigDecimal limitAsk = ob.getAsks().get(ind).getLimitPrice();
+        final Instant instant = Instant.ofEpochMilli(priceRange.getTimestamp().getEpochSecond());
         return new Params(limits.getIgnoreLimits(), okexLimitPriceNumber, limitBid, limitAsk, minPrice, maxPrice,
-                Utils.timestampToStr(priceRange.getTimestamp()));
+                Utils.timestampToStr(instant));
     }
 
     @Override
