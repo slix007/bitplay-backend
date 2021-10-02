@@ -17,8 +17,32 @@ public class OkexAccountResult {
     private BigDecimal upl;
     private String ccy;
     private BigDecimal eq;
-    private BigDecimal isoEq;// Isolated margin equity of the currency
+    private BigDecimal frozenBal; // Margin frozen for open
     private BigDecimal liab;// Liabilities of the currency
+
+
+//    private BigDecimal availBal; // Margin frozen for open orders
+//    private BigDecimal isoEq;// Isolated margin equity of the currency
+//    private BigDecimal ordFrozen; // Margin frozen for open orders
+//    private BigDecimal cashBal; // Margin frozen for open orders
+//    private BigDecimal crossLiab; // Margin frozen for open orders
+//    private BigDecimal disEq; // Margin frozen for open orders
+//
+//    private BigDecimal eqUsd; // Margin frozen for open
+//    private BigDecimal interest; // Margin frozen for open
+//    private BigDecimal isoLiab; // Margin frozen for open
+//    private BigDecimal isoUpl; // Margin frozen for open
+
+//            "liab": "0",
+//            "maxLoan": "1453.92289531493594",
+//            "mgnRatio": "",
+//            "notionalLever": "",
+//            "ordFrozen": "0",
+//            "twap": "0",
+//            "uTime": "1620722938250",
+//            "upl": "0.570822125136023",
+//            "uplLiab": "0",
+//            "stgyEq":"0"
 
 
 //    private BigDecimal fixed_balance;

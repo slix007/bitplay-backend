@@ -18,8 +18,8 @@ public class AccountConverter {
                 final DetailsData acc = accountData.getDetails();
                 BigDecimal equity = acc.getEq() == null ? null :
                         acc.getEq().setScale(8, 4);
-                BigDecimal margin = acc.getIsoEq() == null ? null :
-                        acc.getIsoEq().setScale(8, 4);
+                BigDecimal margin = acc.getFrozenBal() == null ? null :
+                        acc.getFrozenBal().setScale(8, RoundingMode.HALF_UP);
                 BigDecimal upl = acc.getUpl() == null ? null :
                         acc.getUpl().setScale(8, 4);
                 BigDecimal wallet = equity == null || upl == null ? null :
