@@ -1175,6 +1175,8 @@ public class OkCoinService extends MarketServicePreliq {
                     Collections.singletonList(FuturesOrderTypeEnum.MARKET)
             );
             final String orderId = orderResult.getOrder_id();
+            log.info("TAKER okexPlaceOrder result" + orderResult);
+
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
 
             final Instant endReq = Instant.now();
@@ -2377,8 +2379,8 @@ public class OkCoinService extends MarketServicePreliq {
                     break;
                 }
             } catch (Exception e) {
-                log.error("#{}/{} error on get order status", counterName, attemptCount, e);
-                tradeLogger.error(String.format("#%s/%s error on get order status: %s", counterName, attemptCount, e.toString()));
+                log.error("#{}/{} error on get order status, orderId={}", counterName, attemptCount, orderId, e);
+                tradeLogger.error(String.format("#%s/%s error on get order status=%s, orderId=%s", counterName, attemptCount, e.toString(), orderId));
             }
         }
         return result;

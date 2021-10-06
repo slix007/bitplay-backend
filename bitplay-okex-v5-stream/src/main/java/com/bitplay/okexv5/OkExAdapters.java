@@ -7,9 +7,9 @@ import com.bitplay.okexv5.dto.marketdata.OkcoinTicker;
 import com.bitplay.okexv5.dto.privatedata.OkExPosition;
 import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult;
 import com.bitplay.okexv5.dto.privatedata.OkExUserInfoResult.BalanceInfo;
-import com.bitplay.okexv5.dto.privatedata.OkexStreamOrder;
 import com.bitplay.okexv5.dto.privatedata.OkexAccountResult;
 import com.bitplay.okexv5.dto.privatedata.OkexPos;
+import com.bitplay.okexv5.dto.privatedata.OkexStreamOrder;
 import com.bitplay.okexv5.dto.privatedata.OkexSwapPosition;
 import com.bitplay.xchange.currency.Currency;
 import com.bitplay.xchange.currency.CurrencyPair;
@@ -115,7 +115,7 @@ public class OkExAdapters {
                 .currencyPair(currencyPair)
                 .high(null)
                 .low(null)
-                .bid(okCoinTicker.getBestBid())
+                .bid(okCoinTicker.getBestBid() != null ? okCoinTicker.getBestBid().setScale(8, RoundingMode.HALF_UP) : null)
                 .ask(okCoinTicker.getBestAsk())
                 .last(okCoinTicker.getLast())
                 .volume(okCoinTicker.getVolume24h())

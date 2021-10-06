@@ -1,5 +1,22 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.api.service.RestartService;
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
+import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.events.NtUsdCheckEvent;
+import com.bitplay.arbitrage.events.ObChangeEvent;
+import com.bitplay.arbitrage.events.SigEvent;
+import com.bitplay.arbitrage.events.SigType;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.external.NotifyType;
+import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.BalanceService;
+import com.bitplay.market.ExtrastopService;
+import com.bitplay.market.MarketServicePreliq;
+import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.exceptions.ReconnectFailedException;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -16,6 +33,9 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.metrics.MetricsUtils;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
+import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.persistance.LastPriceDeviationService;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.OrderRepositoryService;
@@ -37,30 +57,8 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
+import com.bitplay.service.exception.NotConnectedException;
 import com.bitplay.service.ws.statistic.PingStatEvent;
-import com.bitplay.api.service.RestartService;
-import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.AvgPriceItem;
-import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.events.NtUsdCheckEvent;
-import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.arbitrage.events.SigEvent;
-import com.bitplay.arbitrage.events.SigType;
-import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.arbitrage.posdiff.PosDiffService;
-import com.bitplay.xchangestream.bitmex.BitmexStreamingAccountService;
-import com.bitplay.xchangestream.bitmex.BitmexStreamingExchange;
-import com.bitplay.xchangestream.bitmex.dto.BitmexStreamAdapters;
-import com.bitplay.external.NotifyType;
-import com.bitplay.external.SlackNotifications;
-import com.bitplay.market.BalanceService;
-import com.bitplay.market.ExtrastopService;
-import com.bitplay.market.MarketServicePreliq;
-import com.bitplay.market.MarketStaticData;
-import com.bitplay.model.AccountBalance;
-import com.bitplay.model.Pos;
-import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.utils.Utils;
 import com.bitplay.xchange.Exchange;
@@ -81,13 +79,15 @@ import com.bitplay.xchange.dto.trade.OpenOrders;
 import com.bitplay.xchange.exceptions.ExchangeException;
 import com.bitplay.xchange.service.trade.TradeService;
 import com.bitplay.xchange.utils.Assert;
+import com.bitplay.xchangestream.bitmex.BitmexStreamingAccountService;
+import com.bitplay.xchangestream.bitmex.BitmexStreamingExchange;
 import com.bitplay.xchangestream.bitmex.BitmexStreamingMarketDataService;
 import com.bitplay.xchangestream.bitmex.dto.BitmexContractIndex;
 import com.bitplay.xchangestream.bitmex.dto.BitmexDepth;
 import com.bitplay.xchangestream.bitmex.dto.BitmexOrderBook;
+import com.bitplay.xchangestream.bitmex.dto.BitmexStreamAdapters;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.bitplay.service.exception.NotConnectedException;
 import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
@@ -2869,9 +2869,20 @@ public class BitmexService extends MarketServicePreliq {
         final Date timestamp = update.getTimestamp();
 
         final ContractType ct = getContractType();
-        int s = (ct == BitmexContractType.XRPUSD_Perpetual)
+        // BTC - 1 знак после запятой
+        // ETH - 2 знака после запятой
+        //LINK - 5 знаков после запятой
+        //LTC - 3 знака после запятой
+        //XRP - 5 знаков после запятой
+        //BCH -3 знака после запятой
+        int s = (ct == BitmexContractType.XRPUSD_Perpetual
+                || ct == BitmexContractType.LINKUSDT_Perpetual
+                || ct == BitmexContractType.LTCUSD_Perpetual
+                || ct == BitmexContractType.BCHUSD_Perpetual
+        )
                 ? ct.getScale() + 1
                 : ct.getScale();
+
         return new BitmexContractIndex(update.getSymbol(),
                 indexPrice != null ? indexPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 markPrice != null ? markPrice.setScale(s, RoundingMode.HALF_UP) : null,
@@ -3160,7 +3171,7 @@ public class BitmexService extends MarketServicePreliq {
                             if (order.getStatus() != null &&
                                     (order.getStatus() == OrderStatus.CANCELED || order.getStatus() == OrderStatus.REJECTED)) {
                                 tradeLogger.info(String.format("%s WARNING: no order parts. Order is %s: %s", logMsg,
-                                        order.getStatus(), Arrays.toString(orders.toArray())),
+                                                order.getStatus(), Arrays.toString(orders.toArray())),
                                         contractTypeStr);
                                 break;
                             } else {
@@ -3191,11 +3202,11 @@ public class BitmexService extends MarketServicePreliq {
                             break;
                         } else {
                             tradeLogger.info(String.format("%s price=0. Use 'order history' price p=%s, a=%s, ordStatus=%s. %s",
-                                    logMsg,
-                                    theItem.getPrice(),
-                                    theItem.getAmount(),
-                                    ordStatus,
-                                    Arrays.toString(orderParts.toArray())
+                                            logMsg,
+                                            theItem.getPrice(),
+                                            theItem.getAmount(),
+                                            ordStatus,
+                                            Arrays.toString(orderParts.toArray())
                                     ),
                                     contractTypeStr);
                         }
@@ -3232,9 +3243,9 @@ public class BitmexService extends MarketServicePreliq {
             }
         }
         tradeLogger.info(String.format("#%s AvgPrice by %s orders(%s) is %s", counterName,
-                itemMap.size(),
-                Arrays.toString(itemMap.keySet().toArray()),
-                avgPrice.getAvg()),
+                        itemMap.size(),
+                        Arrays.toString(itemMap.keySet().toArray()),
+                        avgPrice.getAvg()),
                 contractTypeStr);
 
         tradeLogger.info(String.format("#%s %s", counterName, arbitrageService.getDealPrices().getDiffB().str),

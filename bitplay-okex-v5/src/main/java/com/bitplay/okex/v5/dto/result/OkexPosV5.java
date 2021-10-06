@@ -27,7 +27,7 @@ public class OkexPosV5 {
                 p.getLever(),
                 p.getLiqPx() != null ? p.getLiqPx().setScale(2, RoundingMode.HALF_UP) : null,
                 BigDecimal.ZERO, //mark value
-                p.getAvgPx() == null || p.getAvgPx().signum() == 0 ? BigDecimal.ZERO : p.getAvgPx(),
+                p.getAvgPx() == null || p.getAvgPx().signum() == 0 ? BigDecimal.ZERO : p.getAvgPx().setScale(8, RoundingMode.HALF_UP),
                 BigDecimal.ZERO,
                 p.getUTime() == null ? null : p.getUTime().toInstant(),
                 p.toString(),
