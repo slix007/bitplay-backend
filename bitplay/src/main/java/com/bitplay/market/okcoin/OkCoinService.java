@@ -1175,7 +1175,9 @@ public class OkCoinService extends MarketServicePreliq {
                     Collections.singletonList(FuturesOrderTypeEnum.MARKET)
             );
             final String orderId = orderResult.getOrder_id();
-            log.info("TAKER okexPlaceOrder result" + orderResult);
+            final String msg = String.format("#%s TAKER okexPlaceOrder result %s", counterNameWithPortion, orderResult);
+            log.info(msg);
+            tradeLogger.info(msg);
 
             final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
 
@@ -2174,6 +2176,9 @@ public class OkCoinService extends MarketServicePreliq {
             final InstrumentDto instrumentDto = instrDtos.get(0);
             final OrderResultTiny result = fplayOkexExchangeV5.getPrivateApi()
                     .moveLimitOrder(instrumentDto.getInstrumentId(), fPlayOrder.getOrderId(), bestMarketPrice);
+            final String msg = String.format("#%s MOVING okexPlaceOrder result %s", counterWithPortion, result);
+            log.info(msg);
+            tradeLogger.info(msg);
             if (result.isResult()) {
                 final String orderId = result.getOrder_id();
                 // 2. Status check
