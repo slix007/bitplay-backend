@@ -1199,7 +1199,7 @@ public class OkCoinService extends MarketServicePreliq {
             addOpenOrder(fPlayOrder);
 
             // double check. Do we need it?
-            orderInfo = getFinalOrderInfoSync(orderId, counterNameWithPortion, "Taker:FinalStatus:");
+            orderInfo = getFinalOrderInfoSync(orderId, counterNameWithPortion, "Taker:FinalStatus:", true);
             if (orderInfo == null) {
                 orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
                 orderInfo.setOrderStatus(OrderStatus.NEW);
@@ -1900,6 +1900,17 @@ public class OkCoinService extends MarketServicePreliq {
                         tradeResponse.setErrorCode(
                                 orderResult.getError_code() + " " + orderResult.getError_message()
                         );
+                        final String msgError = String.format("#%s/%s ERROR placing order inst=%s, t=%s, p=%s, a=%s, %s. %s",
+                                counterNameWithPortion, attempt,
+                                instrumentDto.getInstrumentId(),
+                                orderType,
+                                thePrice,
+                                tradableAmount,
+                                futuresOrderType,
+                                orderResult
+                        );
+                        tradeLogger.info(msgError);
+                        log.info(msgError);
                         return tradeResponse;
                     }
 
@@ -2180,9 +2191,15 @@ public class OkCoinService extends MarketServicePreliq {
             log.info(msg);
             tradeLogger.info(msg);
             if (result.isResult()) {
-                final String orderId = result.getOrder_id();
+//                final String orderId = result.getOrder_id();
                 // 2. Status check
-                LimitOrder updatedOrder = getFinalOrderInfoSync(orderId, fPlayOrder.getCounterWithPortion(), "MovingStatus:");
+//                LimitOrder updatedOrder = getFinalOrderInfoSync(orderId, fPlayOrder.getCounterWithPortion(), "MovingStatus:", false);
+                LimitOrder updatedOrder = new LimitOrder(
+                        limitOrder.getType(), limitOrder.getTradableAmount(), limitOrder.getCurrencyPair(),
+                        limitOrder.getId(), new Date(),
+                        bestMarketPrice,
+                        limitOrder.getAveragePrice(), limitOrder.getCumulativeAmount(), limitOrder.getStatus()
+                );
                 final FplayOrder newFplayOrder;
                 final String logString;
                 if (updatedOrder != null) {
@@ -2359,11 +2376,14 @@ public class OkCoinService extends MarketServicePreliq {
     /**
      * Loop until status CANCELED or FILLED.
      */
-    private LimitOrder getFinalOrderInfoSync(String orderId, String counterName, String logInfoId) {
+    private LimitOrder getFinalOrderInfoSync(String orderId, String counterName, String logInfoId, boolean withRepeats) {
         LimitOrder result = null;
         int attemptCount = 0;
         final Instant start = Instant.now();
         while (Duration.between(start, Instant.now()).getSeconds() < MAX_SEC_CHECK_AFTER_TAKER) {
+            if (attemptCount > 0 && !withRepeats) {
+                break;
+            }
             attemptCount++;
             try {
 

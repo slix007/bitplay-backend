@@ -3353,6 +3353,11 @@ public class BitmexService extends MarketServicePreliq {
                 }
 
             } catch (IOException e1) {
+                String cause = "";
+                if (e1.getCause() != null) {
+                    cause = " cause: " + e1.getCause().getMessage();
+                }
+                tradeLogger.error("Error on handling HttpStatusIOException " + e1.getMessage() + cause);
                 logger.error("Error on handling HttpStatusIOException", e1);
             }
 
