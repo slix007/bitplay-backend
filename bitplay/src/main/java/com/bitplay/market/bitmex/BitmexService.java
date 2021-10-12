@@ -2869,19 +2869,15 @@ public class BitmexService extends MarketServicePreliq {
         final Date timestamp = update.getTimestamp();
 
         final ContractType ct = getContractType();
-        // BTC - 1 знак после запятой
+        // BTC - 2 знак после запятой
         // ETH - 2 знака после запятой
         //LINK - 5 знаков после запятой
         //LTC - 3 знака после запятой
         //XRP - 5 знаков после запятой
         //BCH -3 знака после запятой
-        int s = (ct == BitmexContractType.XRPUSD_Perpetual
-                || ct == BitmexContractType.LINKUSDT_Perpetual
-                || ct == BitmexContractType.LTCUSD_Perpetual
-                || ct == BitmexContractType.BCHUSD_Perpetual
-        )
-                ? ct.getScale() + 1
-                : ct.getScale();
+        int s = (ct.getName().startsWith("ETH"))
+                ? ct.getScale()
+                : ct.getScale() + 1;
 
         return new BitmexContractIndex(update.getSymbol(),
                 indexPrice != null ? indexPrice.setScale(s, RoundingMode.HALF_UP) : null,

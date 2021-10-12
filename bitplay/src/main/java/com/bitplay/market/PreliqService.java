@@ -78,7 +78,7 @@ public class PreliqService {
             final BigDecimal dqlOpenMin = getDqlOpenMin();
             final BigDecimal dqlKillPos = getDqlKillPos(marketService);
             final Pos pos = marketService.getPos();
-            final BigDecimal posVal = pos.getPositionLong().subtract(pos.getPositionShort());
+            final BigDecimal posVal = pos.getPositionLong();
             final CorrParams corrParams = persistenceService.fetchCorrParams();
             maxCountNotify(corrParams.getPreliq());
             maxCountNotifyKillpos(corrParams.getKillpos());
@@ -345,7 +345,7 @@ public class PreliqService {
         return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
     }
 
-        private void printLogs(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName, String startStopStatus) {
+    private void printLogs(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName, String startStopStatus) {
         try {
             final String prefix = String.format("#%s %s_%s %s: ", counterForLogs, nameSymbol, opName, startStopStatus);
             final MarketServicePreliq thatMarket = getTheOtherMarket();
@@ -557,11 +557,14 @@ public class PreliqService {
             }
         } else if (getName().equals(OkCoinService.NAME)) {
             r_block = BigDecimal.valueOf(corrParams.getPreliq().getPreliqBlockOkex());
-            final BigDecimal okLong = posObj.getPositionLong();
-            final BigDecimal okShort = posObj.getPositionShort();
-            BigDecimal okMeaningPos = deltaName == DeltaName.B_DELTA ? okShort : okLong;
-            if (okMeaningPos != null && okMeaningPos.signum() != 0 && okMeaningPos.compareTo(r_block) < 0) {
-                r_block = okMeaningPos;
+            BigDecimal pos = posObj.getPositionLong();
+            if (pos != null && pos.signum() != 0 && pos.compareTo(r_block) < 0) {
+                if (deltaName == DeltaName.O_DELTA && pos.signum() > 0 && pos.compareTo(r_block) < 0) { // okex sell
+                    r_block = pos;
+                }
+                if (deltaName == DeltaName.B_DELTA && pos.signum() < 0 && (pos.abs()).compareTo(r_block) < 0) { // okex buy
+                    r_block = pos.abs();
+                }
             }
             if (r_block.signum() == 0) {
                 log.warn("R_block = 0");
