@@ -757,12 +757,15 @@ public class OkCoinService extends MarketServicePreliq {
     public String fetchPosition() throws Exception {
         final String instrumentId = instrDtos.get(0).getInstrumentId();
         final Pos pos = fplayOkexExchangeV5.getPrivateApi().getPos(instrumentId);
-        final Pos pos1 = setPosLeverage(pos);
-        final Pos pos2 = updatePlPos(pos1);
-        this.pos.set(pos2);
-        getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
-        stateRecalcInStateUpdaterThread();
-
+        if (pos != null) {
+            final Pos pos1 = setPosLeverage(pos);
+            final Pos pos2 = updatePlPos(pos1);
+            this.pos.set(pos2);
+            getApplicationEventPublisher().publishEvent(new NtUsdCheckEvent());
+            stateRecalcInStateUpdaterThread();
+        } else {
+            log.warn("Response position is empty.");
+        }
         return this.pos.toString();
     }
 

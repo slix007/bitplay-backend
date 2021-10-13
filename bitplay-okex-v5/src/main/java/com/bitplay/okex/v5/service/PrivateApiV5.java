@@ -45,9 +45,9 @@ public class PrivateApiV5 implements PrivateApi {
     @Override
     public Pos getPos(String instrumentId) {
         final OkexOnePositionV5 position = this.client.executeSync(this.api.getInstrumentPosition(instType, instrumentId));
-        return position.getOne().isPresent()
-                ? OkexPosV5.toPos(position.getOne().get())
-                : Pos.emptyPos();
+        return position.getOne()
+                .map(OkexPosV5::toPos)
+                .orElse(null);
     }
 
 
