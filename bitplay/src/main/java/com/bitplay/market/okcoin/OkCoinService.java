@@ -120,6 +120,7 @@ import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1182,8 +1183,6 @@ public class OkCoinService extends MarketServicePreliq {
             log.info(msg);
             tradeLogger.info(msg);
 
-            final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
-
             final Instant endReq = Instant.now();
             final long waitingMarketMs = endReq.toEpochMilli() - startReq.toEpochMilli();
             monPlacing.getWaitingMarket().add(BigDecimal.valueOf(waitingMarketMs));
@@ -1194,56 +1193,61 @@ public class OkCoinService extends MarketServicePreliq {
             metricsDictionary.putOkexPlacing(waitingMarketMs);
             fplayTradeService.addOkexPlacingMs(tradeId, waitingMarketMs);
 
-            LimitOrder orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
-            tradeResponse.setLimitOrder(orderInfo);
-            orderInfo.setOrderStatus(OrderStatus.NEW);
-            final FplayOrder fPlayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType,
-                    portionsQty, portionsQtyMax);
-            addOpenOrder(fPlayOrder);
-
-            // double check. Do we need it?
-            orderInfo = getFinalOrderInfoSync(orderId, counterNameWithPortion, "Taker:FinalStatus:", true);
-            if (orderInfo == null) {
-                orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
-                orderInfo.setOrderStatus(OrderStatus.NEW);
-            }
-
-            tradeResponse.setLimitOrder(orderInfo);
-            final FplayOrder theUpdate = FplayOrderUtils.updateFplayOrder(fPlayOrder, orderInfo);
-            addOpenOrder(theUpdate);
-
-            persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, orderInfo.getAveragePrice());
-
-            final String execDuration;
-            final boolean filledOrPartially = orderInfo.getStatus() == OrderStatus.FILLED || orderInfo.getStatus() == OrderStatus.PARTIALLY_FILLED;
-            if (bestQuotes != null
-                    && bestQuotes.getSignalTime() != null
-                    && orderResult.isResult()
-                    && filledOrPartially
-                    && signalType == SignalType.AUTOMATIC) {
-                final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
-                addExecDuration(d);
-                execDuration = String.valueOf(d);
+            if (!orderResult.isResult() || StringUtils.isBlank(orderId)) {
+                tradeResponse.setErrorCode("Result is false: " + orderResult);
             } else {
-                execDuration = null;
-            }
-
-            if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
-                tradeResponse.setErrorCode(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE);
-                tradeResponse.addCancelledOrder(orderInfo);
-                tradeResponse.setLimitOrder(null);
-                warningLogger.warn("#{} Order was cancelled. orderId={}", counterNameWithPortion, orderId);
-            } else if (orderInfo.getStatus() == OrderStatus.FILLED) { //FILLED by any (orderInfo or cancelledOrder)
-
-                writeLogPlaceOrder(orderType, amount, "taker",
-                        orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion, orderResult, execDuration);
-
-                tradeResponse.setOrderId(orderId);
+                final LimitOrder limitOrder = new LimitOrder(orderType, amount, okexContractType.getCurrencyPair(), orderId, new Date(), thePrice);
+                LimitOrder orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
                 tradeResponse.setLimitOrder(orderInfo);
-            } else { // NEW, PARTIALLY_FILLED
-                tradeResponse.addCancelledOrder(orderInfo);
-                tradeResponse.setErrorCode(TradeResponse.TAKER_BECAME_LIMIT);
+                orderInfo.setOrderStatus(OrderStatus.NEW);
+                final FplayOrder fPlayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, orderInfo, bestQuotes, PlacingType.TAKER, signalType,
+                        portionsQty, portionsQtyMax);
+                addOpenOrder(fPlayOrder);
+
+                // double check. Do we need it?
+                orderInfo = getFinalOrderInfoSync(orderId, counterNameWithPortion, "Taker:FinalStatus:", true);
+                if (orderInfo == null) {
+                    orderInfo = TmpAdapter.cloneWithId(limitOrder, orderId);
+                    orderInfo.setOrderStatus(OrderStatus.NEW);
+                }
+
                 tradeResponse.setLimitOrder(orderInfo);
+                final FplayOrder theUpdate = FplayOrderUtils.updateFplayOrder(fPlayOrder, orderInfo);
+                addOpenOrder(theUpdate);
+
+                persistenceService.getDealPricesRepositoryService().setSecondOpenPrice(tradeId, orderInfo.getAveragePrice());
+
+                final String execDuration;
+                final boolean filledOrPartially = orderInfo.getStatus() == OrderStatus.FILLED || orderInfo.getStatus() == OrderStatus.PARTIALLY_FILLED;
+                if (bestQuotes != null
+                        && bestQuotes.getSignalTime() != null
+                        && orderResult.isResult()
+                        && filledOrPartially
+                        && signalType == SignalType.AUTOMATIC) {
+                    final long d = endReq.toEpochMilli() - bestQuotes.getSignalTime().toEpochMilli();
+                    addExecDuration(d);
+                    execDuration = String.valueOf(d);
+                } else {
+                    execDuration = null;
+                }
+
+                if (orderInfo.getStatus() == OrderStatus.CANCELED) { // Should not happen
+                    tradeResponse.setErrorCode(TradeResponse.TAKER_WAS_CANCELLED_MESSAGE);
+                    tradeResponse.addCancelledOrder(orderInfo);
+                    tradeResponse.setLimitOrder(null);
+                    warningLogger.warn("#{} Order was cancelled. orderId={}", counterNameWithPortion, orderId);
+                } else if (orderInfo.getStatus() == OrderStatus.FILLED) { //FILLED by any (orderInfo or cancelledOrder)
+
+                    writeLogPlaceOrder(orderType, amount, "taker",
+                            orderInfo.getAveragePrice(), orderId, orderInfo.getStatus().toString(), counterNameWithPortion, orderResult, execDuration);
+
+                    tradeResponse.setOrderId(orderId);
+                    tradeResponse.setLimitOrder(orderInfo);
+                } else { // NEW, PARTIALLY_FILLED
+                    tradeResponse.addCancelledOrder(orderInfo);
+                    tradeResponse.setErrorCode(TradeResponse.TAKER_BECAME_LIMIT);
+                    tradeResponse.setLimitOrder(orderInfo);
+                }
             }
         } // openOrdersLock
 
