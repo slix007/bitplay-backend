@@ -327,7 +327,8 @@ public class NtUsdRecoveryService {
                 // 1. Сравниваем DQL двух бирж:
                 BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
                 BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
-                exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+                final String dSym = arbitrageService.getBothOkexDsym();
+                exLog.append("left").append(dSym).append("=").append(leftDql).append(",right").append(dSym).append("=").append(rightDql);
                 BigDecimal leBest = arbitrageService.getbEbest();
                 BigDecimal reBest = arbitrageService.getoEbest();
                 String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
@@ -389,7 +390,8 @@ public class NtUsdRecoveryService {
                 // 1. Сравниваем DQL двух бирж:
                 BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
                 BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
-                exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+                final String dSym = arbitrageService.getBothOkexDsym();
+                exLog.append("left").append(dSym).append("=").append(leftDql).append(",right").append(dSym).append("=").append(rightDql);
                 BigDecimal leBest = arbitrageService.getbEbest();
                 BigDecimal reBest = arbitrageService.getoEbest();
                 String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());

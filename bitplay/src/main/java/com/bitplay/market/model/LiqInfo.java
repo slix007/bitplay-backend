@@ -22,7 +22,7 @@ public class LiqInfo {
     private volatile String dqlString; // Diff Quote Liq.
     private volatile String dmrlString;// Diff Margin Rate Liq.
 
-    private volatile String dqlStringExtra;
+    private volatile String dqlStringExtra; // only Bitmex
 
     public BigDecimal getDqlCurr() {
         if (dqlCurr != null && dqlCurr.compareTo(DQL_WRONG) == 0) {

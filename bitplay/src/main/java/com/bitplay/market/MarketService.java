@@ -1,5 +1,13 @@
 package com.bitplay.market;
 
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
+import com.bitplay.arbitrage.dto.AvgPriceItem;
+import com.bitplay.arbitrage.dto.BestQuotes;
+import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
+import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
@@ -18,6 +26,9 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.TradeLogger;
 import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
+import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.persistance.MonitoringDataService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.LiqParams;
@@ -28,22 +39,11 @@ import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.MonObTimestamp;
 import com.bitplay.persistance.domain.settings.BitmexContractType;
-import com.bitplay.persistance.domain.settings.BitmexObType;
 import com.bitplay.persistance.domain.settings.ContractType;
 import com.bitplay.persistance.domain.settings.ExtraFlag;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SysOverloadArgs;
-import com.bitplay.arbitrage.dto.ArbType;
-import com.bitplay.arbitrage.dto.AvgPriceItem;
-import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
-import com.bitplay.arbitrage.posdiff.PosDiffService;
-import com.bitplay.external.SlackNotifications;
-import com.bitplay.model.AccountBalance;
-import com.bitplay.model.Pos;
-import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.utils.Utils;
 import com.bitplay.xchange.Exchange;
 import com.bitplay.xchange.currency.Currency;
@@ -1371,6 +1371,18 @@ public abstract class MarketService extends MarketServiceWithState {
     }
 
     public void stopAllActions(String counterForLogs) {
+        stopAllActionsSingleService(counterForLogs);
+
+        final ArbitrageService arbService = getArbitrageService();
+        if (arbService.areBothOkex()) {
+            MarketService theOtherMarket = getArbType() == ArbType.LEFT
+                    ? arbService.getRightMarketService()
+                    : arbService.getLeftMarketService();
+            theOtherMarket.stopAllActionsSingleService(counterForLogs);
+        }
+    }
+
+    public void stopAllActionsSingleService(String counterForLogs) {
         shouldStopPlacing = true;
 
         try {
@@ -1557,9 +1569,9 @@ public abstract class MarketService extends MarketServiceWithState {
         }
 
         tradeLogger.info(String.format("#%s AvgPrice by %s orders(%s) is %s", counterName,
-                itemMap.size(),
-                Arrays.toString(itemMap.keySet().toArray()),
-                avgPrice.getAvg()),
+                        itemMap.size(),
+                        Arrays.toString(itemMap.keySet().toArray()),
+                        avgPrice.getAvg()),
                 contractTypeStr);
 
         tradeLogger.info(String.format("#%s %s", counterName, getArbitrageService().getDealPrices().getDiffB().str),

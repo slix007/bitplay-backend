@@ -19,12 +19,11 @@ public class LiquidationInfoJson {
     private String mmDmrl;
     private String dqlExtra; // Diff quote liq.
     private String mmDqlExtra;
+    private Boolean areBothOkex;
 
-    public LiquidationInfoJson(String dqlVal ,String dql, String dmrl, String mmDql, String mmDmrl) {
-        this.dqlVal = dqlVal;
-        this.dql = dql;
-        this.dmrl = dmrl;
-        this.mmDql = mmDql;
-        this.mmDmrl = mmDmrl;
+    public static LiquidationInfoJson empty() {
+        return new LiquidationInfoJson(
+                "", "","","","","","", false
+        );
     }
 }

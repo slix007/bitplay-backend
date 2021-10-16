@@ -3038,7 +3038,8 @@ public class BitmexService extends MarketServicePreliq {
         final BigDecimal leftDqlKillPos = dql.getLeftDqlKillPos();
         final BigDecimal dqlCurr = getLiqInfo().getDqlCurr();
         final BigDecimal dqlLevel = dql.getDqlLevel();
-        return arbitrageService.getDqlStateService().updateLeftDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, dqlLevel);
+        return arbitrageService.getDqlStateService().updateLeftDqlState("DQL",
+                leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, dqlLevel);
     }
 
     @Override
@@ -3072,7 +3073,7 @@ public class BitmexService extends MarketServicePreliq {
 
         final BigDecimal leftDqlKillPos = dql.getLeftDqlKillPos();
         final BigDecimal dqlLevel = dql.getDqlLevel();
-        arbitrageService.getDqlStateService().updateLeftDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, dqlLevel);
+        arbitrageService.getDqlStateService().updateLeftDqlState("DQL", leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, dqlLevel);
 
         return isOk;
     }

@@ -1,5 +1,18 @@
 package com.bitplay.api.service;
 
+import static com.bitplay.utils.Utils.timestampToStr;
+
+import com.bitplay.api.dto.AccountInfoJson;
+import com.bitplay.api.dto.LiquidationInfoJson;
+import com.bitplay.api.dto.ResultJson;
+import com.bitplay.api.dto.TickerJson;
+import com.bitplay.api.dto.TradeRequestJson;
+import com.bitplay.api.dto.TradeResponseJson;
+import com.bitplay.api.dto.VisualTrade;
+import com.bitplay.api.dto.ob.FutureIndexJson;
+import com.bitplay.api.dto.ob.LimitsJson;
+import com.bitplay.api.dto.ob.OrderBookJson;
+import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -16,26 +29,13 @@ import com.bitplay.market.model.MoveResponse;
 import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.persistance.domain.LiqParams;
-import com.bitplay.persistance.domain.fluent.FplayOrder;
-import com.bitplay.persistance.domain.settings.OkexContractType;
-import com.bitplay.api.dto.AccountInfoJson;
-import com.bitplay.api.dto.LiquidationInfoJson;
-import com.bitplay.api.dto.ResultJson;
-import com.bitplay.api.dto.TickerJson;
-import com.bitplay.api.dto.TradeRequestJson;
-import com.bitplay.api.dto.TradeResponseJson;
-import com.bitplay.api.dto.VisualTrade;
-import com.bitplay.api.dto.ob.FutureIndexJson;
-import com.bitplay.api.dto.ob.LimitsJson;
-import com.bitplay.api.dto.ob.OrderBookJson;
-import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
 import com.bitplay.model.SwapSettlement;
-import com.bitplay.xchangestream.bitmex.dto.BitmexContractIndex;
+import com.bitplay.persistance.domain.LiqParams;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.utils.Utils;
-import java.math.RoundingMode;
 import com.bitplay.xchange.currency.Currency;
 import com.bitplay.xchange.dto.Order;
 import com.bitplay.xchange.dto.Order.OrderType;
@@ -48,8 +48,9 @@ import com.bitplay.xchange.dto.marketdata.Ticker;
 import com.bitplay.xchange.dto.marketdata.Trade;
 import com.bitplay.xchange.dto.trade.ContractLimitOrder;
 import com.bitplay.xchange.dto.trade.LimitOrder;
-
+import com.bitplay.xchangestream.bitmex.dto.BitmexContractIndex;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -59,8 +60,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.bitplay.utils.Utils.timestampToStr;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
@@ -408,7 +407,7 @@ public abstract class AbstractUiService<T extends MarketService> {
     public LiquidationInfoJson getLiquidationInfoJson() {
         final T bs = getBusinessService();
         if (bs == null) {
-            return new LiquidationInfoJson("", "", "", "", "");
+            return LiquidationInfoJson.empty();
         }
         final LiqInfo liqInfo = bs.getLiqInfo();
         final LiqParams liqParams = bs.getPersistenceService().fetchLiqParams(bs.getNameWithType());
@@ -417,14 +416,21 @@ public abstract class AbstractUiService<T extends MarketService> {
         if (dqlString != null && dqlString.startsWith(s + "_DQL = na")) {
             dqlString = s + "_DQL = na";
         }
+        final boolean areBothOkex =
+                (bs.getArbitrageService() != null && bs.getArbitrageService().getLeftMarketService() != null)
+                        && bs.getArbitrageService().areBothOkex();
+        final String dqlVal = liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toString() : "";
+        final String dmrlVal = liqInfo.getDmrlCurr() != null ? liqInfo.getDmrlCurr().toString() : "";
+        final String dqlDmrlVal = areBothOkex ? dmrlVal : dqlVal;
         return new LiquidationInfoJson(
-                liqInfo.getDqlCurr() != null ? liqInfo.getDqlCurr().toString() : "",
+                dqlDmrlVal,
                 dqlString,
                 liqInfo.getDmrlString(),
                 String.format("DQL: %s ... %s", liqParams.getDqlMin(), liqParams.getDqlMax()),
                 String.format("DMRL: %s ... %s", liqParams.getDmrlMin(), liqParams.getDmrlMax()),
                 liqInfo.getDqlStringExtra(),
-                String.format("DQL_extra: %s ... %s", liqParams.getDqlMinExtra(), liqParams.getDqlMaxExtra())
+                String.format("DQL_extra: %s ... %s", liqParams.getDqlMinExtra(), liqParams.getDqlMaxExtra()),
+                areBothOkex
         );
     }
 

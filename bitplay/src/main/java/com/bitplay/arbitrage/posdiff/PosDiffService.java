@@ -1069,7 +1069,8 @@ public class PosDiffService {
         // 1. Сравниваем DQL двух бирж:
         BigDecimal leftDql = arbitrageService.getLeftMarketService().getLiqInfo().getDqlCurr();
         BigDecimal rightDql = arbitrageService.getRightMarketService().getLiqInfo().getDqlCurr();
-        exLog.append("leftDql=").append(leftDql).append(",rightDql=").append(rightDql);
+        final String dSym = arbitrageService.getBothOkexDsym();
+        exLog.append("left").append(dSym).append("=").append(leftDql).append(",right").append(dSym).append("=").append(rightDql);
         BigDecimal leBest = arbitrageService.getbEbest();
         BigDecimal reBest = arbitrageService.getoEbest();
         String leftEBest = String.format("L_e_best%s_%s", leBest, arbitrageService.getbEbestUsd());
@@ -1199,10 +1200,11 @@ public class PosDiffService {
 
     private void dqlOpenMinAdjust(CorrObj corrObj, BigDecimal dc, BigDecimal cm, boolean isEth, BigDecimal bMax, BigDecimal okMax) {
         final boolean dqlOpenViolated = corrObj.marketService.isDqlOpenViolated();
+        final String dSym = arbitrageService.getBothOkexDsym();
         if (dqlOpenViolated) {
             if (corrObj.noSwitch) {
                 corrObj.correctAmount = BigDecimal.ZERO;
-                corrObj.errorDescription = "Attempt of INCREASE_POS when DQL_open_min is violated and noSwitch";
+                corrObj.errorDescription = String.format("Attempt of INCREASE_POS when %s_open_min is violated and noSwitch", dSym);
             } else {
                 // check if other market isOk
                 final MarketServicePreliq theOtherService = corrObj.marketService.getArbType() == ArbType.LEFT
@@ -1211,13 +1213,13 @@ public class PosDiffService {
                 boolean theOtherMarketIsViolated = theOtherService.isDqlOpenViolated();
                 if (theOtherMarketIsViolated) {
                     corrObj.correctAmount = BigDecimal.ZERO;
-                    corrObj.errorDescription = "Attempt of INCREASE_POS when DQL_open_min is violated on both markets.";
+                    corrObj.errorDescription = String.format("Attempt of INCREASE_POS when %s_open_min is violated on both markets.", dSym);
                 } else if (corrObj.getSignalType().isExtraSet()) {
                     corrObj.correctAmount = BigDecimal.ZERO;
                     corrObj.errorDescription = "Attempt of switch extraSet that can not be done on dqlOpenMinAdjust.";
                 } else {
                     final String switchMsg =
-                            String.format("%s switch markets. %s DQL_open_min is violated.", corrObj.signalType, corrObj.marketService.getNameWithType());
+                            String.format("%s switch markets. %s %s_open_min is violated.", corrObj.signalType, corrObj.marketService.getNameWithType(), dSym);
                     log.warn(switchMsg);
                     warningLogger.warn(switchMsg);
                     slackNotifications.sendNotify(corrObj.signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, switchMsg);
@@ -1279,9 +1281,10 @@ public class PosDiffService {
 
     private void dqlCloseMinAdjust(CorrObj corrObj) {
         final boolean dqlViolated = corrObj.marketService.isDqlViolated();
+
         if (dqlViolated) {
             corrObj.correctAmount = BigDecimal.ZERO;
-            corrObj.errorDescription = "DQL_close_min is violated";
+            corrObj.errorDescription = arbitrageService.getBothOkexDsym() + "_close_min is violated";
         }
     }
 

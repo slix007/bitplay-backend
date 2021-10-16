@@ -2647,7 +2647,7 @@ public class OkCoinService extends MarketServicePreliq {
             if (position == null || position.getPositionLong() == null) {
                 return; // not yet initialized
             }
-            final BigDecimal pos = position.getPositionLong().subtract(position.getPositionShort());
+            final BigDecimal pos = position.getPositionLong();
             final BigDecimal oMrLiq = getArbType() == ArbType.LEFT
                     ? persistenceService.getSettingsRepositoryService().getSettings().getDql().getLeftMrLiq()
                     : persistenceService.getSettingsRepositoryService().getSettings().getDql().getRightMrLiq();
@@ -2655,94 +2655,151 @@ public class OkCoinService extends MarketServicePreliq {
             final AccountBalance accountInfoContracts = getAccount();
             final BigDecimal equity = accountInfoContracts.getELast();
             final BigDecimal margin = accountInfoContracts.getMargin();
+            final BigDecimal marginRatio = accountInfoContracts.getRiskRate();
             final BigDecimal m = markPrice;//ticker != null ? ticker.getLast() : null;
             final String s = getArbType().s();
 
-            if (equity != null && margin != null && oMrLiq != null
-                    && position.getPriceAvgShort() != null
-                    && position.getPriceAvgLong() != null
-                    && m != null) {
-                BigDecimal dql = null;
-                String dqlString;
-                if (pos.signum() > 0) {
-                    if (margin.signum() > 0 && equity.signum() > 0) {
-                        if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                            dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s, L=0)", s, s, pos, s, margin, s, equity);
-                            dql = null;
+            if (getArbitrageService().areBothOkex()) {
+                if (equity != null && margin != null
+                        && position.getPriceAvgLong() != null
+                        && m != null) {
+
+                    final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
+
+                    setLiqInfoDmrlForTheSameAccount(pos, liqParams, margin, marginRatio, s);
+                    storeLiqParams(liqParams);
+                    updateDqlState();
+                }
+
+            } else {
+                if (equity != null && margin != null && oMrLiq != null
+                        && position.getPriceAvgLong() != null
+                        && m != null) {
+                    BigDecimal dql = null;
+                    String dqlString;
+                    if (pos.signum() > 0) {
+                        if (margin.signum() > 0 && equity.signum() > 0) {
+                            if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
+                                dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s, L=0)", s, s, pos, s, margin, s, equity);
+                                dql = null;
+                            } else {
+                                final BigDecimal L = position.getLiquidationPrice();
+                                dql = m.subtract(L);
+                                dqlString = String.format("%s_DQL = m%s - L%s = %s", s, m, L, dql);
+                            }
                         } else {
-                            final BigDecimal L = position.getLiquidationPrice();
-                            dql = m.subtract(L);
-                            dqlString = String.format("%s_DQL = m%s - L%s = %s", s, m, L, dql);
-                        }
-                    } else {
-                        dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s)", s, s, pos, s, margin, s, equity);
-                        dql = null;
-                        warningLogger.info(String.format("Warning.All should be > 0: %s_pos=%s, %s_margin=%s, %s_equity=%s, qu_ent=%s/%s",
-                                s, pos.toPlainString(), s, margin.toPlainString(), s, equity.toPlainString(),
-                                position.getPriceAvgLong(), position.getPriceAvgShort()));
-                    }
-
-                } else if (pos.signum() < 0) {
-                    if (margin.signum() > 0 && equity.signum() > 0) {
-                        if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
-                            dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s, L=0)", s, s, pos, s, margin, s, equity);
+                            dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s)", s, s, pos, s, margin, s, equity);
                             dql = null;
-                        } else {
-                            final BigDecimal L = position.getLiquidationPrice();
-                            dql = L.subtract(m);
-                            dqlString = String.format("%s_DQL = L%s - m%s = %s", s, L, m, dql);
+                            warningLogger.info(String.format("Warning.All should be > 0: %s_pos=%s, %s_margin=%s, %s_equity=%s, qu_ent=%s",
+                                    s, pos.toPlainString(), s, margin.toPlainString(), s, equity.toPlainString(),
+                                    position.getPriceAvgLong()));
                         }
+
+                    } else if (pos.signum() < 0) {
+                        if (margin.signum() > 0 && equity.signum() > 0) {
+                            if (position.getLiquidationPrice() == null || position.getLiquidationPrice().signum() == 0) {
+                                dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s, L=0)", s, s, pos, s, margin, s, equity);
+                                dql = null;
+                            } else {
+                                final BigDecimal L = position.getLiquidationPrice();
+                                dql = L.subtract(m);
+                                dqlString = String.format("%s_DQL = L%s - m%s = %s", s, L, m, dql);
+                            }
+                        } else {
+                            dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s)", s, s, pos, s, margin, s, equity);
+                            dql = null;
+                            warningLogger.info(String.format("Warning.All should be > 0: %s_pos=%s, %s_margin=%s, %s_equity=%s, qu_ent=%s",
+                                    s, pos.toPlainString(), s, margin.toPlainString(), s, equity.toPlainString(),
+                                    position.getPriceAvgLong()));
+                        }
+
                     } else {
-                        dqlString = String.format("%s_DQL = na(%s_pos=%s, %s_margin=%s, %s_equity=%s)", s, s, pos, s, margin, s, equity);
-                        dql = null;
-                        warningLogger.info(String.format("Warning.All should be > 0: %s_pos=%s, %s_margin=%s, %s_equity=%s, qu_ent=%s/%s",
-                                s, pos.toPlainString(), s, margin.toPlainString(), s, equity.toPlainString(),
-                                position.getPriceAvgLong(), position.getPriceAvgShort()));
+                        dqlString = s + "_DQL = na(pos=0)";
                     }
+                    liqInfo.setDqlString(dqlString);
 
-                } else {
-                    dqlString = s + "_DQL = na(pos=0)";
+                    final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
+                    if (dql != null && dql.compareTo(LiqInfo.DQL_WRONG) != 0) {
+                        if (liqParams.getDqlMax().compareTo(dql) < 0) {
+                            liqParams.setDqlMax(dql);
+                        }
+                        if (liqParams.getDqlMin().compareTo(dql) > 0) {
+                            liqParams.setDqlMin(dql);
+                        }
+                    }
+                    liqInfo.setDqlCurr(dql);
+
+                    setLiqInfoDmrlForSeparateAccount(pos, liqParams, margin, equity, oMrLiq, s);
+
+                    storeLiqParams(liqParams);
+                    updateDqlState();
                 }
-
-                BigDecimal dmrl = null;
-                String dmrlString;
-                if (pos.signum() != 0 && margin.signum() > 0) {
-                    final BigDecimal oMr = equity.divide(margin, 4, BigDecimal.ROUND_HALF_UP)
-                            .multiply(BigDecimal.valueOf(100)).setScale(2, BigDecimal.ROUND_HALF_UP);
-                    dmrl = oMr.subtract(oMrLiq);
-                    dmrlString = String.format("%s_DMRL = %s - %s = %s%%", s, oMr, oMrLiq, dmrl);
-                } else {
-                    dmrlString = s + "_DMRL = na";
-                }
-
-                final LiqParams liqParams = getPersistenceService().fetchLiqParams(getNameWithType());
-                if (dql != null && dql.compareTo(LiqInfo.DQL_WRONG) != 0) {
-                    if (liqParams.getDqlMax().compareTo(dql) < 0) {
-                        liqParams.setDqlMax(dql);
-                    }
-                    if (liqParams.getDqlMin().compareTo(dql) > 0) {
-                        liqParams.setDqlMin(dql);
-                    }
-                }
-                liqInfo.setDqlCurr(dql);
-
-                if (dmrl != null) {
-                    if (liqParams.getDmrlMax().compareTo(dmrl) < 0) {
-                        liqParams.setDmrlMax(dmrl);
-                    }
-                    if (liqParams.getDmrlMin().compareTo(dmrl) > 0) {
-                        liqParams.setDmrlMin(dmrl);
-                    }
-                }
-                liqInfo.setDmrlCurr(dmrl);
-
-                liqInfo.setDqlString(dqlString);
-                liqInfo.setDmrlString(dmrlString);
-
-                storeLiqParams(liqParams);
-                updateDqlState();
             }
         });
+    }
+
+    private void setLiqInfoDmrlForTheSameAccount(
+            BigDecimal pos,
+            LiqParams liqParams,
+            BigDecimal margin,
+            BigDecimal marginRatio,
+            String s
+    ) {
+        BigDecimal marginRatioLiq = BigDecimal.valueOf(100);
+
+        BigDecimal dmrl = null;
+        String dmrlString;
+        if (pos.signum() != 0 && margin.signum() > 0 && marginRatio != null) {
+            dmrl = marginRatio.subtract(marginRatioLiq);
+            dmrlString = String.format("%s_DMRL = %s - %s = %s%%", s, marginRatio, marginRatioLiq, dmrl);
+        } else {
+            dmrlString = s + "_DMRL = na";
+        }
+
+        if (dmrl != null) {
+            if (liqParams.getDmrlMax().compareTo(dmrl) < 0) {
+                liqParams.setDmrlMax(dmrl);
+            }
+            if (liqParams.getDmrlMin().compareTo(dmrl) > 0) {
+                liqParams.setDmrlMin(dmrl);
+            }
+        }
+        liqInfo.setDmrlCurr(dmrl);
+        liqInfo.setDmrlString(dmrlString);
+        liqInfo.setDqlCurr(dmrl);
+        liqInfo.setDqlString(dmrlString);
+
+    }
+
+    private void setLiqInfoDmrlForSeparateAccount(
+            BigDecimal pos,
+            LiqParams liqParams,
+            BigDecimal margin,
+            BigDecimal equity,
+            BigDecimal oMrLiq,
+            String s
+    ) {
+        BigDecimal dmrl = null;
+        String dmrlString;
+        if (pos.signum() != 0 && margin.signum() > 0) {
+            final BigDecimal oMr = equity.divide(margin, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+            dmrl = oMr.subtract(oMrLiq);
+            dmrlString = String.format("%s_DMRL = %s - %s = %s%%", s, oMr, oMrLiq, dmrl);
+        } else {
+            dmrlString = s + "_DMRL = na";
+        }
+
+        if (dmrl != null) {
+            if (liqParams.getDmrlMax().compareTo(dmrl) < 0) {
+                liqParams.setDmrlMax(dmrl);
+            }
+            if (liqParams.getDmrlMin().compareTo(dmrl) > 0) {
+                liqParams.setDmrlMin(dmrl);
+            }
+        }
+        liqInfo.setDmrlCurr(dmrl);
+        liqInfo.setDmrlString(dmrlString);
     }
 
     @Override
@@ -2762,7 +2819,8 @@ public class OkCoinService extends MarketServicePreliq {
             dqlKillPos = dql.getRightDqlKillPos();
         }
         final BigDecimal dqlLevel = dql.getDqlLevel();
-        return arbitrageService.getDqlStateService().updateDqlState(getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr(), dqlLevel);
+        final String dSym = arbitrageService.getBothOkexDsym();
+        return arbitrageService.getDqlStateService().updateDqlState(dSym, getArbType(), dqlKillPos, dqlOpenMin, dqlCloseMin, liqInfo.getDqlCurr(), dqlLevel);
     }
 
     /**

@@ -24,6 +24,7 @@ public class LiqParams extends MarketDocument {
     private BigDecimal dqlMax = BigDecimal.valueOf(-10000);
     private BigDecimal dmrlMin = BigDecimal.valueOf(10000);
     private BigDecimal dmrlMax = BigDecimal.valueOf(-10000);
+    // dql*Extra is for Bitemx only
     private BigDecimal dqlMinExtra = BigDecimal.valueOf(10000);
     private BigDecimal dqlMaxExtra = BigDecimal.valueOf(-10000);
 

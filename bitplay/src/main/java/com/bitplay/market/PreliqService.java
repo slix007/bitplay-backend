@@ -85,7 +85,8 @@ public class PreliqService {
             final BigDecimal dqlLevel = marketService.getPersistenceService().getSettingsRepositoryService().getSettings().getDql().getDqlLevel();
             final BigDecimal dqlCurr = liqInfo.getDqlCurr();
 
-            final DqlState marketDqlState = arbitrageService.getDqlStateService().updateDqlState(marketService.getArbType(),
+            final String dSym = arbitrageService.getBothOkexDsym();
+            final DqlState marketDqlState = arbitrageService.getDqlStateService().updateDqlState(dSym, marketService.getArbType(),
                     dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
 
             if (dqlCurr != null && dqlCurr.compareTo(dqlLevel) < 0) {

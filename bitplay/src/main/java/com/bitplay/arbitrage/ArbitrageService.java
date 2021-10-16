@@ -1,5 +1,7 @@
 package com.bitplay.arbitrage;
 
+import com.bitplay.Config;
+import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
@@ -41,6 +43,8 @@ import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.metrics.MetricsDictionary;
+import com.bitplay.model.AccountBalance;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.CumPersistenceService;
 import com.bitplay.persistance.DealPricesRepositoryService;
 import com.bitplay.persistance.PersistenceService;
@@ -69,10 +73,6 @@ import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.SettingsTimestamps;
 import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.persistance.domain.settings.UsdQuoteType;
-import com.bitplay.Config;
-import com.bitplay.TwoMarketStarter;
-import com.bitplay.model.AccountBalance;
-import com.bitplay.model.Pos;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.SettingsPremService;
@@ -1675,27 +1675,35 @@ public class ArbitrageService {
         return fplayTrade;
     }
 
+    public boolean areBothOkex() {
+        return !leftMarketService.isBtm();
+    }
+
+    public String getBothOkexDsym() {
+        return areBothOkex() ? "DMRL" : "DQL";
+    }
+
     private boolean okexTheSameFutureAccount() {
-        final boolean bothOkex = !leftMarketService.isBtm();
-        if (bothOkex) {
-            final OkexContractType lc = (OkexContractType) leftMarketService.getContractType();
-            final OkexContractType rc = (OkexContractType) rightMarketService.getContractType();
-            if (lc.isNotSwap() && rc.isNotSwap()) {
-                final boolean keyEquals = config.getOkexLeftMarketExKey().equals(config.getOkexMarketExKey());
-                final boolean passEquals = config.getOkexLeftMarketExPassphrase().equals(config.getOkexMarketExPassphrase());
-                final boolean secretEquals = config.getOkexLeftMarketExSecret().equals(config.getOkexMarketExSecret());
-                if (keyEquals && passEquals && secretEquals) {
-                    return true;
-                }
-                final boolean keyEqualsV5 = config.getOkexLeftMarketV5Key().equals(config.getOkexMarketV5Key());
-                final boolean passEqualsV5 = config.getOkexLeftMarketV5Passphrase().equals(config.getOkexMarketV5Passphrase());
-                final boolean secretEqualsV5 = config.getOkexLeftMarketV5Secret().equals(config.getOkexMarketV5Secret());
-                if (keyEqualsV5 && passEqualsV5 && secretEqualsV5) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return areBothOkex();
+//        if (areBothOkex()) {
+//            final OkexContractType lc = (OkexContractType) leftMarketService.getContractType();
+//            final OkexContractType rc = (OkexContractType) rightMarketService.getContractType();
+//            if (lc.isNotSwap() && rc.isNotSwap()) {
+//                final boolean keyEquals = config.getOkexLeftMarketExKey().equals(config.getOkexMarketExKey());
+//                final boolean passEquals = config.getOkexLeftMarketExPassphrase().equals(config.getOkexMarketExPassphrase());
+//                final boolean secretEquals = config.getOkexLeftMarketExSecret().equals(config.getOkexMarketExSecret());
+//                if (keyEquals && passEquals && secretEquals) {
+//                    return true;
+//                }
+//                final boolean keyEqualsV5 = config.getOkexLeftMarketV5Key().equals(config.getOkexMarketV5Key());
+//                final boolean passEqualsV5 = config.getOkexLeftMarketV5Passphrase().equals(config.getOkexMarketV5Passphrase());
+//                final boolean secretEqualsV5 = config.getOkexLeftMarketV5Secret().equals(config.getOkexMarketV5Secret());
+//                if (keyEqualsV5 && passEqualsV5 && secretEqualsV5) {
+//                    return true;
+//                }
+//            }
+//        }
+//        return false;
     }
 
     @SuppressWarnings("Duplicates")
@@ -2068,12 +2076,13 @@ public class ArbitrageService {
                 final String bDQLMin;
                 final String oDQLMin;
                 Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+                final String dSym = getBothOkexDsym();
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
-                    bDQLMin = String.format("L_DQL_close_min=%s", dql.getLeftDqlCloseMin());
-                    oDQLMin = String.format("R_DQL_close_min=%s", dql.getRightDqlCloseMin());
+                    bDQLMin = String.format("L_%s_close_min=%s", dSym, dql.getLeftDqlCloseMin());
+                    oDQLMin = String.format("R_%s_close_min=%s", dSym, dql.getRightDqlCloseMin());
                 } else {
-                    bDQLMin = String.format("L_DQL_open_min=%s", dql.getLeftDqlOpenMin());
-                    oDQLMin = String.format("R_DQL_open_min=%s", dql.getRightDqlOpenMin());
+                    bDQLMin = String.format("L_%s_open_min=%s", dSym, dql.getLeftDqlOpenMin());
+                    oDQLMin = String.format("R_%s_open_min=%s", dSym, dql.getRightDqlOpenMin());
                 }
 
                 fplayTradeService.info(tradeId, counterName, String.format("#%s %s", counterName, getFullPosDiff()));

@@ -47,7 +47,7 @@ public class OkExAdapters {
                     acc.getAvailEq().setScale(8, RoundingMode.HALF_UP);
             BigDecimal rpl = acc.getLiab() == null ? BigDecimal.ZERO :
                     acc.getLiab().setScale(8, RoundingMode.HALF_UP);
-            BigDecimal riskRate = acc.getMgnRatio() == null ? BigDecimal.ZERO
+            BigDecimal riskRate = acc.getMgnRatio() == null ? null
                     : acc.getMgnRatio().setScale(8, RoundingMode.HALF_UP);
             return new AccountInfoContracts(wallet, available, (BigDecimal) null, equity, (BigDecimal) null, (BigDecimal) null, margin, upl, rpl, riskRate);
 

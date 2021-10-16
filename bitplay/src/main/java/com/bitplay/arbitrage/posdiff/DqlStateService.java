@@ -39,27 +39,27 @@ public class DqlStateService {
                 ;
     }
 
-    public DqlState updateDqlState(ArbType arbType, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr,
+    public DqlState updateDqlState(String dSym, ArbType arbType, BigDecimal dqlKillPos, BigDecimal dqlOpenMin, BigDecimal dqlCloseMin, BigDecimal dqlCurr,
                                    BigDecimal dqlLevel) {
         if (arbType == ArbType.LEFT) {
-            return updateLeftDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
+            return updateLeftDqlState(dSym, dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
         } else {
-            return updateRightDqlState(dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
+            return updateRightDqlState(dSym, dqlKillPos, dqlOpenMin, dqlCloseMin, dqlCurr, dqlLevel);
         }
     }
 
-    public DqlState updateLeftDqlState(BigDecimal leftDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr,
+    public DqlState updateLeftDqlState(String dSym, BigDecimal leftDqlKillPos, BigDecimal bDQLOpenMin, BigDecimal bDQLCloseMin, BigDecimal dqlCurr,
                                        BigDecimal dqlLevel) {
         DqlState currState = this.leftState;
         DqlState resState = defineDqlState(leftDqlKillPos, bDQLOpenMin, bDQLCloseMin, dqlCurr, currState, dqlLevel);
         if (currState != resState) {
-            log.info(String.format("left DqlState %s => %s", currState, resState));
+            log.info(String.format("left %sState %s => %s", dSym, currState, resState));
         }
         this.leftState = resState;
 
         if (leftState.isClose()) {
-            slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
-                    MarketStaticData.BITMEX.getName(), dqlCurr, bDQLOpenMin));
+            slackNotifications.sendNotify(NotifyType.BITMEX_DQL_OPEN_MIN, String.format("%s %s(%s) < %s_open_min(%s)",
+                    MarketStaticData.BITMEX.getName(), dSym, dqlCurr, dSym, bDQLOpenMin));
         } else {
             slackNotifications.resetThrottled(NotifyType.BITMEX_DQL_OPEN_MIN);
         }
@@ -67,16 +67,16 @@ public class DqlStateService {
         return leftState;
     }
 
-    public DqlState updateRightDqlState(BigDecimal rightDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr, BigDecimal dqlLevel) {
+    public DqlState updateRightDqlState(String dSym, BigDecimal rightDqlKillPos, BigDecimal oDQLOpenMin, BigDecimal oDQLCloseMin, BigDecimal dqlCurr, BigDecimal dqlLevel) {
         DqlState currState = this.rightState;
         DqlState resState = defineDqlState(rightDqlKillPos, oDQLOpenMin, oDQLCloseMin, dqlCurr, currState, dqlLevel);
         if (currState != resState) {
-            log.info(String.format("right DqlState %s => %s", currState, resState));
+            log.info(String.format("right %sState %s => %s", dSym, currState, resState));
         }
         this.rightState = resState;
         if (this.rightState.isClose()) {
-            slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN, String.format("%s DQL(%s) < DQL_open_min(%s)",
-                    MarketStaticData.OKEX.getName(), dqlCurr, oDQLOpenMin));
+            slackNotifications.sendNotify(NotifyType.OKEX_DQL_OPEN_MIN, String.format("%s %s(%s) < %s_open_min(%s)",
+                    MarketStaticData.OKEX.getName(), dSym, dqlCurr, dSym, oDQLOpenMin));
         } else {
             slackNotifications.resetThrottled(NotifyType.OKEX_DQL_OPEN_MIN);
         }

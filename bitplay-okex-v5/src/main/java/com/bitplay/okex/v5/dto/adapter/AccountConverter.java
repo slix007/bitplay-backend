@@ -17,21 +17,21 @@ public class AccountConverter {
             if (hasDetails) {
                 final DetailsData acc = accountData.getDetails();
                 BigDecimal equity = acc.getEq() == null ? null :
-                        acc.getEq().setScale(8, 4);
+                        acc.getEq().setScale(8, RoundingMode.HALF_UP);
                 BigDecimal margin = acc.getFrozenBal() == null ? null :
                         acc.getFrozenBal().setScale(8, RoundingMode.HALF_UP);
                 BigDecimal upl = acc.getUpl() == null ? null :
-                        acc.getUpl().setScale(8, 4);
+                        acc.getUpl().setScale(8, RoundingMode.HALF_UP);
                 BigDecimal wallet = equity == null || upl == null ? null :
-                        equity.subtract(upl).setScale(8, 4);
+                        equity.subtract(upl).setScale(8, RoundingMode.HALF_UP);
                 BigDecimal available = acc.getAvailEq() == null ? null :
-                        acc.getAvailEq().setScale(8, 4);
+                        acc.getAvailEq().setScale(8, RoundingMode.HALF_UP);
 //        BigDecimal available = equity.subtract(margin).setScale(8, 4);
                 // TODO
                 BigDecimal rpl = acc.getLiab() == null ? BigDecimal.ZERO :
-                        acc.getLiab().setScale(8, 4); //
-                BigDecimal riskRate = acc.getMgnRatio() == null ? BigDecimal.ZERO :
-                        acc.getMgnRatio().setScale(8, 4);
+                        acc.getLiab().setScale(8, RoundingMode.HALF_UP); //
+                BigDecimal riskRate = acc.getMgnRatio() == null ? null :
+                        acc.getMgnRatio().setScale(8, RoundingMode.HALF_UP);
                 return new AccountInfoContracts(wallet, available, (BigDecimal) null, equity, (BigDecimal) null, (BigDecimal) null, margin, upl, rpl, riskRate);
 
             } else if (accountData.getTotalEq() != null) { // has total balance - if we use tool first time. No trades were made.
