@@ -19,7 +19,14 @@ import com.bitplay.xchange.bitmex.BitmexExchange;
  * To avoid disconnection we have to send keepalive heartbeats(ping).
  */
 public class BitmexStreamingExchange extends BitmexExchange implements StreamingExchangeEx {
-    private static final String API_URI = "wss://www.bitmex.com:443/realtime";
+    // old api.
+    // slow  since 1 Nov 2021.
+    // obsolete since 1 Feb 2022.
+//    private static final String API_URI = "wss://www.bitmex.com:443/realtime";
+
+    // https://blog.bitmex.com/api_announcement/change-of-websocket-endpoint/
+    // since 15 Oct 2021
+    private static final String API_URI = "wss://ws.bitmex.com/realtime";
 //    private static final String API_URI = "wss://testnet.bitmex.com/realtime";
 
     private final StreamingServiceBitmex streamingService;
