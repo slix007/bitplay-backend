@@ -11,27 +11,33 @@ import lombok.Getter;
 @Getter
 public class BitmexDepth {
 
-  private final String symbol;
-  private final BigDecimal[][] asks;
-  private final BigDecimal[][] bids;
-  private final Date timestamp;
-  private final Date receiveTimestamp;
+    private final String symbol;
+    private final BigDecimal[][] asks;
+    private final BigDecimal[][] bids;
+    private final Date timestamp;
+    private final Date receiveTimestamp;
 
-  public BitmexDepth(
-          @JsonProperty("symbol") final String symbol,
-          @JsonProperty("asks") final BigDecimal[][] asks,
-          @JsonProperty("bids") final BigDecimal[][] bids,
-          @JsonProperty("timestamp") Date timestamp) {
-    this.symbol = symbol;
-    this.asks = asks;
-    this.bids = bids;
-    this.timestamp = timestamp;
-    this.receiveTimestamp = new Date();
-  }
+    public BitmexDepth(
+            @JsonProperty("symbol") final String symbol,
+            @JsonProperty("asks") final BigDecimal[][] asks,
+            @JsonProperty("bids") final BigDecimal[][] bids,
+            @JsonProperty("timestamp") Date timestamp) {
+        this.symbol = symbol;
+        this.asks = asks;
+        this.bids = bids;
+        this.timestamp = timestamp;
+        this.receiveTimestamp = new Date();
+    }
 
-  @Override
-  public String toString() {
 
-    return "OkCoinDepth [asks=" + Arrays.toString(asks) + ", bids=" + Arrays.toString(bids) + "]";
-  }
+    @Override
+    public String toString() {
+
+        return "OkCoinDepth [asks=" + Arrays.toString(asks)
+                + ", bids=" + Arrays.toString(bids) + "]"
+                + ", symbol=" + symbol
+                + ", timestamp=" + timestamp
+                + ", receiveTimestamp=" + receiveTimestamp
+                ;
+    }
 }

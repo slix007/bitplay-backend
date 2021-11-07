@@ -1612,6 +1612,13 @@ public class BitmexService extends MarketServicePreliq {
                     .filter(u -> u.getSymbol().equals(bitmexContractTypeEx.getSymbol()))
                     .toFlowable(BackpressureStrategy.LATEST)
                     .observeOn(stateUpdater, false, 1)
+                    .filter(ob -> {
+                        final boolean hasData = ob.getBids().length != 0 && ob.getAsks().length != 0;
+                        if (!hasData) {
+                            log.warn("Empty OB: " + ob);
+                        }
+                        return hasData;
+                    })
                     .map(this::mergeOrderBook10);
 
             orderBookObservableExtra = allOrderBooks
