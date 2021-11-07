@@ -126,6 +126,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
+import javax.websocket.DeploymentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,6 +173,7 @@ public class BitmexService extends MarketServicePreliq {
 
     private volatile AtomicInteger obWrongCount = new AtomicInteger(0);
     private volatile AtomicInteger obWrongCountXBTUSD = new AtomicInteger(0);
+    private final AtomicInteger failedReconnects = new AtomicInteger(0);
 
     private volatile Disposable quoteSubscription;
     private volatile Disposable orderBookSubscription;
@@ -1208,10 +1210,30 @@ public class BitmexService extends MarketServicePreliq {
     private void exchangeConnect() {
         logger.info("bitmex connecting public");
         exchange.connect()
-                .doOnError(throwable -> logger.error("doOnError", throwable))
-//                .retryWhen(e -> e.delay(5, TimeUnit.SECONDS))
-//                .retryWhen(e -> e.flatMap(throwable -> Flowable.timer(5, TimeUnit.SECONDS)))
-                .retry()
+                .doOnError(e -> {
+                    logger.error("doOnError", e);
+                    if (e instanceof NullPointerException
+                            || (e instanceof DeploymentException && e.getMessage().contains("429"))) {
+                        logger.warn("try fix WsWebSocketContainer.connectToServer NullPointerException."
+                                + " Thread.currentThread().getContextClassLoader()=" + Thread.currentThread().getContextClassLoader());
+                        ClassLoader cl = ClassLoader.getSystemClassLoader();
+                        Thread.currentThread().setContextClassLoader(cl);
+                    }
+                })
+//                .retryWhen(flowable -> flowable.delay(5, TimeUnit.SECONDS))
+                .retryWhen(f -> f.flatMap(ex -> {
+                    final int failedRec = failedReconnects.incrementAndGet();
+                    final String m = ex.getMessage();
+                    if (ex instanceof NullPointerException
+                            || m.contains("429")
+                            || m.contains("403")
+                    ) {
+                        if (failedRec % 2 == 0)
+                        return Flowable.timer(10, TimeUnit.SECONDS);
+                    }
+                    return Flowable.timer(1, TimeUnit.MILLISECONDS);
+                }))
+//                .retry()
                 .doOnComplete(() -> logger.info("bitmex connecting public completed"))
                 .blockingAwait();
 

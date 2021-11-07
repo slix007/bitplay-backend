@@ -29,7 +29,11 @@ public class WSClientEndpoint {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             container.setAsyncSendTimeout(15000);
-            log.info("DefaultAsyncSendTimeout=" + container.getDefaultAsyncSendTimeout());
+            log.info("DefaultAsyncSendTimeout=" + container.getDefaultAsyncSendTimeout()
+                    + ". endpointURI=" + endpointURI
+                    + ". class=" + container.getClass()
+            );
+
             container.connectToServer(this, endpointURI);
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -26,6 +26,7 @@ import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
+import com.google.gson.JsonObject;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -44,6 +45,9 @@ public class PrivateApiV5 implements PrivateApi {
 
     @Override
     public Pos getPos(String instrumentId) {
+//        final Object jsonObject = this.client.executeSync(this.api.getInstrumentPositionTest(instType, instrumentId));
+//        System.out.println(jsonObject);
+//        return null;
         final OkexOnePositionV5 position = this.client.executeSync(this.api.getInstrumentPosition(instType, instrumentId));
         return position.getOne()
                 .map(OkexPosV5::toPos)

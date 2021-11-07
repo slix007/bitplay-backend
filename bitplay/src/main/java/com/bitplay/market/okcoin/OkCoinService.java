@@ -432,6 +432,13 @@ public class OkCoinService extends MarketServicePreliq {
             log.trace(settings.getPlacingBlocks().toString());
 
             fetchPosition();
+            // LOCAL ENV ONLY TO INITIALIZE POS.
+            // 1. uncomment the following.
+            // 2. change position -> buy-sell
+            // 3. comment the following back
+//            if (this.pos.get().getPositionLong() == null) {
+//                this.pos.set(Pos.emptyPos());
+//            }
 
             fetchOrderBookMain();
 
@@ -1273,7 +1280,8 @@ public class OkCoinService extends MarketServicePreliq {
 
                 final BigDecimal bestAsk = Utils.getBestAsks(ob, 1).get(0).getLimitPrice();
                 final BigDecimal bestBid = Utils.getBestBids(ob, 1).get(0).getLimitPrice();
-                final BigDecimal leverage = position.getLeverage().signum() != 0 ? position.getLeverage() : getLeverage();
+                final BigDecimal leverage = position.getLeverage() != null &&
+                        position.getLeverage().signum() != 0 ? position.getLeverage() : getLeverage();
 
                 if (available != null && equity != null && leverage != null && position.getPositionLong() != null && position.getPositionShort() != null) {
 
@@ -2644,7 +2652,8 @@ public class OkCoinService extends MarketServicePreliq {
     protected Completable recalcLiqInfo() {
         return Completable.fromAction(() -> {
             final Pos position = this.pos.get();
-            if (position == null || position.getPositionLong() == null) {
+            if (position == null || position.getPositionLong() == null
+                    || !getArbitrageService().areBothStarted()) {
                 return; // not yet initialized
             }
             final BigDecimal pos = position.getPositionLong();

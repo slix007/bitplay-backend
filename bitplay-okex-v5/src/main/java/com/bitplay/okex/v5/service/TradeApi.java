@@ -23,7 +23,7 @@ import retrofit2.http.Query;
 interface TradeApi {
 
     @GET("/api/v5/account/positions")
-    Call<JsonObject> getInstrumentPositionTest(
+    Call<Object> getInstrumentPositionTest(
             @Query("instType") String instType,
             @Query("instId") String instId
     );

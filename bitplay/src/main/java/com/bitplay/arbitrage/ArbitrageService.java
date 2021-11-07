@@ -66,7 +66,6 @@ import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.settings.ArbScheme;
 import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.Implied;
-import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
@@ -1675,8 +1674,14 @@ public class ArbitrageService {
         return fplayTrade;
     }
 
+    public boolean areBothStarted() {
+        return leftMarketService != null && rightMarketService != null
+                && leftMarketService.isStarted()
+                && rightMarketService.isStarted();
+    }
+
     public boolean areBothOkex() {
-        return !leftMarketService.isBtm();
+        return leftMarketService != null && !leftMarketService.isBtm();
     }
 
     public String getBothOkexDsym() {
