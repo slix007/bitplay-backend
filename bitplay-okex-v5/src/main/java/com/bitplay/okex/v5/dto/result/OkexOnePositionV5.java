@@ -7,7 +7,9 @@ import lombok.Data;
 @Data
 public class OkexOnePositionV5 {
 
-    List<OkexPosV5> data;
+    private String code;
+    private String msg;
+    private List<OkexPosV5> data;
 
     public Optional<OkexPosV5> getOne() {
         return data.stream()

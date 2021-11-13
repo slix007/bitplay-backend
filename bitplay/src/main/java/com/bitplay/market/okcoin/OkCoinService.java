@@ -323,6 +323,13 @@ public class OkCoinService extends MarketServicePreliq {
 //        fetchOrderBookMain();
 //        swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(mainInstr.getInstrumentId());
 
+        // validate instruments
+        final List<String> availableInstruments = fplayOkexExchangeV5.getPublicApi().getAvailableInstruments();
+        log.info("Current instruments: "
+                + Arrays.toString(instrDtos.stream().map(InstrumentDto::getInstrumentId).toArray())
+                + ". Available instruments: "
+                + Arrays.toString(availableInstruments.toArray()));
+
         initWebSocketAndAllSubscribers();
 
 //        final Instrument instrument = bitplayOkexEchange.getMarketAPIService().getInstruments().get(0);

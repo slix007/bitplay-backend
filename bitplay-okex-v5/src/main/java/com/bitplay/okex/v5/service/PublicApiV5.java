@@ -9,11 +9,15 @@ import com.bitplay.okex.v5.dto.adapter.BookAdapter;
 import com.bitplay.okex.v5.dto.adapter.adapter.SwapConverter;
 import com.bitplay.okex.v5.dto.result.Book;
 import com.bitplay.okex.v5.dto.result.EstimatedPriceDto;
+import com.bitplay.okex.v5.dto.result.Instruments;
+import com.bitplay.okex.v5.dto.result.Instruments.InstrumentsData;
 import com.bitplay.okex.v5.dto.result.SwapFundingTime;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class PublicApiV5 implements PublicApi {
 
@@ -30,6 +34,16 @@ public class PublicApiV5 implements PublicApi {
     public Book getInstrumentBookApi(String instrumentId) {
         return this.client.executeSync(this.api.getBook(instrumentId, 20));
 //        return this.client.executeSync(this.api.getInstrumentBook(instType));
+    }
+
+    @Override
+    public List<String> getAvailableInstruments() {
+        final Instruments o = this.client.executeSync(this.api.getInstruments(instType));
+        System.out.println("INSTRUMENTS:");
+        System.out.println(o);
+        return o.getData().stream()
+                .map(InstrumentsData::getInstId)
+                .collect(Collectors.toList());
     }
 
 //    public SwapFundingTime getSwapFundingTime(String instrumentId) {

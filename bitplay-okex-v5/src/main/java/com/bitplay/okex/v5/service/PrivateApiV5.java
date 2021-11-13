@@ -26,10 +26,12 @@ import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.dto.trade.LimitOrder;
-import com.google.gson.JsonObject;
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
+@Slf4j
 public class PrivateApiV5 implements PrivateApi {
 
     private volatile ApiClient client;
@@ -49,9 +51,22 @@ public class PrivateApiV5 implements PrivateApi {
 //        System.out.println(jsonObject);
 //        return null;
         final OkexOnePositionV5 position = this.client.executeSync(this.api.getInstrumentPosition(instType, instrumentId));
-        return position.getOne()
+
+        Pos pos = position.getOne()
                 .map(OkexPosV5::toPos)
                 .orElse(null);
+        if (pos == null) {
+            // get raw answer
+            final Object jsonObject = this.client.executeSync(this.api.getInstrumentPositionTest(instType, instrumentId));
+            if (position.getCode() != null && position.getCode().equals("0") && StringUtils.isBlank(position.getMsg())) {
+                log.info("use empty pos for instType: " + instType + ", instrumentId: " + instrumentId
+                        + ". Double check: " + jsonObject.toString());
+                pos = Pos.emptyPos();
+            } else {
+                log.error("Position error. Double check: " + jsonObject.toString());
+            }
+        }
+        return pos;
     }
 
 

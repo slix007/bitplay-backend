@@ -4,10 +4,7 @@ import com.bitplay.model.EstimatedPrice;
 import com.bitplay.model.SwapSettlement;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
-import com.bitplay.xchange.exceptions.ExchangeException;
-import com.bitplay.xchange.exceptions.NotAvailableFromExchangeException;
-import com.bitplay.xchange.exceptions.NotYetImplementedForExchangeException;
-import java.io.IOException;
+import java.util.List;
 
 public interface PublicApi {
 
@@ -26,4 +23,6 @@ public interface PublicApi {
     default SwapSettlement getSwapSettlement(String instrumentId) {
         throw new UnsupportedOperationException();
     }
+
+    List<String> getAvailableInstruments();
 }

@@ -2,6 +2,7 @@ package com.bitplay.okex.v5.service;
 
 import com.bitplay.okex.v5.dto.result.Book;
 import com.bitplay.okex.v5.dto.result.EstimatedPriceDto;
+import com.bitplay.okex.v5.dto.result.Instruments;
 import com.bitplay.okex.v5.dto.result.SwapFundingTime;
 import com.google.gson.JsonObject;
 import retrofit2.Call;
@@ -11,7 +12,7 @@ import retrofit2.http.Query;
 interface MarketApiV5 {
 
     @GET("/api/v5/public/instruments")
-    Call<JsonObject> getInstrumentBook(
+    Call<Instruments> getInstruments(
             @Query("instType") String instType
     );
 
