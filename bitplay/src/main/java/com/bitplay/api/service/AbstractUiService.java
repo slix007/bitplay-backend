@@ -471,7 +471,7 @@ public abstract class AbstractUiService<T extends MarketService> {
     }
 
     public TradeResponseJson closeAllPos() {
-        final TradeResponse tradeResponse = getBusinessService().closeAllPos();
+        final TradeResponse tradeResponse = getBusinessService().closeAllPos(true);
         return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
     }
 }

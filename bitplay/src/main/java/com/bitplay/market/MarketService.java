@@ -1432,8 +1432,12 @@ public abstract class MarketService extends MarketServiceWithState {
                 : BigDecimal.ZERO;
     }
 
-    public TradeResponse closeAllPos() {
-        throw new IllegalArgumentException("Not implemented");
+    abstract public TradeResponse closeAllPos(boolean isManual);
+
+    protected MarketServicePreliq getTheOtherMarket() {
+        return getArbType() == ArbType.LEFT
+                ? getArbitrageService().getRightMarketService()
+                : getArbitrageService().getLeftMarketService();
     }
 
 //    /**

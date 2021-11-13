@@ -1,9 +1,9 @@
 package com.bitplay.market;
 
-import com.bitplay.market.model.TradeResponse;
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
+import com.bitplay.market.model.TradeResponse;
 import com.bitplay.xchange.dto.Order.OrderStatus;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +31,7 @@ public class KillPosService {
         // 1) Срабатывает механизм автоматического прожатия кнопки close_all_pos mkt у соответствующей биржи;
         //2) В случае успешного первого действия, непосредственно после него срабатывает автоматическое действие recovery_nt_usd 26nv19 Кнопка recovery nt_usd со следующими особенностями:
 
-        final TradeResponse tradeResponse = marketService.closeAllPos();
+        final TradeResponse tradeResponse = marketService.closeAllPos(false);
         final String orderId = tradeResponse.getOrderId();
         if (orderId == null ||
                 (marketService.getOpenOrders().stream()
@@ -54,10 +54,21 @@ public class KillPosService {
 
         // SUCCESS:
         //if (tradeResponse.getOrderId() != null) {
-        final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
 
-        slackNotifications.sendNotify(NotifyType.AUTO_RECOVERY_NOTIFY,
-                String.format("%s %s starting AUTO_RECOVERY", counterForLogs, marketService.getNameWithType()));
+        if (marketService.getArbitrageService().areBothOkex()) {
+            slackNotifications.sendNotify(NotifyType.AUTO_RECOVERY_NOTIFY,
+                    String.format("%s %s no AUTO_RECOVERY (both okex)", counterForLogs, marketService.getNameWithType()));
+        } else {
+            slackNotifications.sendNotify(NotifyType.AUTO_RECOVERY_NOTIFY,
+                    String.format("%s %s starting AUTO_RECOVERY", counterForLogs, marketService.getNameWithType()));
+            doAutoRecovery();
+        }
+
+        return true;
+    }
+
+    private void doAutoRecovery() {
+        final NtUsdRecoveryService ntUsdRecoveryService = marketService.getArbitrageService().getNtUsdRecoveryService();
         final Future<String> stringFuture = ntUsdRecoveryService.tryRecoveryAfterKillPos(marketService);
         String res;
         try {
@@ -68,7 +79,5 @@ public class KillPosService {
             marketService.getTradeLogger().info("recovery_nt_usd Error:" + e.getMessage());
             log.error("recovery_nt_usd Error", e);
         }
-
-        return true;
     }
 }

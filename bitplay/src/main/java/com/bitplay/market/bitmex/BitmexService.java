@@ -3481,7 +3481,7 @@ public class BitmexService extends MarketServicePreliq {
 
 
     @Override
-    public TradeResponse closeAllPos() {
+    public TradeResponse closeAllPos(boolean isManual) {
         return closeAllPos(bitmexContractTypeEx);
     }
 

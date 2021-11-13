@@ -2179,7 +2179,7 @@ public class ArbitrageService {
 
         boolean isQuanto = leftService.getContractType().isQuanto();
 
-        final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
+        final BigDecimal ha = getHa(isQuanto);
         final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, leftService.getPosVal(), leftMarketService.isBtm(), leftService.getSCV());
         final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, rightService.getPosVal(), rightService.getSCV());
         final BigDecimal notionalUsd = (leftUsd.add(rightUsd).subtract(ha)).negate();
@@ -2206,6 +2206,10 @@ public class ArbitrageService {
                     mdc
             );
         }
+    }
+
+    public BigDecimal getHa(boolean isQuanto) {
+        return isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
     }
 
     public String getExtraSetStr() {
@@ -2414,7 +2418,7 @@ public class ArbitrageService {
 
         boolean isQuanto = left.getContractType().isQuanto();
 
-        final BigDecimal ha = isQuanto ? hedgeService.getHedgeEth() : hedgeService.getHedgeBtc();
+        final BigDecimal ha = getHa(isQuanto);
         final BigDecimal leftUsd = PosDiffService.getLeftUsd(cm, isQuanto, left.getPosVal(), leftMarketService.isBtm(), left.getSCV());
         final BigDecimal rightUsd = PosDiffService.getOkexUsd(isQuanto, right.getPosVal(), right.getSCV());
         //noinspection UnnecessaryLocalVariable

@@ -69,6 +69,7 @@ import com.bitplay.persistance.domain.settings.Dql;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
+import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
@@ -3145,7 +3146,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public TradeResponse closeAllPos() {
+    public TradeResponse closeAllPos(boolean isManual) {
         final TradeResponse tradeResponse = new TradeResponse();
         final StringBuilder res = new StringBuilder();
 
@@ -3162,37 +3163,37 @@ public class OkCoinService extends MarketServicePreliq {
                 final List<LimitOrder> onlyOpenOrders = getOnlyOpenOrders();
                 boolean specialHandling = false;
 
-                // specialHanding when openOrder && one openPos
+                final BigDecimal closePosAmount = getClosePosAmount(position.getPositionLong());
+
+                // specialHanding when openOrder && only one openPos:
                 // "closePos/cancelOpenOrder" steps in different order
                 if (onlyOpenOrders.size() == 1) {
                     if (position.getPositionLong().signum() > 0) { // one
                         specialHandling = true;
                         final LimitOrder oo = onlyOpenOrders.get(0);
                         final String orderId;
-                        final BigDecimal posAmount = position.getPositionLong();
                         if ((oo.getType() == OrderType.BID || oo.getType() == OrderType.EXIT_ASK)) {
                             // TODO check V5. position.getLongAvailToClose was removed
-//                                && posAmount.compareTo(position.getLongAvailToClose()) == 0) {
+//                                && closePosAmount.compareTo(position.getLongAvailToClose()) == 0) {
                             // если pos == long, ордер == long (avail == holding)
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, posAmount);
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, closePosAmount);
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                         } else {
                             // если pos === long, ордер == short (avail < holding),
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, posAmount);
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, closePosAmount);
                         }
                         tradeResponse.setOrderId(orderId);
 
                     } else if (position.getPositionLong().signum() < 0) {
-                        final BigDecimal posShortAmount = position.getPositionLong().negate();
                         specialHandling = true;
                         final LimitOrder oo = onlyOpenOrders.get(0);
                         final String orderId;
                         if ((oo.getType() == OrderType.ASK || oo.getType() == OrderType.EXIT_BID)) {
                             // TODO check V5. position.getLongAvailToClose was removed
-                            // && posAmount.compareTo(position.getShortAvailToClose()) == 0) {
+                            // && closePosAmount.compareTo(position.getShortAvailToClose()) == 0) {
                             // если pos == short, ордер == short (avail == holding),
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, posShortAmount);
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, closePosAmount);
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
                         } else {
                             // если pos === short, ордер == long (avail < holding),
@@ -3210,9 +3211,9 @@ public class OkCoinService extends MarketServicePreliq {
 
                     String orderId = null;
                     if (position.getPositionLong().signum() > 0) {
-                        orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, position.getPositionLong());
+                        orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, closePosAmount);
                     } else if (position.getPositionLong().signum() < 0) {
-                        orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionLong().negate());
+                        orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, closePosAmount);
                     }
                     if (orderId != null) {
                         tradeResponse.setOrderId(orderId);
@@ -3247,6 +3248,72 @@ public class OkCoinService extends MarketServicePreliq {
             }
         }
         return tradeResponse;
+    }
+
+    /**
+     * <pre>
+     * a) L == long, R == short:
+     * размер killpos-ордера для L = pos,
+     * размер killpos-ордера для R = pos - Hedge,
+     *
+     * b) L == short, R == long:
+     * размер killpos-ордера для L = pos - Hedge,
+     * размер killpos-ордера для R = pos.
+     *
+     * c) L == R == short - сравниваем размер позиции по модулю
+     * (там, где меньше это 1, там где больше это 2):
+     * размер блока для 1 = pos,
+     * размер блока для 2 = pos - Hedge.
+     * </pre>
+     */
+    private BigDecimal getClosePosAmount(BigDecimal position) {
+        if (!arbitrageService.areBothOkex()) {
+            return position.signum() > 0 ? position : position.negate();
+        }
+
+        final boolean isQuanto = getContractType().isQuanto();
+        final BigDecimal ha = arbitrageService.getHa(isQuanto).negate();
+        final BigDecimal hedgeCont = PlacingBlocks.toOkexCont(ha, isQuanto);
+        final MarketServicePreliq theOtherMarket = getTheOtherMarket();
+
+//        a) L == long, R == short:
+//        размер killpos-ордера для L = pos,
+//        размер killpos-ордера для R = pos - Hedge,
+        final Pos theOtherMarketPos = theOtherMarket.getPos();
+        BigDecimal leftPos = getArbType() == ArbType.LEFT ? position : theOtherMarketPos.getPositionLong();
+        BigDecimal rightPos = getArbType() == ArbType.RIGHT ? position : theOtherMarketPos.getPositionLong();
+
+        final BigDecimal closePosAmount;
+        if (leftPos.signum() > 0 && rightPos.signum() <= 0) { // L == long, R == short
+            closePosAmount = getArbType() == ArbType.LEFT
+                    ? position
+                    : position.subtract(hedgeCont);
+        } else if (leftPos.signum() < 0 && rightPos.signum() >= 0) { // L == short, R == long:
+            closePosAmount = getArbType() == ArbType.LEFT
+                    ? position.subtract(hedgeCont)
+                    : position;
+        } else if (leftPos.signum() <= 0 && rightPos.signum() <= 0) {// L == R == short
+            if (leftPos.compareTo(rightPos) > 0) {
+                // left = pos
+                // right  = pos - hedge
+                closePosAmount = getArbType() == ArbType.LEFT
+                        ? position
+                        : position.subtract(hedgeCont);
+            } else {
+                // left = pos - hedge
+                // right  = pos
+                closePosAmount = getArbType() == ArbType.LEFT
+                        ? position.subtract(hedgeCont)
+                        : position;
+            }
+        } else { // both long
+            closePosAmount = position;
+        }
+        if (closePosAmount.signum() < 0) {
+            throw new IllegalStateException(String.format("closePosAmount(%s)<0", closePosAmount));
+        }
+
+        return closePosAmount;
     }
 
     /**
