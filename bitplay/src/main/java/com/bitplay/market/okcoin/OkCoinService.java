@@ -2759,8 +2759,10 @@ public class OkCoinService extends MarketServicePreliq {
         BigDecimal dmrl = null;
         String dmrlString;
         if (pos.signum() != 0 && margin.signum() > 0 && marginRatio != null) {
-            dmrl = marginRatio.multiply(marginRatioLiq);
-            dmrlString = String.format("%s_DMRL = %s * %s = %s%%", s, marginRatio, marginRatioLiq, dmrl);
+            dmrl = marginRatio.multiply(marginRatioLiq).subtract(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
+            final BigDecimal marginRationScaled = marginRatio.setScale(2, RoundingMode.HALF_UP);
+            dmrlString = String.format("%s_DMRL = %s - 100 = %s%%", s, marginRationScaled, dmrl);
         } else {
             dmrlString = s + "_DMRL = na";
         }
