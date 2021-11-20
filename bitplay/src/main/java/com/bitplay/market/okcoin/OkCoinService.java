@@ -2767,10 +2767,13 @@ public class OkCoinService extends MarketServicePreliq {
         BigDecimal dmrl = null;
         String dmrlString;
         if (pos.signum() != 0 && margin.signum() > 0 && marginRatio != null) {
-            dmrl = marginRatio.multiply(marginRatioLiq).subtract(BigDecimal.valueOf(100))
-                    .setScale(2, RoundingMode.HALF_UP);
-            final BigDecimal marginRationScaled = marginRatio.setScale(2, RoundingMode.HALF_UP);
+            final BigDecimal marginRationScaled = marginRatio.multiply(marginRatioLiq).setScale(2, RoundingMode.HALF_UP);
+            dmrl = marginRationScaled.subtract(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
             dmrlString = String.format("%s_DMRL = %s - 100 = %s%%", s, marginRationScaled, dmrl);
+        } else if (getTheOtherMarket().getPos().getPositionLong().signum() != 0) {
+            final LiqInfo otherLiqInfo = getTheOtherMarket().getLiqInfo();
+            dmrl = otherLiqInfo.getDmrlCurr();
+            dmrlString = otherLiqInfo.getDmrlString();
         } else {
             dmrlString = s + "_DMRL = na";
         }

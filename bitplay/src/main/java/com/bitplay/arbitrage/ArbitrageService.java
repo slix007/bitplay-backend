@@ -1788,11 +1788,18 @@ public class ArbitrageService {
             if (okexTheSameFutureAccount()) {
                 oW = BigDecimal.ZERO;
                 oELast = BigDecimal.ZERO;
-                oEbestWithColdStorageEth = BigDecimal.ZERO;
                 oEAvg = BigDecimal.ZERO;
                 oU = BigDecimal.ZERO;
                 oM = BigDecimal.ZERO;
                 oA = BigDecimal.ZERO;
+                if (isEth) {
+                    final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
+                    BigDecimal ethBtcBid1 = rightMarketService.getEthBtcTicker().getBid();
+                    oEbestWithColdStorageEth = coldStorageEth.multiply(ethBtcBid1);;
+                } else {
+                    oEbestWithColdStorageEth = BigDecimal.ZERO;
+                }
+
             }
 
             final BigDecimal sumW = bW.add(oW).add(coldStorageBtc).setScale(8, BigDecimal.ROUND_HALF_UP);
