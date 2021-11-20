@@ -2088,6 +2088,7 @@ public class ArbitrageService {
                 final String bDQLMin;
                 final String oDQLMin;
                 Dql dql = persistenceService.getSettingsRepositoryService().getSettings().getDql();
+
                 final String dSym = getBothOkexDsym();
                 if (signalType == SignalType.B_PRE_LIQ || signalType == SignalType.O_PRE_LIQ) {
                     bDQLMin = String.format("L_%s_close_min=%s", dSym, dql.getLeftDqlCloseMin());

@@ -1,10 +1,15 @@
 package com.bitplay.persistance.domain.settings;
 
-import com.bitplay.persistance.domain.settings.SettingsVolatileMode.Field;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.persistance.domain.AbstractDocument;
 import com.bitplay.persistance.domain.correction.CorrParams;
 import com.bitplay.persistance.domain.fluent.TradingModeState;
+import com.bitplay.persistance.domain.settings.SettingsVolatileMode.Field;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.math.BigDecimal;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,11 +19,6 @@ import lombok.ToString;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.math.BigDecimal;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 11/27/17.
@@ -31,7 +31,7 @@ import java.util.Map;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder(toBuilder=true)
+@Builder(toBuilder = true)
 public class Settings extends AbstractDocument {
 
     private ManageType manageType;
@@ -69,7 +69,7 @@ public class Settings extends AbstractDocument {
     @Transient
     private BitmexObType bitmexObTypeCurrent; // only for UI
 
-//    private ContractMode contractMode;
+    //    private ContractMode contractMode;
     private ContractMode contractMode;
     @Transient
     private ContractMode contractModeCurrent; // only for UI
@@ -151,6 +151,22 @@ public class Settings extends AbstractDocument {
         settings.settingsTimestamps = SettingsTimestamps.createDefault();
         settings.setId(1L);
         return settings;
+    }
+
+    public Dql getDql() {
+        if (contractMode != null
+                && contractMode.getLeft() != null
+                && contractMode.getLeft().getMarketName() != null
+                && contractMode.getLeft().getMarketName().equals(OkCoinService.NAME)
+                && contractMode.getRight() != null
+                && contractMode.getRight().getMarketName() != null
+                && contractMode.getRight().getMarketName().equals(OkCoinService.NAME)
+        ) {
+            dql.setLeftDqlOpenMin(dql.getRightDqlOpenMin());
+            dql.setLeftDqlCloseMin(dql.getRightDqlCloseMin());
+            dql.setLeftDqlKillPos(dql.getRightDqlKillPos());
+        }
+        return dql;
     }
 
     public BigDecimal getLeftFee(PlacingType placingType) {
@@ -277,11 +293,12 @@ public class Settings extends AbstractDocument {
         return arbScheme;
     }
 
-//    @Transient
+    //    @Transient
 //    private Boolean movingStopped;// for UI
     public boolean flagMovingStopped() {
         return extraFlags.contains(ExtraFlag.STOP_MOVING);
     }
+
     public boolean flagUpdateAvgPriceStopped() {
         return extraFlags.contains(ExtraFlag.STOP_UPDATE_AVG_PRICE);
     }
