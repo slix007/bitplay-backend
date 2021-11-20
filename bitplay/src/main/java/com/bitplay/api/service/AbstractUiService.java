@@ -306,9 +306,8 @@ public abstract class AbstractUiService<T extends MarketService> {
 
         final Integer scale = getBusinessService().getContractType().getScale();
 
-        final String entryPrice = String.format("long/short:%s/%s; %s",
+        final String entryPrice = String.format("%s; %s",
                 position.getPriceAvgLong() != null ? position.getPriceAvgLong().setScale(scale, RoundingMode.HALF_UP).toPlainString() : null,
-                position.getPriceAvgShort() != null ? position.getPriceAvgShort().setScale(scale, RoundingMode.HALF_UP).toPlainString() : null,
                 fullBalance.getTempValues());
         if (available == null || wallet == null || margin == null || upl == null
                 || position.getLeverage() == null || quAvg == null) {

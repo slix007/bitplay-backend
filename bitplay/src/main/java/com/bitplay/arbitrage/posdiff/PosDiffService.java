@@ -1,5 +1,13 @@
 package com.bitplay.arbitrage.posdiff;
 
+import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.BordersService;
+import com.bitplay.arbitrage.BordersService.Borders;
+import com.bitplay.arbitrage.HedgeService;
+import com.bitplay.arbitrage.dto.ArbType;
+import com.bitplay.arbitrage.dto.DelayTimer;
+import com.bitplay.arbitrage.dto.SignalType;
+import com.bitplay.arbitrage.dto.SignalTypeEx;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.MarketServicePreliq;
@@ -12,6 +20,7 @@ import com.bitplay.market.model.PlaceOrderArgs;
 import com.bitplay.market.model.TradeResponse;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexSettlementService;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.TradeService;
@@ -25,32 +34,22 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.persistance.domain.settings.PosAdjustment;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.BordersService;
-import com.bitplay.arbitrage.BordersService.Borders;
-import com.bitplay.arbitrage.HedgeService;
-import com.bitplay.arbitrage.dto.ArbType;
-import com.bitplay.arbitrage.dto.DelayTimer;
-import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.dto.SignalTypeEx;
-import com.bitplay.model.Pos;
 import com.bitplay.utils.Utils;
 import com.bitplay.xchange.dto.Order;
 import com.bitplay.xchange.dto.Order.OrderType;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 7/15/17.
@@ -928,7 +927,11 @@ public class PosDiffService {
 
         // ------
         assert corrObj.marketService != null;
-        trySwitchTheIncreaseByDqlOrEBestMin(cm, isEth, dc, corrObj, corrParams);
+        if (corrObj.marketService.getArbitrageService().areBothOkex()) {
+            // no switch
+        } else {
+            trySwitchTheIncreaseByDqlOrEBestMin(cm, isEth, dc, corrObj, corrParams);
+        }
 
         reupdateSignalTypeToIncrease(corrObj, leftPosVal, rightPosVal);
         corrObj.noSwitch = true;
@@ -1042,10 +1045,10 @@ public class PosDiffService {
 //                    corrObj.marketService.getTradeLogger().info(message + theOtherMarketArgs.toString());
 //                    final TradeResponse theOtherResp = corrObj.marketService.placeOrder(theOtherMarketArgs);
 //                    if (theOtherResp.errorInsufficientFunds()) {
-                        final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", baseSignalType);
-                        warningLogger.warn(msg);
-                        corrObj.marketService.getTradeLogger().warn(msg);
-                        slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
+                    final String msg = String.format("No %s. INSUFFICIENT_BALANCE on both markets.", baseSignalType);
+                    warningLogger.warn(msg);
+                    corrObj.marketService.getTradeLogger().warn(msg);
+                    slackNotifications.sendNotify(signalType.isAdj() ? NotifyType.ADJ_NOTIFY : NotifyType.CORR_NOTIFY, message);
 //                    }
                 }
                 corrObj.marketService.getArbitrageService().setBusyStackChecker();
