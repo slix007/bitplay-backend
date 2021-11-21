@@ -154,19 +154,38 @@ public class Settings extends AbstractDocument {
     }
 
     public Dql getDql() {
-        if (contractMode != null
-                && contractMode.getLeft() != null
-                && contractMode.getLeft().getMarketName() != null
-                && contractMode.getLeft().getMarketName().equals(OkCoinService.NAME)
-                && contractMode.getRight() != null
-                && contractMode.getRight().getMarketName() != null
-                && contractMode.getRight().getMarketName().equals(OkCoinService.NAME)
-        ) {
+        if (areBothOkex()) {
             dql.setLeftDqlOpenMin(dql.getRightDqlOpenMin());
             dql.setLeftDqlCloseMin(dql.getRightDqlCloseMin());
             dql.setLeftDqlKillPos(dql.getRightDqlKillPos());
         }
         return dql;
+    }
+
+    public FeeSettings getFeeSettings() {
+        if (areBothOkex()) {
+            feeSettings.setLeftMakerComRate(feeSettings.getRightMakerComRate());
+            feeSettings.setLeftTakerComRate(feeSettings.getRightTakerComRate());
+        }
+        return feeSettings;
+    }
+
+    public SettingsTimestamps getSettingsTimestamps() {
+        if (areBothOkex()) {
+            settingsTimestamps.setL_Acceptable_OB_Timestamp_Diff_ms(settingsTimestamps.getR_Acceptable_OB_Timestamp_Diff_ms());
+            settingsTimestamps.setL_Acceptable_Get_OB_Delay_ms(settingsTimestamps.getR_Acceptable_Get_OB_Delay_ms());
+        }
+        return settingsTimestamps;
+    }
+
+    public Boolean areBothOkex() {
+        return contractMode != null
+                && contractMode.getLeft() != null
+                && contractMode.getLeft().getMarketName() != null
+                && contractMode.getLeft().getMarketName().equals(OkCoinService.NAME)
+                && contractMode.getRight() != null
+                && contractMode.getRight().getMarketName() != null
+                && contractMode.getRight().getMarketName().equals(OkCoinService.NAME);
     }
 
     public BigDecimal getLeftFee(PlacingType placingType) {

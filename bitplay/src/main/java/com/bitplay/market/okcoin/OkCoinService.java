@@ -2665,9 +2665,12 @@ public class OkCoinService extends MarketServicePreliq {
                 return; // not yet initialized
             }
             final BigDecimal pos = position.getPositionLong();
-            final BigDecimal oMrLiq = getArbType() == ArbType.LEFT
+            BigDecimal oMrLiq = getArbType() == ArbType.LEFT
                     ? persistenceService.getSettingsRepositoryService().getSettings().getDql().getLeftMrLiq()
                     : persistenceService.getSettingsRepositoryService().getSettings().getDql().getRightMrLiq();
+            if (arbitrageService.areBothOkex()) {
+                oMrLiq = persistenceService.getSettingsRepositoryService().getSettings().getDql().getRightMrLiq();
+            }
 
             final AccountBalance accountInfoContracts = getAccount();
             final BigDecimal equity = accountInfoContracts.getELast();
