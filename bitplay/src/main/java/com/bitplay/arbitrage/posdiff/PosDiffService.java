@@ -927,7 +927,7 @@ public class PosDiffService {
 
         // ------
         assert corrObj.marketService != null;
-        if (corrObj.marketService.getArbitrageService().areBothOkex()) {
+        if (arbitrageService.areBothOkex()) {
             // no switch
         } else {
             trySwitchTheIncreaseByDqlOrEBestMin(cm, isEth, dc, corrObj, corrParams);
@@ -1327,9 +1327,15 @@ public class PosDiffService {
                     : (bP).multiply(BigDecimal.valueOf(100));
         }
 
-        //noinspection UnnecessaryLocalVariable
-        final BigDecimal okEquiv = okexUsd;
-        final BigDecimal bEquiv = bitmexUsd.subtract(hedgeAmount);
+        final BigDecimal okEquiv;
+        final BigDecimal bEquiv;
+        if (arbitrageService.areBothOkex()) {
+            okEquiv = okexUsd.subtract(hedgeAmount);
+            bEquiv = bitmexUsd;
+        } else {
+            okEquiv = okexUsd;
+            bEquiv = bitmexUsd.subtract(hedgeAmount);
+        }
 
         if (dc.signum() < 0) {
             corrObj.orderType = Order.OrderType.BID;

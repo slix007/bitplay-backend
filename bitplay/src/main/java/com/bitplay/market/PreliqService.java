@@ -112,7 +112,7 @@ public class PreliqService {
             ) {
                 if (corrParams.getPreliq().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
-                    marketService.stopAllActions("preliq:stopAllActions");
+                    marketService.stopAllActionsSingleService("preliq:stopAllActions");
                 }
                 if (corrParams.getKillpos().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
@@ -189,7 +189,7 @@ public class PreliqService {
                     if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
                         persistenceService.saveCorrParams(corrParams);
                         if (!corrParams.getPreliq().hasSpareAttempts()) {
-                            marketService.stopAllActions("preliq:stopAllActions");
+                            marketService.stopAllActionsSingleService("preliq:stopAllActions");
                         }
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {
@@ -198,7 +198,7 @@ public class PreliqService {
                         persistenceService.saveCorrParams(corrParams);
 
                         if (!arbitrageService.areBothOkex()) {
-                            getTheOtherMarket().stopAllActions("preliq:stopAllActions");
+                            getTheOtherMarket().stopAllActionsSingleService("preliq:stopAllActions");
                         }
 
                         doPreliqOrder(preliqParams);
