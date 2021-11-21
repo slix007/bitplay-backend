@@ -197,7 +197,9 @@ public class PreliqService {
                         corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
                         persistenceService.saveCorrParams(corrParams);
 
-                        getTheOtherMarket().stopAllActions("preliq:stopAllActions");
+                        if (!arbitrageService.areBothOkex()) {
+                            getTheOtherMarket().stopAllActions("preliq:stopAllActions");
+                        }
 
                         doPreliqOrder(preliqParams);
 
