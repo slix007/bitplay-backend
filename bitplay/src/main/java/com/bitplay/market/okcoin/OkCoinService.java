@@ -3269,9 +3269,10 @@ public class OkCoinService extends MarketServicePreliq {
      * размер блока для 2 = pos - Hedge.
      * </pre>
      */
-    private BigDecimal getClosePosAmount(BigDecimal position) {
+    private BigDecimal getClosePosAmount(BigDecimal inputPosition) {
+        BigDecimal position = inputPosition.abs();
         if (!arbitrageService.areBothOkex()) {
-            return position.signum() > 0 ? position : position.negate();
+            return position;
         }
 
         final boolean isQuanto = getContractType().isQuanto();
@@ -3283,8 +3284,8 @@ public class OkCoinService extends MarketServicePreliq {
 //        размер killpos-ордера для L = pos,
 //        размер killpos-ордера для R = pos - Hedge,
         final Pos theOtherMarketPos = theOtherMarket.getPos();
-        BigDecimal leftPos = getArbType() == ArbType.LEFT ? position : theOtherMarketPos.getPositionLong();
-        BigDecimal rightPos = getArbType() == ArbType.RIGHT ? position : theOtherMarketPos.getPositionLong();
+        BigDecimal leftPos = getArbType() == ArbType.LEFT ? position : theOtherMarketPos.getPositionLong().abs();
+        BigDecimal rightPos = getArbType() == ArbType.RIGHT ? position : theOtherMarketPos.getPositionLong().abs();
 
         final BigDecimal closePosAmount;
         if (leftPos.signum() > 0 && rightPos.signum() <= 0) { // L == long, R == short
