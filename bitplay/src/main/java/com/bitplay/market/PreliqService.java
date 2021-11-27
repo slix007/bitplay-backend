@@ -27,6 +27,7 @@ import com.bitplay.utils.Utils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -48,8 +49,7 @@ public class PreliqService {
     private final DelayTimer dtPreliq = new DelayTimer();
     private final DelayTimer dtKillpos = new DelayTimer();
 
-    @SneakyThrows
-    public void checkForPreliq(boolean settlementMode) {
+    public void checkForPreliq(boolean settlementMode) throws Exception {
         if (settlementMode) {
             resetPreliqState();
             dtPreliq.stop();
@@ -202,7 +202,7 @@ public class PreliqService {
                         if (arbitrageService.areBothOkex()) {
                             final Future<Boolean> theOtherMarketPreliq = ((OkCoinService) marketService.getTheOtherMarket()).preliqLeftAsync();
                             doPreliqOrder(preliqParams);
-                            theOtherMarketPreliq.get();
+                            theOtherMarketPreliq.get(30, TimeUnit.SECONDS);
                         } else {
                             getTheOtherMarket().stopAllActionsSingleService("preliq:stopAllActions");
                             doPreliqOrder(preliqParams);

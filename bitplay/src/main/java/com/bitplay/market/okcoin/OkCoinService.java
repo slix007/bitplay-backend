@@ -419,7 +419,7 @@ public class OkCoinService extends MarketServicePreliq {
         scheduler = Executors.newSingleThreadScheduledExecutor(
                 new ThreadFactoryBuilder().setNameFormat(getArbType().s() + "_okex-preliq-thread-%d").build());
 
-        if (arbitrageService.areBothOkex() && getArbType() == ArbType.LEFT) {
+        if (getArbType() == ArbType.LEFT) { // both okex
             // no check for LEFT with okex-okex
         } else {
             scheduler.scheduleWithFixedDelay(() -> {
