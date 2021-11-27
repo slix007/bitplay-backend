@@ -4,7 +4,6 @@ import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.model.TradeResponse;
-import com.bitplay.xchange.dto.Order.OrderStatus;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
@@ -33,20 +32,29 @@ public class KillPosService {
 
         boolean isSuccessful = true;
         final TradeResponse tradeResponse = marketService.closeAllPos();
-        final String orderId = tradeResponse.getOrderId();
-        if (marketService.isOrderNullOrCancelled(orderId)) {
-            isSuccessful = false;
-        } else if (marketService.isOrderInProgress(orderId)) {
-            marketService.cancelOrderSync(orderId, "KILLPOS:closeAllPos:Error:doCancel");
-            isSuccessful = false;
-        }
         final TradeResponse leftR = tradeResponse.getLeftTradeResponse();
         if (leftR != null) {
             final MarketServicePreliq leftM = marketService.getTheOtherMarket();
-            if (leftM.isOrderNullOrCancelled(leftR.getOrderId())) {
+            final String rightId = tradeResponse.getOrderId();
+            final String leftId = leftR.getOrderId();
+            if (marketService.isOrderNullOrCancelled(rightId)
+                    && leftM.isOrderNullOrCancelled(leftId)) {
                 isSuccessful = false;
-            } else if (leftM.isOrderInProgress(leftR.getOrderId())) {
-                leftM.cancelOrderSync(orderId, "KILLPOS:closeAllPos:Error:doCancel");
+            }
+            if (marketService.isOrderInProgress(rightId)) {
+                leftM.cancelOrderSync(rightId, "KILLPOS:closeAllPos:Error:doCancel");
+                isSuccessful = false;
+            }
+            if (leftM.isOrderInProgress(leftId)) {
+                leftM.cancelOrderSync(leftId, "KILLPOS:closeAllPos:Error:doCancel");
+                isSuccessful = false;
+            }
+        } else {
+            final String orderId = tradeResponse.getOrderId();
+            if (marketService.isOrderNullOrCancelled(orderId)) {
+                isSuccessful = false;
+            } else if (marketService.isOrderInProgress(orderId)) {
+                marketService.cancelOrderSync(orderId, "KILLPOS:closeAllPos:Error:doCancel");
                 isSuccessful = false;
             }
         }
