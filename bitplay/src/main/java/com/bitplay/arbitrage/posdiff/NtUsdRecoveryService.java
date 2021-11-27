@@ -365,7 +365,6 @@ public class NtUsdRecoveryService {
             } else {
                 // okcoin buy
                 posDiffService.defineCorrectAmountOkex(corrObj, dc, isEth);
-                posDiffService.defineOkexThroughZero(corrObj);
                 corrObj.marketService = arbitrageService.getRightMarketService();
                 if ((oPL.subtract(oPS)).signum() >= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
@@ -421,7 +420,6 @@ public class NtUsdRecoveryService {
                 // okcoin sell
                 corrObj.marketService = arbitrageService.getRightMarketService();
                 posDiffService.defineCorrectAmountOkex(corrObj, dc, isEth);
-                posDiffService.defineOkexThroughZero(corrObj);
                 if ((oPL.subtract(oPS)).signum() <= 0) {
                     corrObj.signalType = SignalType.RECOVERY_NTUSD_INCREASE_POS;
                     extLogLabel = "RECOVERY_NTUSD_INCREASE_POS: ";
