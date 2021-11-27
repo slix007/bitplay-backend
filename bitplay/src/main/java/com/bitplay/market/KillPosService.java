@@ -31,25 +31,24 @@ public class KillPosService {
         // 1) Срабатывает механизм автоматического прожатия кнопки close_all_pos mkt у соответствующей биржи;
         //2) В случае успешного первого действия, непосредственно после него срабатывает автоматическое действие recovery_nt_usd 26nv19 Кнопка recovery nt_usd со следующими особенностями:
 
-        final TradeResponse tradeResponse = marketService.closeAllPos(false);
+        boolean isSuccessful = true;
+        final TradeResponse tradeResponse = marketService.closeAllPos();
         final String orderId = tradeResponse.getOrderId();
-        if (orderId == null ||
-                (marketService.getOpenOrders().stream()
-                        .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
-                        .allMatch(fplayOrder -> fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.CANCELED))) {
-            // FAIL:
-            return false;
-        } else if (marketService.getOpenOrders().stream()
-                .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
-                .anyMatch(fplayOrder -> (
-                                fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.NEW
-                                        || fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.PENDING_NEW
-                                        || fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.PARTIALLY_FILLED
-                        )
-                )) {
-            // cancel the order:
+        if (marketService.isOrderNullOrCancelled(orderId)) {
+            isSuccessful = false;
+        } else if (marketService.isOrderInProgress(orderId)) {
             marketService.cancelOrderSync(orderId, "KILLPOS:closeAllPos:Error:doCancel");
-            return false;
+            isSuccessful = false;
+        }
+        final TradeResponse leftR = tradeResponse.getLeftTradeResponse();
+        if (leftR != null) {
+            final MarketServicePreliq leftM = marketService.getTheOtherMarket();
+            if (leftM.isOrderNullOrCancelled(leftR.getOrderId())) {
+                isSuccessful = false;
+            } else if (leftM.isOrderInProgress(leftR.getOrderId())) {
+                leftM.cancelOrderSync(orderId, "KILLPOS:closeAllPos:Error:doCancel");
+                isSuccessful = false;
+            }
         }
 
         // SUCCESS:
@@ -64,7 +63,7 @@ public class KillPosService {
             doAutoRecovery();
         }
 
-        return true;
+        return isSuccessful;
     }
 
     private void doAutoRecovery() {

@@ -14,6 +14,7 @@ import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.api.dto.ob.OrderBookJson;
 import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.market.LimitsService;
@@ -470,7 +471,22 @@ public abstract class AbstractUiService<T extends MarketService> {
     }
 
     public TradeResponseJson closeAllPos() {
-        final TradeResponse tradeResponse = getBusinessService().closeAllPos(true);
+        if (getBusinessService().getArbitrageService().areBothOkex()) {
+            return closeAllPosBothOkex();
+        }
+        final TradeResponse tradeResponse = getBusinessService().closeAllPos();
         return new TradeResponseJson(tradeResponse.getOrderId(), tradeResponse.getErrorCode());
+    }
+
+    private TradeResponseJson closeAllPosBothOkex() {
+        final MarketService rightMarketService = getBusinessService().getArbType() == ArbType.LEFT
+                ? getBusinessService().getTheOtherMarket()
+                : getBusinessService();
+
+        final TradeResponse right = rightMarketService.closeAllPos();
+        final TradeResponse left = right.getLeftTradeResponse();
+        final String orderId = String.format("L:%s;R:%s", left.getOrderId(), right.getOrderId());
+        final String errorCode = String.format("L:%s;R:%s", left.getErrorCode(), right.getErrorCode());
+        return new TradeResponseJson(orderId, errorCode);
     }
 }

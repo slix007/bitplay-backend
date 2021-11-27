@@ -111,6 +111,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -121,6 +122,7 @@ import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -417,13 +419,17 @@ public class OkCoinService extends MarketServicePreliq {
         scheduler = Executors.newSingleThreadScheduledExecutor(
                 new ThreadFactoryBuilder().setNameFormat(getArbType().s() + "_okex-preliq-thread-%d").build());
 
-        scheduler.scheduleWithFixedDelay(() -> {
-            try {
-                preliqService.checkForPreliq(okexSettlementService.isSettlementMode());
-            } catch (Exception e) {
-                log.error("Error on checkForDecreasePosition", e);
-            }
-        }, 30, 1, TimeUnit.SECONDS);
+        if (arbitrageService.areBothOkex() && getArbType() == ArbType.LEFT) {
+            // no check for LEFT with okex-okex
+        } else {
+            scheduler.scheduleWithFixedDelay(() -> {
+                try {
+                    preliqService.checkForPreliq(okexSettlementService.isSettlementMode());
+                } catch (Exception e) {
+                    log.error("Error on checkForDecreasePosition", e);
+                }
+            }, 30, 1, TimeUnit.SECONDS);
+        }
     }
 
     @Override
@@ -3151,12 +3157,43 @@ public class OkCoinService extends MarketServicePreliq {
         getPersistenceService().getDealPricesRepositoryService().updateOkexFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
+    @SneakyThrows
     @Override
-    public TradeResponse closeAllPos(boolean isManual) {
+    public TradeResponse closeAllPos() {
+        final BigDecimal posVal = getPosVal();
+
+        if (arbitrageService.areBothOkex()) {
+            if (getArbType() == ArbType.LEFT) {
+                String msg = "trying to closeAllPos on LEFT when okex-okex";
+                warningLogger.warn(msg);
+                throw new IllegalStateException(msg);
+            }
+            // it is RIGHT market
+
+            // start left in parallel thread
+            final Future<TradeResponse> leftTradeFuture = ((OkCoinService) arbitrageService.getLeftMarketService()).closeAllPosAsync();
+            // do right in current thread
+            final TradeResponse rightTrade = closeAllPosOkexOne(posVal);
+            // end left by waiting for response
+            final TradeResponse leftTradeResponse = leftTradeFuture.get();
+            rightTrade.setLeftTradeResponse(leftTradeResponse);
+            return rightTrade;
+        }
+        // else
+
+        return closeAllPosOkexOne(posVal);
+    }
+
+    public Future<TradeResponse> closeAllPosAsync() {
+        final BigDecimal posVal = getPosVal();
+        return scheduler.submit(() -> closeAllPosOkexOne(posVal));
+    }
+
+    public TradeResponse closeAllPosOkexOne(BigDecimal posVal) {
+        final BigDecimal posAbs = posVal.abs();
         final TradeResponse tradeResponse = new TradeResponse();
         final StringBuilder res = new StringBuilder();
 
-        final Pos position = getPos();
 
         final String counterForLogs = "closeAllPos";
         final String logInfoId = "closeAllPos:cancel";
@@ -3169,12 +3206,14 @@ public class OkCoinService extends MarketServicePreliq {
                 final List<LimitOrder> onlyOpenOrders = getOnlyOpenOrders();
                 boolean specialHandling = false;
 
-                final BigDecimal closePosAmount = getClosePosAmount(position.getPositionLong());
+                final BigDecimal closePosAmount = arbitrageService.areBothOkex()
+                        ? getClosePosAmount(posVal)
+                        : posAbs;
 
                 // specialHanding when openOrder && only one openPos:
                 // "closePos/cancelOpenOrder" steps in different order
                 if (onlyOpenOrders.size() == 1) {
-                    if (position.getPositionLong().signum() > 0) { // one
+                    if (posVal.signum() > 0) { // one
                         specialHandling = true;
                         final LimitOrder oo = onlyOpenOrders.get(0);
                         final String orderId;
@@ -3191,7 +3230,7 @@ public class OkCoinService extends MarketServicePreliq {
                         }
                         tradeResponse.setOrderId(orderId);
 
-                    } else if (position.getPositionLong().signum() < 0) {
+                    } else if (posVal.signum() < 0) {
                         specialHandling = true;
                         final LimitOrder oo = onlyOpenOrders.get(0);
                         final String orderId;
@@ -3204,7 +3243,7 @@ public class OkCoinService extends MarketServicePreliq {
                         } else {
                             // если pos === short, ордер == long (avail < holding),
                             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
-                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, position.getPositionShort());
+                            orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, closePosAmount);
                         }
                         tradeResponse.setOrderId(orderId);
                     }
@@ -3216,9 +3255,9 @@ public class OkCoinService extends MarketServicePreliq {
                     }
 
                     String orderId = null;
-                    if (position.getPositionLong().signum() > 0) {
+                    if (posVal.signum() > 0) {
                         orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_BID, closePosAmount);
-                    } else if (position.getPositionLong().signum() < 0) {
+                    } else if (posVal.signum() < 0) {
                         orderId = ftpdLimitOrder(counterForLogs, okexContractType, OrderType.EXIT_ASK, closePosAmount);
                     }
                     if (orderId != null) {
@@ -3258,24 +3297,24 @@ public class OkCoinService extends MarketServicePreliq {
 
     /**
      * <pre>
-     * a) L == long, R == short:
+     * a) L == long ||0, R == short:
      * размер killpos-ордера для L = pos,
      * размер killpos-ордера для R = pos - Hedge,
      *
-     * b) L == short, R == long:
+     * b) L == short, R == long || 0:
      * размер killpos-ордера для L = pos - Hedge,
      * размер killpos-ордера для R = pos.
      *
      * c) L == R == short - сравниваем размер позиции по модулю
-     * (там, где меньше это 1, там где больше это 2):
+     * (там, где меньше это 1, там где больше это 2): Если равны, то 1 это Left.
      * размер блока для 1 = pos,
      * размер блока для 2 = pos - Hedge.
      * </pre>
      */
-    private BigDecimal getClosePosAmount(BigDecimal inputPosition) {
-        BigDecimal position = inputPosition.abs();
+    private BigDecimal getClosePosAmount(BigDecimal posVal) {
+        BigDecimal posAbs = posVal.abs();
         if (!arbitrageService.areBothOkex()) {
-            return position;
+            return posAbs;
         }
 
         final boolean isQuanto = getContractType().isQuanto();
@@ -3287,37 +3326,37 @@ public class OkCoinService extends MarketServicePreliq {
 //        размер killpos-ордера для L = pos,
 //        размер killpos-ордера для R = pos - Hedge,
         final Pos theOtherMarketPos = theOtherMarket.getPos();
-        BigDecimal leftPos = getArbType() == ArbType.LEFT ? position : theOtherMarketPos.getPositionLong().abs();
-        BigDecimal rightPos = getArbType() == ArbType.RIGHT ? position : theOtherMarketPos.getPositionLong().abs();
+        BigDecimal leftPosVal = getArbType() == ArbType.LEFT ? posVal : theOtherMarketPos.getPositionLong();
+        BigDecimal rightPosVal = getArbType() == ArbType.RIGHT ? posVal : theOtherMarketPos.getPositionLong();
 
         final BigDecimal closePosAmount;
-        if (leftPos.signum() > 0 && rightPos.signum() <= 0) { // L == long, R == short
+        if (leftPosVal.signum() >= 0 && rightPosVal.signum() < 0) { // L == long, R == short
             closePosAmount = getArbType() == ArbType.LEFT
-                    ? position
-                    : position.subtract(hedgeCont);
-        } else if (leftPos.signum() < 0 && rightPos.signum() >= 0) { // L == short, R == long:
+                    ? posAbs
+                    : posAbs.subtract(hedgeCont);
+        } else if (leftPosVal.signum() < 0 && rightPosVal.signum() >= 0) { // L == short, R == long:
             closePosAmount = getArbType() == ArbType.LEFT
-                    ? position.subtract(hedgeCont)
-                    : position;
-        } else if (leftPos.signum() <= 0 && rightPos.signum() <= 0) {// L == R == short
-            if (leftPos.compareTo(rightPos) > 0) {
+                    ? posAbs.subtract(hedgeCont)
+                    : posAbs;
+        } else if (leftPosVal.signum() <= 0 && rightPosVal.signum() <= 0) {// L == R == short
+            if (leftPosVal.abs().compareTo(rightPosVal.abs()) <= 0) {
                 // left = pos
                 // right  = pos - hedge
                 closePosAmount = getArbType() == ArbType.LEFT
-                        ? position
-                        : position.subtract(hedgeCont);
+                        ? posAbs
+                        : posAbs.subtract(hedgeCont);
             } else {
                 // left = pos - hedge
                 // right  = pos
                 closePosAmount = getArbType() == ArbType.LEFT
-                        ? position.subtract(hedgeCont)
-                        : position;
+                        ? posAbs.subtract(hedgeCont)
+                        : posAbs;
             }
         } else { // both long
-            closePosAmount = position;
+            closePosAmount = posAbs;
         }
-        if (closePosAmount.signum() < 0) {
-            throw new IllegalStateException(String.format("closePosAmount(%s)<0", closePosAmount));
+        if (closePosAmount.signum() <= 0) {
+            throw new IllegalStateException(String.format("closePosAmount(%s)<=0", closePosAmount));
         }
 
         return closePosAmount;

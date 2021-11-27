@@ -1432,9 +1432,9 @@ public abstract class MarketService extends MarketServiceWithState {
                 : BigDecimal.ZERO;
     }
 
-    abstract public TradeResponse closeAllPos(boolean isManual);
+    abstract public TradeResponse closeAllPos();
 
-    protected MarketServicePreliq getTheOtherMarket() {
+    public MarketServicePreliq getTheOtherMarket() {
         return getArbType() == ArbType.LEFT
                 ? getArbitrageService().getRightMarketService()
                 : getArbitrageService().getLeftMarketService();

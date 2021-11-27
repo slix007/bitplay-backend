@@ -59,6 +59,24 @@ public abstract class MarketServiceOpenOrders {
 
     public abstract ArbitrageService getArbitrageService();
 
+    public Boolean isOrderNullOrCancelled(String orderId) {
+        return orderId == null ||
+                (getOpenOrders().stream()
+                        .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
+                        .allMatch(fplayOrder -> fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.CANCELED));
+    }
+
+    public Boolean isOrderInProgress(String orderId) {
+        return getOpenOrders().stream()
+                .filter(fplayOrder -> orderId.equals(fplayOrder.getOrderId()))
+                .anyMatch(fplayOrder -> (
+                                fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.NEW
+                                        || fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.PENDING_NEW
+                                        || fplayOrder.getOrderDetail().getOrderStatus() == OrderStatus.PARTIALLY_FILLED
+                        )
+                );
+    }
+
     public synchronized List<FplayOrder> getOpenOrders() {
         return this.openOrders;
     }

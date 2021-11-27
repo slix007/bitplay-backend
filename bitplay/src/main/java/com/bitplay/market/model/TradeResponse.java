@@ -20,6 +20,7 @@ public class TradeResponse {
     String errorCode;
     LimitOrder limitOrder;
     List<LimitOrder> cancelledOrders = new ArrayList<>();
+    TradeResponse leftTradeResponse;
 
     public TradeResponse() {
     }
@@ -79,4 +80,11 @@ public class TradeResponse {
         return false;
     }
 
+    public TradeResponse getLeftTradeResponse() {
+        return leftTradeResponse;
+    }
+
+    public void setLeftTradeResponse(TradeResponse leftTradeResponse) {
+        this.leftTradeResponse = leftTradeResponse;
+    }
 }
