@@ -7,12 +7,6 @@ ssh.settings {
 }
 
 remotes {
-    host658 {
-        host = bpHost658
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
     // DEPLOY WHEN BANNED:
     // ssh 5060 -L 7777:5068-vupa.fplay.io:44022
     //
@@ -64,72 +58,6 @@ remotes {
         password = bpPassword5060
         port = bpPort as Integer
     }
-    host659 {
-        host = bpHost659
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    host660 {
-        host = bpHost660
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    host662 {
-        host = bpHost662
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    host667 {
-        host = bpHost667
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    host668 {
-        host = bpHost668
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    host669 {
-        host = bpHost669
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    host661 {
-        host = bpHost661
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    test {
-        host = bpHost
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    prod {
-        host = bpProdHost
-        user = bpUser
-        password = bpPassword
-        port = bpPort as Integer
-    }
-    demo {
-        host = bpDemoHost
-        user = bpUser
-        password = bpDemoPassword
-        port = bpDemoPort as Integer
-    }
-    host5051 {
-        host = bpHost5051
-        user = bpUser5051
-        password = bpPassword5051
-        port = bpPort as Integer
-    }
 }
 
 def remoteInstallDir = '/opt/bitplay/bitmex-okcoin'
@@ -143,29 +71,16 @@ task cleanLogs {
 }
 
 // Test servers
-task deployHost658 { doLast { sshRun(remotes.host658, remoteHomeDir, remoteInstallDir) } }
 task deployHost5068 { doLast { sshRun(remotes.host5068, remoteHomeDir, remoteInstallDir) } }
-task deployHost5040 { doLast { sshRun(remotes.host5040, '/home/ss', remoteInstallDir) } }
+task deployHost5060 { doLast { sshRun(remotes.host5060, remoteHomeDir, remoteInstallDir) } }
 task deployHost5061 { doLast { sshRun(remotes.host5061, remoteHomeDir, remoteInstallDir) } }
-task deployHost660 { doLast { sshRun(remotes.host660, remoteHomeDir, remoteInstallDir) } }
+task deployHost5062 { doLast { sshRun(remotes.host5062, remoteHomeDir, remoteInstallDir) } }
+task deployHost5063 { doLast { sshRun(remotes.host5063, remoteHomeDir, remoteInstallDir) } }
+task deployHost5064 { doLast { sshRun(remotes.host5064, remoteHomeDir, remoteInstallDir) } }
 
 // Prod servers
-task deployHost659 { doLast { sshRun(remotes.host659, remoteHomeDir, remoteInstallDir) } }
-task deployHost662 { doLast { sshRun(remotes.host662, remoteHomeDir, remoteInstallDir) } }
-task deployHost667 { doLast { sshRun(remotes.host667, remoteHomeDir, remoteInstallDir) } }
-task deployHost668 { doLast { sshRun(remotes.host668, remoteHomeDir, remoteInstallDir) } }
-task deployHost669 { doLast { sshRun(remotes.host669, remoteHomeDir, remoteInstallDir) } }
-task deployHost661 { doLast { sshRun(remotes.host661, remoteHomeDir, remoteInstallDir) } }
-task deployTest { doLast { sshRun(remotes.test, remoteHomeDir, remoteInstallDir) } }
-task deployProd { doLast { sshRun(remotes.prod, remoteHomeDir, remoteInstallDir) } }
-task deployDemo { doLast { sshRun(remotes.demo, remoteHomeDir, remoteInstallDir) } }
-
 // Real server
-task deployHost5051 { doLast { sshRun(remotes.host5051, '/home/ss', remoteInstallDir) } }
-task deployHost5060 { doLast { sshRun(remotes.host5060, '/home/ss', remoteInstallDir) } }
-task deployHost5062 { doLast { sshRun(remotes.host5062, '/home/ss', remoteInstallDir) } }
-task deployHost5063 { doLast { sshRun(remotes.host5063, '/home/ss', remoteInstallDir) } }
-task deployHost5064 { doLast { sshRun(remotes.host5064, '/home/ss', remoteInstallDir) } }
+task deployHost5040 { doLast { sshRun(remotes.host5040, remoteHomeDir, remoteInstallDir) } }
 
 private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
     println "===$hostName.host:$hostName.port::$hostName.user::$hostName.password==="
@@ -184,3 +99,4 @@ private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
         }
     }
 }
+
