@@ -323,8 +323,8 @@ public abstract class AbstractUiService<T extends MarketService> {
 
         final BigDecimal longAvailToClose = position.getLongAvailToClose() != null ? position.getLongAvailToClose() : BigDecimal.ZERO;
         final BigDecimal shortAvailToClose = position.getShortAvailToClose() != null ? position.getShortAvailToClose() : BigDecimal.ZERO;
-        final String plPos = position.getPlPos() != null ? position.getPlPos().setScale(4, RoundingMode.HALF_UP).toPlainString() : "";
-        final String plPosBest = position.getPlPosBest() != null ? position.getPlPosBest().setScale(4, RoundingMode.HALF_UP).toPlainString() : "";
+        final String plPos = position.getPlPos() != null ? position.getPlPos().setScale(8, RoundingMode.HALF_UP).toPlainString() : "";
+        final String plPosBest = position.getPlPosBest() != null ? position.getPlPosBest().setScale(8, RoundingMode.HALF_UP).toPlainString() : "";
         return new AccountInfoJson(
                 wallet.toPlainString(),
                 available.toPlainString(),

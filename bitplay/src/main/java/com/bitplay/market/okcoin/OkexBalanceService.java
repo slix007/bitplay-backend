@@ -57,7 +57,7 @@ public class OkexBalanceService implements BalanceService {
                 wallet = eMark.subtract(plPos);
             }
 
-            int plPosScale = contractType.getScale() + 2;
+            int plPosScale = contractType.getScale() + 6;
             BigDecimal uplLong = BigDecimal.ZERO;
             BigDecimal uplShort = BigDecimal.ZERO;
             BigDecimal uplLongAvg = BigDecimal.ZERO;
