@@ -3157,6 +3157,12 @@ public class OkCoinService extends MarketServicePreliq {
         getPersistenceService().getDealPricesRepositoryService().updateOkexFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
+     public Future<Boolean> preliqLeftAsync() {
+        final Pos pos = getPos();
+        return scheduler.submit(() -> preliqService.doPreliqLeft(pos));
+    }
+
+
     @SneakyThrows
     @Override
     public TradeResponse closeAllPos() {

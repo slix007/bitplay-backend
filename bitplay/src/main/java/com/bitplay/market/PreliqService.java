@@ -1,18 +1,7 @@
 package com.bitplay.market;
 
-import com.bitplay.market.bitmex.BitmexService;
-import com.bitplay.market.model.DqlState;
-import com.bitplay.market.model.LiqInfo;
-import com.bitplay.market.model.MarketState;
-import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.okcoin.OkCoinService;
-import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.correction.Preliq;
-import com.bitplay.persistance.domain.fluent.DeltaName;
-import com.bitplay.persistance.domain.fluent.FplayOrder;
-import com.bitplay.persistance.domain.settings.Dql;
-import com.bitplay.persistance.domain.settings.PlacingType;
+import static com.bitplay.xchange.dto.Order.OrderType;
+
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
@@ -20,19 +9,31 @@ import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.dto.ThrottledWarn;
 import com.bitplay.external.NotifyType;
+import com.bitplay.market.bitmex.BitmexService;
+import com.bitplay.market.model.DqlState;
+import com.bitplay.market.model.LiqInfo;
+import com.bitplay.market.model.MarketState;
+import com.bitplay.market.model.PlaceOrderArgs;
+import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.Pos;
+import com.bitplay.persistance.PersistenceService;
+import com.bitplay.persistance.domain.correction.CorrParams;
+import com.bitplay.persistance.domain.correction.Preliq;
+import com.bitplay.persistance.domain.fluent.DeltaName;
+import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.Dql;
+import com.bitplay.persistance.domain.settings.PlacingType;
 import com.bitplay.utils.Utils;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.concurrent.Future;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-
-import static com.bitplay.xchange.dto.Order.OrderType;
 
 @RequiredArgsConstructor
 @Getter
@@ -47,6 +48,7 @@ public class PreliqService {
     private final DelayTimer dtPreliq = new DelayTimer();
     private final DelayTimer dtKillpos = new DelayTimer();
 
+    @SneakyThrows
     public void checkForPreliq(boolean settlementMode) {
         if (settlementMode) {
             resetPreliqState();
@@ -112,7 +114,7 @@ public class PreliqService {
             ) {
                 if (corrParams.getPreliq().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
-                    marketService.stopAllActionsSingleService("preliq:stopAllActions");
+                    marketService.stopAllActions("preliq:stopAllActions");
                 }
                 if (corrParams.getKillpos().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
@@ -189,7 +191,7 @@ public class PreliqService {
                     if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
                         persistenceService.saveCorrParams(corrParams);
                         if (!corrParams.getPreliq().hasSpareAttempts()) {
-                            marketService.stopAllActionsSingleService("preliq:stopAllActions");
+                            marketService.stopAllActions("preliq:stopAllActions");
                         }
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {
@@ -197,11 +199,14 @@ public class PreliqService {
                         corrParams.getPreliq().incTotalCount(getName()); // counterName relates on it
                         persistenceService.saveCorrParams(corrParams);
 
-                        if (!arbitrageService.areBothOkex()) {
+                        if (arbitrageService.areBothOkex()) {
+                            final Future<Boolean> theOtherMarketPreliq = ((OkCoinService) marketService.getTheOtherMarket()).preliqLeftAsync();
+                            doPreliqOrder(preliqParams);
+                            theOtherMarketPreliq.get();
+                        } else {
                             getTheOtherMarket().stopAllActionsSingleService("preliq:stopAllActions");
+                            doPreliqOrder(preliqParams);
                         }
-
-                        doPreliqOrder(preliqParams);
 
                         log.info("dtPreliq stop after successful preliq");
                         dtPreliq.stop(); //after successful start
@@ -213,6 +218,28 @@ public class PreliqService {
             Instant end = Instant.now();
             Utils.logIfLong(start, end, log, "checkForDecreasePosition");
         }
+    }
+
+    public Boolean doPreliqLeft(Pos pos) {
+        final LiqInfo liqInfo = marketService.getLiqInfo();
+        final String nameSymbol = marketService.getArbType().s();
+
+        final BigDecimal posVal = pos.getPositionLong();
+
+        final PreliqParams preliqParams = getPreliqParams(pos, posVal);
+        final boolean preliqBlockEnough = preliqParams != null && preliqParams.getPreliqBlocks() != null
+                && (preliqParams.getPreliqBlocks().getO_block().signum() > 0);
+        if (!preliqBlockEnough) {
+            return false;
+        }
+
+        final String counterForLogs = marketService.getCounterName(preliqParams.getSignalType(), false);
+
+        printPreliqStarting(counterForLogs, nameSymbol, pos, liqInfo, "PRELIQ");
+
+        doPreliqOrder(preliqParams);
+
+        return true;
     }
 
     private boolean doKillPosWithAttempts(PersistenceService persistenceService, LiqInfo liqInfo1, Pos pos1, CorrParams corrParams, String nameSymbol) {

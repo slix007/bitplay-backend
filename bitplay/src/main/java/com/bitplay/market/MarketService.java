@@ -585,7 +585,7 @@ public abstract class MarketService extends MarketServiceWithState {
         return getCounterName(signalType, true);
     }
 
-    private String getCounterName(SignalType signalType, boolean isNext, Long... tradeId) {
+    public String getCounterName(SignalType signalType, boolean isNext, Long... tradeId) {
         String value;
         if (signalType == SignalType.AUTOMATIC) {
             if (isNext) {
@@ -1373,12 +1373,8 @@ public abstract class MarketService extends MarketServiceWithState {
     public void stopAllActions(String counterForLogs) {
         stopAllActionsSingleService(counterForLogs);
 
-        final ArbitrageService arbService = getArbitrageService();
-        if (arbService.areBothOkex()) {
-            MarketService theOtherMarket = getArbType() == ArbType.LEFT
-                    ? arbService.getRightMarketService()
-                    : arbService.getLeftMarketService();
-            theOtherMarket.stopAllActionsSingleService(counterForLogs);
+        if (getArbitrageService().areBothOkex()) {
+            getTheOtherMarket().stopAllActionsSingleService(counterForLogs);
         }
     }
 
