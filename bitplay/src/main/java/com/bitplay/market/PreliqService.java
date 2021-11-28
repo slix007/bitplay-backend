@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,9 +179,18 @@ public class PreliqService {
                 // do preliq
                 if (marketDqlState == DqlState.PRELIQ && secToReady <= 0 && corrParams.getPreliq().hasSpareAttempts()) {
                     final PreliqParams preliqParams = getPreliqParams(pos, posVal);
-                    final boolean preliqBlockEnough = preliqParams != null && preliqParams.getPreliqBlocks() != null
+                    boolean preliqBlockEnough = preliqParams != null && preliqParams.getPreliqBlocks() != null
                             && ((getName().equals(BitmexService.NAME) && preliqParams.getPreliqBlocks().getB_block().signum() > 0) ||
                             (getName().equals(OkCoinService.NAME) && preliqParams.getPreliqBlocks().getO_block().signum() > 0));
+
+                    if (!preliqBlockEnough && arbitrageService.areBothOkex()) {
+                        final Pos posLeft = getTheOtherMarket().getPos();
+                        final PreliqParams preliqParamsLeft = getPreliqParams(posLeft, posLeft.getPositionLong());
+                        //noinspection UnnecessaryLocalVariable
+                        final boolean preliqBlockEnoughLeft = preliqParamsLeft != null && preliqParamsLeft.getPreliqBlocks() != null
+                                && (preliqParamsLeft.getPreliqBlocks().getO_block().signum() > 0);
+                        preliqBlockEnough = preliqBlockEnoughLeft;
+                    }
                     if (!preliqBlockEnough) {
                         resetPreliqState();
                         dtPreliq.stop();
@@ -208,9 +216,16 @@ public class PreliqService {
                         persistenceService.saveCorrParams(corrParams);
 
                         if (arbitrageService.areBothOkex()) {
-                            final Future<Boolean> theOtherMarketPreliq = ((OkCoinService) marketService.getTheOtherMarket()).preliqLeftAsync();
-                            doPreliqOrder(preliqParams);
-                            theOtherMarketPreliq.get(30, TimeUnit.SECONDS);
+                            try {
+                                final Future<Boolean> theOtherMarketPreliq = ((OkCoinService) marketService.getTheOtherMarket()).preliqLeftAsync();
+                                doPreliqOrder(preliqParams);
+                                theOtherMarketPreliq.get(30, TimeUnit.SECONDS);
+                            } catch (Exception e) {
+                                final String msg = String.format("%s %s okex-okex preliq error %s", counterForLogs, getName(), e.toString());
+                                log.error(msg, e);
+                                warningLogger.error(msg);
+                                marketService.getTradeLogger().info(msg);
+                            }
                         } else {
                             getTheOtherMarket().stopAllActionsSingleService("preliq:stopAllActions");
                             doPreliqOrder(preliqParams);
@@ -387,7 +402,11 @@ public class PreliqService {
 
 
     private boolean posZeroViolation(Pos pos) {
-        return pos.getPositionLong().signum() == 0 && pos.getPositionShort().signum() == 0; // no preliq
+        boolean isPosZero = pos.getPositionLong().signum() == 0;
+        if (isPosZero && marketService.getArbitrageService().areBothOkex()) {
+            isPosZero = getTheOtherMarket().getPosVal().signum() == 0;
+        }
+        return isPosZero;
     }
 
     private void printLogs(String counterForLogs, String nameSymbol, Pos position, LiqInfo liqInfo, String opName, String startStopStatus) {
