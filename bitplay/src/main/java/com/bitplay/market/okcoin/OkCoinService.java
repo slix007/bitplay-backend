@@ -3345,18 +3345,23 @@ public class OkCoinService extends MarketServicePreliq {
                     ? posAbs.subtract(hedgeCont)
                     : posAbs;
         } else if (leftPosVal.signum() <= 0 && rightPosVal.signum() <= 0) {// L == R == short
-            if (leftPosVal.abs().compareTo(rightPosVal.abs()) <= 0) {
-                // left = pos
-                // right  = pos - hedge
-                closePosAmount = getArbType() == ArbType.LEFT
-                        ? posAbs
-                        : posAbs.subtract(hedgeCont);
+            final BigDecimal sumPosVal = leftPosVal.abs().add(rightPosVal.abs());
+            if (sumPosVal.compareTo(hedgeCont) <= 0) {
+                closePosAmount = BigDecimal.ZERO;
             } else {
-                // left = pos - hedge
-                // right  = pos
-                closePosAmount = getArbType() == ArbType.LEFT
-                        ? posAbs.subtract(hedgeCont)
-                        : posAbs;
+                if (leftPosVal.abs().compareTo(rightPosVal.abs()) <= 0) {
+                    // left = pos
+                    // right  = pos - hedge
+                    closePosAmount = getArbType() == ArbType.LEFT
+                            ? posAbs
+                            : posAbs.subtract(hedgeCont);
+                } else {
+                    // left = pos - hedge
+                    // right  = pos
+                    closePosAmount = getArbType() == ArbType.LEFT
+                            ? posAbs.subtract(hedgeCont)
+                            : posAbs;
+                }
             }
         } else { // both long
             closePosAmount = posAbs;
