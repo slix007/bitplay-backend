@@ -134,6 +134,9 @@ public class PreliqService {
                 }
 
                 setDqlResetState(marketService, marketDqlState);
+                if (arbitrageService.areBothOkex()) {
+                    setDqlResetState(getTheOtherMarket(), marketDqlState);
+                }
 
                 if (!persistenceService.getSettingsRepositoryService().getSettings().getManageType().isAuto()) {
                     return; // keep timer on, but no actions
@@ -337,7 +340,7 @@ public class PreliqService {
         final MarketState toSet = marketDqlState == DqlState.PRELIQ ? MarketState.PRELIQ : MarketState.KILLPOS;
         final MarketState prevMarketState = marketService.getMarketState();
         if (prevMarketState != toSet) {
-            log.info(String.format("%s set to %s; prev market state is %s", getName(), toSet, prevMarketState));
+            log.info(String.format("%s set to %s; prev market state is %s", marketService.getName(), toSet, prevMarketState));
             marketService.setMarketState(toSet);
         }
         if (!prevMarketState.isActiveClose()) {
@@ -346,12 +349,19 @@ public class PreliqService {
     }
 
     public void resetPreliqState() {
+        resetPreliqStateForMarket(marketService);
+        if (marketService.getArbitrageService().areBothOkex()) {
+            resetPreliqStateForMarket(getTheOtherMarket());
+        }
+    }
+
+    public void resetPreliqStateForMarket(MarketService marketService) {
         if (marketService.getMarketState() == MarketState.PRELIQ || marketService.getMarketState() == MarketState.KILLPOS) {
             final FplayOrder stub = new FplayOrder(marketService.getMarketId(), null, "cancelOnPreliq");
             marketService.cancelAllOrders(stub, "After PRELIQ: CancelAllOpenOrders", false, true);
 
             MarketState toSet = MarketState.READY; // hasOpenOrders() ? MarketState.ARBITRAGE : MarketState.READY;
-            log.warn(getName() + "_PRELIQ: resetPreliqState to " + toSet);
+            log.warn(marketService.getName() + "_PRELIQ: resetPreliqState to " + toSet);
             marketService.setMarketState(toSet);
             marketService.updateDqlState();
         }
