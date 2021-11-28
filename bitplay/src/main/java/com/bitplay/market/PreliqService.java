@@ -279,8 +279,7 @@ public class PreliqService {
 
             log.info(attemptWarnCnt + " killposAttempt " + corrParams.getKillpos().toStringKillpos());
 
-            final BigDecimal posVal = marketService.getPosVal();
-            if (posVal.signum() == 0) {
+            if (posZeroViolation(pos)) {
                 if (corrParams.getKillpos().tryIncSuccessful(getName())) {
                     persistenceService.saveCorrParams(corrParams);
                 }
