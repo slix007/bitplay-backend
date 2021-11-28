@@ -190,8 +190,13 @@ public class PreliqService {
 
                     if (corrParams.getPreliq().tryIncFailed(getName())) { // previous preliq counter
                         persistenceService.saveCorrParams(corrParams);
-                        if (!corrParams.getPreliq().hasSpareAttempts()) {
+                        if (arbitrageService.areBothOkex()) {
                             marketService.stopAllActions("preliq:stopAllActions");
+                        }
+                        if (!corrParams.getPreliq().hasSpareAttempts()) {
+                            if (!arbitrageService.areBothOkex()) {
+                                marketService.stopAllActions("preliq:stopAllActions");
+                            }
                         }
                     }
                     if (corrParams.getPreliq().hasSpareAttempts()) {
