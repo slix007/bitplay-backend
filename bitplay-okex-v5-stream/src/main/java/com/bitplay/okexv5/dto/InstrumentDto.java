@@ -99,10 +99,11 @@ public class InstrumentDto {
             expTime = expTime.plusDays(28 * 3 + 7); // three month + 1 week
 
             // fix a BUG that first found at 12.06.2021... where BiQuorder=1224, but should be 1231
-            final LocalDateTime extraChangeTime = LocalDateTime.of(2021, 12, 24, 0, 0, 0);
-            if (expTime.isAfter(extraChangeTime)) {
-                expTime = expTime.plusDays(7);
-            }
+//            final LocalDateTime extraChangeTime = LocalDateTime.of(2021, 12, 24, 0, 0, 0);
+//            if (expTime.isAfter(extraChangeTime)) {
+//                expTime = expTime.plusDays(7);
+//            }
+//            expTime = LocalDateTime.of(2022, 3, 25, 8, 0, 0);
 
         } else {
             throw new IllegalArgumentException("Illegal futuresContract " + futuresContract);

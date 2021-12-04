@@ -2779,7 +2779,9 @@ public class OkCoinService extends MarketServicePreliq {
             final BigDecimal marginRationScaled = marginRatio.multiply(marginRatioLiq).setScale(2, RoundingMode.HALF_UP);
             dmrl = marginRationScaled.subtract(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
             dmrlString = String.format("%s_DMRL = %s - 100 = %s%%", s, marginRationScaled, dmrl);
-        } else if (getTheOtherMarket().getPos().getPositionLong().signum() != 0) {
+        } else if (getTheOtherMarket().getPos() != null
+                && getTheOtherMarket().getPos().getPositionLong() != null
+                && getTheOtherMarket().getPos().getPositionLong().signum() != 0) {
             final LiqInfo otherLiqInfo = getTheOtherMarket().getLiqInfo();
             dmrl = otherLiqInfo.getDmrlCurr();
             dmrlString = otherLiqInfo.getDmrlString();
@@ -3199,7 +3201,6 @@ public class OkCoinService extends MarketServicePreliq {
         final BigDecimal posAbs = posVal.abs();
         final TradeResponse tradeResponse = new TradeResponse();
         final StringBuilder res = new StringBuilder();
-
 
         final String counterForLogs = "closeAllPos";
         final String logInfoId = "closeAllPos:cancel";
