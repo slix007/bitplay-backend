@@ -120,7 +120,9 @@ public class OkexLimitsService implements LimitsService {
     @Override
     public boolean outsideLimits(OrderType orderType, PlacingType placingType, SignalType signalType) {
 
-        return outsideLimits(orderType, placingType, signalType == null ? SignalType.AUTOMATIC : signalType, getParams());
+        return outsideLimits(orderType,
+                placingType == null ? PlacingType.MAKER : placingType,
+                signalType == null ? SignalType.AUTOMATIC : signalType, getParams());
     }
 
     public boolean outsideLimitsOnSignal(DeltaName deltaName, PlacingType placingType) {
