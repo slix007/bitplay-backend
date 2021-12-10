@@ -74,7 +74,7 @@ public enum BitmexContractType implements ContractType {
             case ETHUSD_Perpetual:
                 return "ETHUSD";
             case LINKUSDT_Perpetual:
-                return "LINKUSDT";
+                return "LINKUSD";
             case XRPUSD_Perpetual:
                 return "XRPUSD";
             case LTCUSD_Perpetual:

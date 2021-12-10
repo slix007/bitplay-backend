@@ -164,7 +164,7 @@ public class SettingsRepositoryService {
                 secondCurrency = "USD";
                 break;
             case LINKUSDT_Perpetual:
-                secondCurrency = "USDT";
+                secondCurrency = "USD";
                 break;
             case XBTUSD_Quarter:
                 secondCurrency = types.getBtcUsdQuoter().substring(3);
