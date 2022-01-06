@@ -18,7 +18,7 @@ public enum BitmexContractType implements ContractType {
     // secondary tools
     ETHUSD_Perpetual(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2, BigDecimal.valueOf(0.000001)),
     ETHUSD_Quarter(BitmexContractTypeFirst.ETH.name(), BigDecimal.valueOf(0.05), 2, BigDecimal.valueOf(0.000001)),
-    LINKUSDT_Perpetual(BitmexContractTypeFirst.LINK.name(), BigDecimal.valueOf(0.0005), 4, BigDecimal.valueOf(0.0001)),
+    LINKUSDT_Perpetual(BitmexContractTypeFirst.LINK.name(), BigDecimal.valueOf(0.001), 3, BigDecimal.valueOf(0.00001)),
     XRPUSD_Perpetual(BitmexContractTypeFirst.XRP.name(), BigDecimal.valueOf(0.0001), 4, BigDecimal.valueOf(0.0002)),
     LTCUSD_Perpetual(BitmexContractTypeFirst.LTC.name(), BigDecimal.valueOf(0.01), 2, BigDecimal.valueOf(0.000002)),
     BCHUSD_Perpetual(BitmexContractTypeFirst.BCH.name(), BigDecimal.valueOf(0.05), 2, BigDecimal.valueOf(0.000001)),
