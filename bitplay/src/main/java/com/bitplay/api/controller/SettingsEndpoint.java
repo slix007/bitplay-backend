@@ -32,6 +32,7 @@ import com.bitplay.persistance.domain.settings.TradingMode;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.SettingsPremService;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.EnumSet;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -354,6 +355,16 @@ public class SettingsEndpoint {
         }
         if (settingsUpdate.getHedgeEth() != null) {
             settings.setHedgeEth(settingsUpdate.getHedgeEth());
+            settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
+        }
+        if (settingsUpdate.getHedgeCftBtc() != null) {
+            settings.setHedgeCftBtc(settingsUpdate.getHedgeCftBtc().setScale(2, RoundingMode.HALF_UP));
+            settingsRepositoryService.saveSettings(settings);
+            resetPreset = false;
+        }
+        if (settingsUpdate.getHedgeCftEth() != null) {
+            settings.setHedgeCftEth(settingsUpdate.getHedgeCftEth().setScale(2, RoundingMode.HALF_UP));
             settingsRepositoryService.saveSettings(settings);
             resetPreset = false;
         }

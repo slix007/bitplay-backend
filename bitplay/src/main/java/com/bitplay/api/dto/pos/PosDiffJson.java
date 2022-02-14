@@ -25,10 +25,13 @@ public class PosDiffJson {
     private String rightSCV;
     private Boolean isEth;
     private BigDecimal cm;
+    private BigDecimal hedgeBtc;
+    private BigDecimal hedgeEth;
 
     public static PosDiffJson notInitialized() {
         return new PosDiffJson(true, "position is not yet initialized", null,
-                false, "position is not yet initialized", null, null, null, null, null, null);
+                false, "position is not yet initialized", null, null, null, null, null, null,
+                BigDecimal.ZERO, BigDecimal.ZERO);
     }
 //    private String okUsdInContract;
 

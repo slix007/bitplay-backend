@@ -80,6 +80,8 @@ public class Settings extends AbstractDocument {
 
     private BigDecimal hedgeBtc;
     private BigDecimal hedgeEth;
+    private BigDecimal hedgeCftBtc;
+    private BigDecimal hedgeCftEth;
     private Boolean hedgeAuto;
 
     // Trading modes: Current/Volatile
@@ -134,6 +136,8 @@ public class Settings extends AbstractDocument {
         settings.eBestMin = 0;
         settings.hedgeBtc = BigDecimal.ZERO;
         settings.hedgeEth = BigDecimal.ZERO;
+        settings.hedgeCftBtc = BigDecimal.ZERO;
+        settings.hedgeCftEth = BigDecimal.ZERO;
         settings.hedgeAuto = false;
         settings.usdQuoteType = UsdQuoteType.INDEX_LEFT;
         settings.implied = Implied.createDefaults();

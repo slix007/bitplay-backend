@@ -5,6 +5,7 @@ import com.bitplay.arbitrage.BordersCalcScheduler;
 import com.bitplay.arbitrage.BordersService;
 import com.bitplay.arbitrage.DeltaMinService;
 import com.bitplay.arbitrage.DeltasCalcService;
+import com.bitplay.arbitrage.HedgeService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.DelayTimer;
@@ -87,6 +88,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CommonUIService {
 
+    private final HedgeService hedgeService;
     private final ArbitrageService arbitrageService;
     private final DqlStateService dqlStateService;
     private final TraderPermissionsService traderPermissionsService;
@@ -539,7 +541,9 @@ public class CommonUIService {
                     leftSCV.toPlainString(),
                     rightSCV.toPlainString(),
                     arbitrageService.isEth(),
-                    cm
+                    cm,
+                    hedgeService.getHedgeBtcPure(),
+                    hedgeService.getHedgeEthPure()
             );
 
         } catch (NotYetInitializedException e) {
