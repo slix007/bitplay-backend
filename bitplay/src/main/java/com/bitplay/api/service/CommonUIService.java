@@ -542,8 +542,8 @@ public class CommonUIService {
                     rightSCV.toPlainString(),
                     arbitrageService.isEth(),
                     cm,
-                    hedgeService.getHedgeBtcPure(),
-                    hedgeService.getHedgeEthPure()
+                    hedgeService.getHedgeBtcPure().negate(),
+                    hedgeService.getHedgeEthPure().negate()
             );
 
         } catch (NotYetInitializedException e) {
