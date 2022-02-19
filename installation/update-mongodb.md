@@ -100,6 +100,10 @@ sudo systemctl start mongod
 mongo --port 26459 --eval "db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )"
 mongo --port 26459 --eval 'db.adminCommand({setFeatureCompatibilityVersion: "4.2"})'
 ```
+### 3) 4.4 -> 5.0 from apt repository
+https://docs.mongodb.com/manual/release-notes/5.0-upgrade-replica-set/
+
+
 
 Trobleshooting:
 If you get something like `mongodb-org-mongos : Depends: libssl1.0.0 (>= 1.0.1) but it is not   installable`

@@ -28,6 +28,12 @@ remotes {
         password = bpPassword5040
         port = bpPort as Integer
     }
+    host5065 {
+        host = bpHost5065
+        user = bpUser5065
+        password = bpPassword5065
+        port = bpPort as Integer
+    }
     host5061 {
         host = bpHost5061
         user = bpUser
@@ -81,6 +87,7 @@ task deployHost5064 { doLast { sshRun(remotes.host5064, '/home/ss', remoteInstal
 // Prod servers
 // Real server
 task deployHost5040 { doLast { sshRun(remotes.host5040, '/home/ss', remoteInstallDir) } }
+task deployHost5065 { doLast { sshRun(remotes.host5065, '/home/ss', remoteInstallDir) } }
 
 private void sshRun(hostName, remoteHomeDir, remoteInstallDir) {
     println "===$hostName.host:$hostName.port::$hostName.user::$hostName.password==="

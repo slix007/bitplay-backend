@@ -8,7 +8,7 @@
     * set your host as a new one in gradle.build
     * set your credentials in {userDir}/.gradle/gradle.properties
     * mkdir ~/bitplay-gui
-    * mkdir /var/www/bitplay-gui && chown $USER:users /var/www/bitplay-gui
+    * sudo mkdir -p /var/www/bitplay-gui && sudo chown $USER:users /var/www/bitplay-gui
     * gradle deployXXX -i
     * Check webserver
 * Install java 8 
