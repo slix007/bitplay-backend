@@ -31,8 +31,8 @@
                         </goals>
                         <configuration>
                             <!-- specify the swagger yaml -->
-                            <inputSpec>xchange-bitmex/src/main/resources/swagger.json</inputSpec>
-<!--                            <inputSpec>src/main/resources/swagger.json</inputSpec>-->
+<!--                            <inputSpec>xchange-bitmex/src/main/resources/swagger.json</inputSpec>-->
+                            <inputSpec>${project.basedir}/src/main/resources/swagger.json</inputSpec>
 
                             <!-- target to generate java client code -->
                             <language>java</language>
