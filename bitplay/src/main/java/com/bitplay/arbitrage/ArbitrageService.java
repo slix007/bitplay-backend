@@ -5,6 +5,7 @@ import com.bitplay.TwoMarketStarter;
 import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
+import com.bitplay.arbitrage.HedgeService.Hedge;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.BestQuotes;
 import com.bitplay.arbitrage.dto.DeltaLogWriter;
@@ -1795,7 +1796,7 @@ public class ArbitrageService {
                 if (isEth) {
                     final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
                     BigDecimal ethBtcBid1 = rightMarketService.getEthBtcTicker().getBid();
-                    oEbestWithColdStorageEth = coldStorageEth.multiply(ethBtcBid1);;
+                    oEbestWithColdStorageEth = coldStorageEth.multiply(ethBtcBid1);
                 } else {
                     oEbestWithColdStorageEth = BigDecimal.ZERO;
                 }
@@ -1837,19 +1838,36 @@ public class ArbitrageService {
             traderPermissionsService.checkEBestMin();
 
             // calc auto hedge
+            final Hedge newHedge;
             if (isEth()) {
                 if (leftMarketService.isBtm()) {
-                    BigDecimal he_usd = oEbestWithColdStorageEth.multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
-                    hedgeService.setHedgeEth(he_usd);
-                    BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, BigDecimal.ROUND_HALF_UP);
-                    hedgeService.setHedgeBtc(hb_usd);
+                    BigDecimal he_usd = oEbestWithColdStorageEth.multiply(usdQuote).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal hb_usd = (bEbest.add(coldStorageBtc)).multiply(usdQuote).setScale(2, RoundingMode.HALF_UP);
+                    newHedge = new Hedge(hb_usd, he_usd);
                 } else {
-                    hedgeService.setHedgeBtc(BigDecimal.ZERO);
-                    hedgeService.setHedgeEth(sumEBestUsdCurr);
+                    newHedge = new Hedge(BigDecimal.ZERO, sumEBestUsdCurr);
                 }
             } else {
-                hedgeService.setHedgeBtc(sumEBestUsdCurr);
-                hedgeService.setHedgeEth(BigDecimal.ZERO);
+                newHedge = new Hedge(sumEBestUsdCurr, BigDecimal.ZERO);
+            }
+            final Hedge oldHedge = hedgeService.setHedge(newHedge);
+            if (hedgeService.hasBigChange(oldHedge, newHedge)) {
+                StringBuilder msg = new StringBuilder();
+                final String mainMsg = String.format("HEDGE BIG CHANGE from btc(%s->%s), eth(%s->%s).",
+                        oldHedge.btc, newHedge.btc,
+                        oldHedge.eth, newHedge.eth);
+                msg.append(mainMsg);
+                msg.append(" oEbestWithColdStorageEth=").append(oEbestWithColdStorageEth);
+                msg.append(" coldStorageBtc=").append(coldStorageBtc);
+                msg.append(" usdQuote=").append(usdQuote);
+                msg.append(" sumEBestUsdCurr=").append(sumEBestUsdCurr);
+                msg.append(" sumEBest=").append(sumEBest);
+                msg.append(" bEbest=").append(bEbest);
+                msg.append(" hedgeCftBtc=").append(settingsRepositoryService.getSettings().getHedgeCftBtc());
+                msg.append(" hedgeCftEth=").append(settingsRepositoryService.getSettings().getHedgeCftEth());
+                final String fullMsg = msg.toString();
+                log.warn(fullMsg);
+                printToCurrentDeltaLog(fullMsg);
             }
 
             // notifications
