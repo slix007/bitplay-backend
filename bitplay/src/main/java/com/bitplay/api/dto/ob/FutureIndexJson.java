@@ -31,6 +31,7 @@ public class FutureIndexJson {
     private String rightEstimatedDeliveryPrice;
     private SwapSettlement leftSwapSettlement;
     private SwapSettlement rightSwapSettlement;
+    private FundingRateBordersBlock fundingRateBordersBlock;
 
     public static FutureIndexJson empty() {
         return new FutureIndexJson("", "", "", new LimitsJson(), null, null, null, null);
@@ -62,7 +63,8 @@ public class FutureIndexJson {
     public FutureIndexJson(String index, String indexVal, String timestamp, String fundingRate,
                            String fundingCost,
                            String position, String swapTime, String timeToSwap, String swapType,
-                           String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal) {
+                           String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal,
+            FundingRateBordersBlock fundingRateBordersBlock) {
         this.index = index;
         this.indexVal = indexVal;
         this.timestamp = timestamp;
@@ -78,5 +80,6 @@ public class FutureIndexJson {
         this.swapType = swapType;
         this.timeCompareString = timeCompareString;
         this.timeCompareUpdating = timeCompareUpdating;
+        this.fundingRateBordersBlock = fundingRateBordersBlock;
     }
 }

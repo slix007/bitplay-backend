@@ -9,6 +9,8 @@ import com.bitplay.api.dto.TickerJson;
 import com.bitplay.api.dto.TradeRequestJson;
 import com.bitplay.api.dto.TradeResponseJson;
 import com.bitplay.api.dto.VisualTrade;
+import com.bitplay.api.dto.ob.FundingRateBordersBlock;
+import com.bitplay.api.dto.ob.FundingRateBordersBlock.Block;
 import com.bitplay.api.dto.ob.FutureIndexJson;
 import com.bitplay.api.dto.ob.LimitsJson;
 import com.bitplay.api.dto.ob.OrderBookJson;
@@ -190,6 +192,8 @@ public abstract class AbstractUiService<T extends MarketService> {
         final BitmexFunding bitmexFunding = bitmexService.getBitmexSwapService().getBitmexFunding();
         String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
         String fundingCost = bitmexService.getFundingCost() != null ? bitmexService.getFundingCost().toPlainString() : "";
+        String fundingCostUsd = bitmexService.getFundingCostUsd() != null ? bitmexService.getFundingCostUsd().toPlainString() : "";
+        String fundingCostPts = bitmexService.getFundingCostPts() != null ? bitmexService.getFundingCostPts().toPlainString() : "";
 
         String swapTime = "";
         String timeToSwap = "";
@@ -212,7 +216,8 @@ public abstract class AbstractUiService<T extends MarketService> {
         if (bitmexService.getPos() == null || bitmexService.getPos().getPositionLong() == null) {
             return FutureIndexJson.empty();
         }
-        final String position = bitmexService.getPosVal().toPlainString();
+        final BigDecimal posVal = bitmexService.getPosVal();
+        final String position = posVal.toPlainString();
 
         final String timeCompareString = getBitmexTimeService().getTimeCompareString();
         final Integer timeCompareUpdating = getBitmexTimeService().fetchTimeCompareUpdating();
@@ -222,6 +227,11 @@ public abstract class AbstractUiService<T extends MarketService> {
         final String bxbtBal = bitmexService.getContractType().isQuanto()
                 ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice().setScale(2, RoundingMode.HALF_UP)
                 : "";
+
+        final FundingRateBordersBlock fundingRateBordersBlock = new FundingRateBordersBlock(
+                new Block(fundingRate, fundingCost, fundingCostUsd, fundingCostPts),
+                new Block(fundingRate, fundingCost, fundingCostUsd, fundingCostPts)
+        );
 
         return new FutureIndexJson(
                 indexString,
@@ -236,7 +246,8 @@ public abstract class AbstractUiService<T extends MarketService> {
                 timeCompareString,
                 String.valueOf(timeCompareUpdating),
                 limitsJson,
-                bxbtBal);
+                bxbtBal,
+                fundingRateBordersBlock);
     }
 
 

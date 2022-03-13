@@ -3127,10 +3127,29 @@ public class BitmexService extends MarketServicePreliq {
     public BigDecimal getFundingCost() {
         BigDecimal fundingCost = BigDecimal.ZERO;
         if (this.getContractIndex() instanceof BitmexContractIndex) {
-            fundingCost = bitmexSwapService.calcFundingCost(this.getPos(),
-                    ((BitmexContractIndex) this.getContractIndex()).getFundingRate());
+            final BigDecimal fRate = ((BitmexContractIndex) this.getContractIndex()).getFundingRate();
+            fundingCost = bitmexSwapService.calcFundingCost(this.getPos(), fRate);
         }
         return fundingCost;
+    }
+    public BigDecimal getFundingCostUsd() {
+        BigDecimal result = BigDecimal.ZERO;
+        if (this.getContractIndex() instanceof BitmexContractIndex) {
+            final BigDecimal fRate = ((BitmexContractIndex) this.getContractIndex()).getFundingRate();
+            result = bitmexSwapService.calcFundingCostUsd(fRate, getPosVal());
+        }
+        return result;
+    }
+    public BigDecimal getFundingCostPts() {
+        BigDecimal result = BigDecimal.ZERO;
+        if (this.getContractIndex() instanceof BitmexContractIndex) {
+            final BigDecimal fRate = ((BitmexContractIndex) this.getContractIndex()).getFundingRate();
+            final OrderBook ob = getOrderBook();
+            final BigDecimal bid1 = Utils.getBestBid(ob).getLimitPrice();
+            final BigDecimal ask1 = Utils.getBestAsk(ob).getLimitPrice();
+            result = bitmexSwapService.calcFundingCostPts(fRate, bid1, ask1);
+        }
+        return result;
     }
 
     public BitmexXRateLimit getxRateLimit() {
