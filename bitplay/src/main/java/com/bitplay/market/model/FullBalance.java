@@ -52,4 +52,13 @@ public class FullBalance {
         }
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "FullBalance{" +
+                "accountBalance=" + accountBalance +
+                ", pos=" + pos +
+                ", tempValues='" + tempValues + '\'' +
+                '}';
+    }
 }

@@ -2,8 +2,10 @@ package com.bitplay.model;
 
 import java.math.BigDecimal;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
+@ToString
 public class AccountBalance {
 
     private final BigDecimal wallet;

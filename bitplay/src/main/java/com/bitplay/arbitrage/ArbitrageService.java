@@ -6,17 +6,8 @@ import com.bitplay.arbitrage.BordersService.BorderVer;
 import com.bitplay.arbitrage.BordersService.TradeType;
 import com.bitplay.arbitrage.BordersService.TradingSignal;
 import com.bitplay.arbitrage.HedgeService.Hedge;
-import com.bitplay.arbitrage.dto.ArbType;
-import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.DeltaLogWriter;
-import com.bitplay.arbitrage.dto.DeltaMon;
-import com.bitplay.arbitrage.dto.PlBlocks;
-import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
-import com.bitplay.arbitrage.events.DeltaChange;
-import com.bitplay.arbitrage.events.ObChangeEvent;
-import com.bitplay.arbitrage.events.SigEvent;
-import com.bitplay.arbitrage.events.SigType;
+import com.bitplay.arbitrage.dto.*;
+import com.bitplay.arbitrage.events.*;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.DqlStateService;
 import com.bitplay.arbitrage.posdiff.NtUsdRecoveryService;
@@ -32,26 +23,14 @@ import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.events.BtsEvent;
 import com.bitplay.market.events.BtsEventBox;
 import com.bitplay.market.events.EventBus;
-import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.ArbState;
-import com.bitplay.market.model.BtmFokAutoArgs;
-import com.bitplay.market.model.DqlState;
-import com.bitplay.market.model.LiqInfo;
-import com.bitplay.market.model.MarketState;
-import com.bitplay.market.model.OrderBookShort;
-import com.bitplay.market.model.PlBefore;
+import com.bitplay.market.model.*;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.market.okcoin.OkexSettlementService;
 import com.bitplay.metrics.MetricsDictionary;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
-import com.bitplay.persistance.CumPersistenceService;
-import com.bitplay.persistance.DealPricesRepositoryService;
-import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.SignalTimeService;
-import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.*;
 import com.bitplay.persistance.domain.CumParams;
 import com.bitplay.persistance.domain.DeltaParams;
 import com.bitplay.persistance.domain.GuiParams;
@@ -64,15 +43,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.TradeStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
-import com.bitplay.persistance.domain.settings.ArbScheme;
-import com.bitplay.persistance.domain.settings.Dql;
-import com.bitplay.persistance.domain.settings.Implied;
-import com.bitplay.persistance.domain.settings.PlacingBlocks;
-import com.bitplay.persistance.domain.settings.PlacingType;
-import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.domain.settings.SettingsTimestamps;
-import com.bitplay.persistance.domain.settings.TradingMode;
-import com.bitplay.persistance.domain.settings.UsdQuoteType;
+import com.bitplay.persistance.domain.settings.*;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.SettingsPremService;
@@ -86,19 +57,6 @@ import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -109,6 +67,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
+import java.util.concurrent.*;
 
 /**
  * Created by Sergey Shurmin on 4/18/17.
@@ -627,7 +593,7 @@ public class ArbitrageService {
     }
 
     private void doComparison(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
-            PlBefore plBeforeBtm) {
+                              PlBefore plBeforeBtm) {
 
         if (leftMarketService.isMarketStopped() || rightMarketService.isMarketStopped()
                 || dqlStateService.getCommonDqlState().isActiveClose()
@@ -653,7 +619,7 @@ public class ArbitrageService {
     }
 
     private BordersService.TradingSignal applyMaxDelta(final BordersService.TradingSignal tradingSignal,
-            BigDecimal btmMaxDelta, BigDecimal okMaxDelta, Boolean onlyOpen) {
+                                                       BigDecimal btmMaxDelta, BigDecimal okMaxDelta, Boolean onlyOpen) {
         if (tradingSignal.tradeType != TradeType.NONE && tradingSignal.deltaVal != null && !tradingSignal.deltaVal.isEmpty()) {
             final BigDecimal delta = new BigDecimal(tradingSignal.deltaVal);
             boolean btmMaxDeltaViolate = (tradingSignal.tradeType == TradeType.DELTA1_B_SELL_O_BUY && delta.compareTo(btmMaxDelta) >= 0);
@@ -725,7 +691,7 @@ public class ArbitrageService {
     }
 
     private void calcAndDoArbitrage(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal,
-            PlBefore plBeforeBtm) {
+                                    PlBefore plBeforeBtm) {
 
         final Pos leftPos = leftMarketService.getPos();
         final Pos rightPos = rightMarketService.getPos();
@@ -756,8 +722,8 @@ public class ArbitrageService {
     }
 
     private boolean bordersV2(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, Pos leftPos,
-            BigDecimal oPL, BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
-            PlBefore plBeforeBtm) {
+                              BigDecimal oPL, BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
+                              PlBefore plBeforeBtm) {
         BigDecimal defaultMax;
         boolean withWarningLogs =
                 leftMarketService.isReadyForArbitrage() && rightMarketService.isReadyForArbitrage() && posDiffService.checkIsPositionsEqual();
@@ -862,8 +828,8 @@ public class ArbitrageService {
     }
 
     private boolean bordersV1(BestQuotes bestQuotes, OrderBook bitmexOrderBook, OrderBook okCoinOrderBook, TradingSignal prevTradingSignal, BigDecimal oPL,
-            BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
-            PlBefore plBeforeBtm) {
+                              BigDecimal oPS, BorderParams borderParams, BigDecimal btmMaxDelta, BigDecimal okMaxDelta,
+                              PlBefore plBeforeBtm) {
         BigDecimal border1 = getBorder1();
         BigDecimal border2 = getBorder2();
 
@@ -982,9 +948,9 @@ public class ArbitrageService {
     }
 
     private void checkAndStartTradingOnDelta1(OrderBook leftOb, OrderBook rightOb, BorderParams borderParams,
-            final BestQuotes bestQuotes, final BigDecimal b_block_input,
-            final BigDecimal o_block_input, final TradingSignal tradingSignal, String dynamicDeltaLogs,
-            final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
+                                              final BestQuotes bestQuotes, final BigDecimal b_block_input,
+                                              final BigDecimal o_block_input, final TradingSignal tradingSignal, String dynamicDeltaLogs,
+                                              final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_o = bestQuotes.getAsk1_o();
         final BigDecimal bid1_p = bestQuotes.getBid1_p();
 
@@ -1312,9 +1278,9 @@ public class ArbitrageService {
     }
 
     private void startTradingOnDelta1(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
-            TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
-            PlBefore plBeforeBtm,
-            BigDecimal b_block_input, BigDecimal o_block_input, ObTs obts) {
+                                      TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_o, BigDecimal bid1_p,
+                                      PlBefore plBeforeBtm,
+                                      BigDecimal b_block_input, BigDecimal o_block_input, ObTs obts) {
 
         log.info("START SIGNAL 1");
         final Instant signalTime = Instant.now();
@@ -1359,10 +1325,10 @@ public class ArbitrageService {
     }
 
     private DealPrices setTradeParamsOnStart(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block, String dynamicDeltaLogs,
-            BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input,
-            DeltaName deltaName, String counterName,
-            TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2,
-            BtmFokAutoArgs btmFokAutoArgs, FplayTrade fplayTrade) {
+                                             BigDecimal bPricePlan, BigDecimal oPricePlan, BigDecimal b_block_input, BigDecimal o_block_input,
+                                             DeltaName deltaName, String counterName,
+                                             TradingMode tradingMode, BigDecimal delta1, BigDecimal delta2,
+                                             BtmFokAutoArgs btmFokAutoArgs, FplayTrade fplayTrade) {
         final Long tradeId = fplayTrade.getId();
         int pos_bo = diffFactBrService.getCurrPos(borderParams.getPosMode());
 
@@ -1455,9 +1421,9 @@ public class ArbitrageService {
     }
 
     private void checkAndStartTradingOnDelta2(OrderBook leftOb, OrderBook rightOb, BorderParams borderParams,
-            final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
-            final TradingSignal tradingSignal, String dynamicDeltaLogs,
-            final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
+                                              final BestQuotes bestQuotes, final BigDecimal b_block_input, final BigDecimal o_block_input,
+                                              final TradingSignal tradingSignal, String dynamicDeltaLogs,
+                                              final PlBefore beforeSignalMetrics, BigDecimal oPL, BigDecimal oPS) {
         final BigDecimal ask1_p = bestQuotes.getAsk1_p();
         final BigDecimal bid1_o = bestQuotes.getBid1_o();
 
@@ -1568,9 +1534,9 @@ public class ArbitrageService {
     }
 
     private void startTradingOnDelta2(BorderParams borderParams, BestQuotes bestQuotes, BigDecimal b_block, BigDecimal o_block,
-            TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
-            PlBefore plBeforeBtm,
-            BigDecimal b_block_input, BigDecimal o_block_input, ObTs obts) {
+                                      TradingSignal tradingSignal, String dynamicDeltaLogs, BigDecimal ask1_p, BigDecimal bid1_o,
+                                      PlBefore plBeforeBtm,
+                                      BigDecimal b_block_input, BigDecimal o_block_input, ObTs obts) {
 
         log.info("START SIGNAL 2");
         final Instant signalTime = Instant.now();
@@ -1621,8 +1587,8 @@ public class ArbitrageService {
     }
 
     private FplayTrade createCounterOnStartTrade(BigDecimal ask1_X, BigDecimal bid1_X, final TradingSignal tradingSignal,
-            final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode,
-            ObTs obts) {
+                                                 final BigDecimal borderX, final BigDecimal deltaX, final DeltaName deltaName, TradingMode tradingMode,
+                                                 ObTs obts) {
 
         if (deltaName.getDeltaNumber().equals("1")) {
             cumPersistenceService.incCounter1(tradingMode);
@@ -1720,7 +1686,8 @@ public class ArbitrageService {
         }
 
         lastCalcSumBal = Instant.now();
-        final AccountBalance leftAccount = leftMarketService.getFullBalance().getAccountBalance();
+        final FullBalance leftFullBalance = leftMarketService.getFullBalance();
+        final AccountBalance leftAccount = leftFullBalance.getAccountBalance();
         final AccountBalance rightAccount = rightMarketService.getFullBalance().getAccountBalance();
         if (leftAccount != null && rightAccount != null) {
             BigDecimal bW = leftAccount.getWallet();
@@ -1752,6 +1719,10 @@ public class ArbitrageService {
 
             boolean isEth = isEth();
 
+            final BigDecimal ethBtcBid2 = leftMarketService.getEthBtcTicker() != null
+                    ? leftMarketService.getEthBtcTicker().getBid()
+                    : null;
+
             BigDecimal oEbestWithColdStorageEth = oEbest;
             if (isEth) {
                 final BigDecimal coldStorageEth = persistenceService.getSettingsRepositoryService().getSettings().getColdStorageEth();
@@ -1773,7 +1744,6 @@ public class ArbitrageService {
 
                 // left okex: convert eth to btc
                 if (!leftMarketService.isBtm()) {
-                    BigDecimal ethBtcBid2 = leftMarketService.getEthBtcTicker().getBid();
                     bW = bW.multiply(ethBtcBid2);
                     bELast = leftAccount.getELast() != null ? leftAccount.getELast() : BigDecimal.ZERO;
                     bELast = bELast.multiply(ethBtcBid2);
@@ -1863,6 +1833,8 @@ public class ArbitrageService {
                 msg.append(" sumEBestUsdCurr=").append(sumEBestUsdCurr);
                 msg.append(" sumEBest=").append(sumEBest);
                 msg.append(" bEbest=").append(bEbest);
+                msg.append(" ethBtcTicker.bid=").append(ethBtcBid2);
+                msg.append(" leftFullBalance=").append(leftFullBalance);
                 msg.append(" hedgeCftBtc=").append(settingsRepositoryService.getSettings().getHedgeCftBtc());
                 msg.append(" hedgeCftEth=").append(settingsRepositoryService.getSettings().getHedgeCftEth());
                 final String fullMsg = msg.toString();
