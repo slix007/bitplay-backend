@@ -34,17 +34,29 @@ public class FutureIndexJson {
     private FundingRateBordersBlock fundingRateBordersBlock;
 
     public static FutureIndexJson empty() {
-        return new FutureIndexJson("", "", "", new LimitsJson(), null, null, null, null);
+        return new FutureIndexJson(
+                "",
+                "",
+                "",
+                new LimitsJson(),
+                null,
+                null,
+                null,
+                null,
+                new FundingRateBordersBlock()
+        );
     }
 
     // okex
     public FutureIndexJson(String index, String indexVal, String timestamp, LimitsJson limits, String ethBtcBal,
-                           String okexEstimatedDeliveryPrice, SwapSettlement okexSwapSettlement, ArbType arbType) {
+                           String okexEstimatedDeliveryPrice, SwapSettlement okexSwapSettlement, ArbType arbType,
+                           FundingRateBordersBlock fundingRateBordersBlock) {
         this.index = index;
         this.indexVal = indexVal;
         this.timestamp = timestamp;
         this.limits = limits;
         this.contractExtraJson.setEthBtcBal(ethBtcBal);
+        this.fundingRateBordersBlock = fundingRateBordersBlock;
 
         // okex specific
 
@@ -64,7 +76,7 @@ public class FutureIndexJson {
                            String fundingCost,
                            String position, String swapTime, String timeToSwap, String swapType,
                            String timeCompareString, String timeCompareUpdating, LimitsJson limits, String bxbtBal,
-            FundingRateBordersBlock fundingRateBordersBlock) {
+                           FundingRateBordersBlock fundingRateBordersBlock) {
         this.index = index;
         this.indexVal = indexVal;
         this.timestamp = timestamp;

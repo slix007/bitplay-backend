@@ -1,20 +1,8 @@
 package com.bitplay.api.service;
 
-import static com.bitplay.utils.Utils.timestampToStr;
-
-import com.bitplay.api.dto.AccountInfoJson;
-import com.bitplay.api.dto.LiquidationInfoJson;
-import com.bitplay.api.dto.ResultJson;
-import com.bitplay.api.dto.TickerJson;
-import com.bitplay.api.dto.TradeRequestJson;
-import com.bitplay.api.dto.TradeResponseJson;
-import com.bitplay.api.dto.VisualTrade;
-import com.bitplay.api.dto.ob.FundingRateBordersBlock;
+import com.bitplay.api.dto.*;
+import com.bitplay.api.dto.ob.*;
 import com.bitplay.api.dto.ob.FundingRateBordersBlock.Block;
-import com.bitplay.api.dto.ob.FutureIndexJson;
-import com.bitplay.api.dto.ob.LimitsJson;
-import com.bitplay.api.dto.ob.OrderBookJson;
-import com.bitplay.api.dto.ob.OrderJson;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.SignalType;
@@ -26,11 +14,7 @@ import com.bitplay.market.MarketStaticData;
 import com.bitplay.market.bitmex.BitmexFunding;
 import com.bitplay.market.bitmex.BitmexService;
 import com.bitplay.market.bitmex.BitmexTimeService;
-import com.bitplay.market.model.FullBalance;
-import com.bitplay.market.model.LiqInfo;
-import com.bitplay.market.model.MoveResponse;
-import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.TradeResponse;
+import com.bitplay.market.model.*;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.model.AccountBalance;
 import com.bitplay.model.Pos;
@@ -52,6 +36,7 @@ import com.bitplay.xchange.dto.marketdata.Trade;
 import com.bitplay.xchange.dto.trade.ContractLimitOrder;
 import com.bitplay.xchange.dto.trade.LimitOrder;
 import com.bitplay.xchangestream.bitmex.dto.BitmexContractIndex;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
@@ -63,6 +48,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.bitplay.utils.Utils.timestampToStr;
 
 /**
  * Created by Sergey Shurmin on 3/25/17.
@@ -163,8 +150,9 @@ public abstract class AbstractUiService<T extends MarketService> {
 
         final String okexEstimatedDeliveryPrice = service.getForecastPrice().toPlainString();
         final SwapSettlement swapSettlement = service.getSwapSettlement();
+        final FundingRateBordersBlock fundingRateBordersBlock = service.getFundingRateBordersBlock();
         return new FutureIndexJson(indexString, indexVal, sdf.format(timestamp), limitsJson, ethBtcBal, okexEstimatedDeliveryPrice, swapSettlement,
-                service.getArbType());
+                service.getArbType(), fundingRateBordersBlock);
 
     }
 
@@ -190,11 +178,6 @@ public abstract class AbstractUiService<T extends MarketService> {
         final String timestamp = sdf.format(contractIndex.getTimestamp());
 
         final BitmexFunding bitmexFunding = bitmexService.getBitmexSwapService().getBitmexFunding();
-        String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
-        String fundingCost = bitmexService.getFundingCost() != null ? bitmexService.getFundingCost().toPlainString() : "";
-        String fundingCostUsd = bitmexService.getFundingCostUsd() != null ? bitmexService.getFundingCostUsd().toPlainString() : "";
-        String fundingCostPts = bitmexService.getFundingCostPts() != null ? bitmexService.getFundingCostPts().toPlainString() : "";
-
         String swapTime = "";
         String timeToSwap = "";
         if (bitmexFunding.getSwapTime() != null && bitmexFunding.getUpdatingTime() != null) {
@@ -228,9 +211,21 @@ public abstract class AbstractUiService<T extends MarketService> {
                 ? ".BXBT: " + bitmexService.getBtcContractIndex().getIndexPrice().setScale(2, RoundingMode.HALF_UP)
                 : "";
 
+        final String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
+        final String fundingCost = bitmexFunding.getFundingCost() != null ? bitmexFunding.getFundingCost().toPlainString() : "";
         final FundingRateBordersBlock fundingRateBordersBlock = new FundingRateBordersBlock(
-                new Block(fundingRate, fundingCost, fundingCostUsd, fundingCostPts),
-                new Block(fundingRate, fundingCost, fundingCostUsd, fundingCostPts)
+                new Block(
+                        fundingRate,
+                        fundingCost,
+                        bitmexFunding.getFundingCostUsd() != null ? bitmexFunding.getFundingCostUsd().toPlainString() : "",
+                        bitmexFunding.getFundingCostPts() != null ? bitmexFunding.getFundingCostPts().toPlainString() : ""
+                ),
+                new Block(
+                        bitmexFunding.getSfRate() != null ? bitmexFunding.getSfRate().toPlainString() : "",
+                        bitmexFunding.getSfCost() != null ? bitmexFunding.getSfCost().toPlainString() : "",
+                        bitmexFunding.getSfCostUsd() != null ? bitmexFunding.getSfCostUsd().toPlainString() : "",
+                        bitmexFunding.getSfCostPts() != null ? bitmexFunding.getSfCostPts().toPlainString() : ""
+                )
         );
 
         return new FutureIndexJson(

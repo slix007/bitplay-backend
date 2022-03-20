@@ -158,6 +158,10 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                             ? new BigDecimal(instrument.getFundingRate()).multiply(BigDecimal.valueOf(100)).setScale(10, BigDecimal.ROUND_HALF_UP)
                             : null;
 
+                    final BigDecimal indicativeFundingRate = instrument.getIndicativeFundingRate() != null
+                            ? new BigDecimal(instrument.getIndicativeFundingRate()).multiply(BigDecimal.valueOf(100)).setScale(10, BigDecimal.ROUND_HALF_UP)
+                            : null;
+
                     final OffsetDateTime fundingTimestamp = instrument.getFundingTimestamp();
 
                     return new BitmexContractIndex(
@@ -167,7 +171,8 @@ public class BitmexStreamingMarketDataService implements StreamingMarketDataServ
                             lastPrice,
                             instrument.getTimestamp() != null ? Date.from(instrument.getTimestamp().toInstant()) : new Date(),
                             fundingRate,
-                            fundingTimestamp);
+                            fundingTimestamp,
+                            indicativeFundingRate);
                 });
     }
 }

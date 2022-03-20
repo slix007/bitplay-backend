@@ -15,19 +15,23 @@ public class BitmexContractIndex extends ContractIndex {
     private BigDecimal lastPrice;
     private BigDecimal fundingRate;
     private OffsetDateTime swapTime;
+    private BigDecimal indicativeFundingRate;
 
     public BitmexContractIndex(BigDecimal indexPrice, Date timestamp) {
         super(indexPrice, timestamp);
     }
 
-    public BitmexContractIndex(String symbol, BigDecimal indexPrice, BigDecimal markPrice, BigDecimal lastPrice, Date timestamp, BigDecimal fundingRate,
-            OffsetDateTime swapTime) {
+    public BitmexContractIndex(String symbol, BigDecimal indexPrice, BigDecimal markPrice, BigDecimal lastPrice, Date timestamp,
+            BigDecimal fundingRate,
+            OffsetDateTime swapTime,
+            BigDecimal indicativeFundingRate) {
         super(indexPrice, timestamp);
         this.symbol = symbol;
         this.markPrice = markPrice;
         this.lastPrice = lastPrice;
         this.fundingRate = fundingRate;
         this.swapTime = swapTime;
+        this.indicativeFundingRate = indicativeFundingRate;
     }
 
     public String getSymbol() {
@@ -48,5 +52,9 @@ public class BitmexContractIndex extends ContractIndex {
 
     public OffsetDateTime getSwapTime() {
         return swapTime;
+    }
+
+    public BigDecimal getIndicativeFundingRate() {
+        return indicativeFundingRate;
     }
 }

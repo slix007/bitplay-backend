@@ -15,6 +15,9 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
@@ -24,13 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.*;
 
 /**
  * Created by Sergey Shurmin on 8/19/17.
@@ -307,7 +304,7 @@ public class BitmexSwapService {
             final BigDecimal pos = position.getPositionLong();
             final SignalType signalType = bitmexFunding.getSignalType();
             if (signalType == SignalType.SWAP_NONE) {
-                BigDecimal fCost = bitmexService.getFundingCost();
+                BigDecimal fCost = calcFundingCost(position, fRate);
                 final String message = String.format("#swap_none p%s fR%s%% fC%sXBT", pos.toPlainString(), fRate.toPlainString(), fCost.toPlainString());
                 logger.info(message);
                 tradeLogger.info(message);
@@ -420,11 +417,13 @@ public class BitmexSwapService {
         if (!(bitmexService.getContractIndex() instanceof BitmexContractIndex)) {
             return;
         }
+        final Pos pos = bitmexService.getPos();
+        final BigDecimal posVal = pos.getPositionLong();
+        final BitmexContractIndex contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
+        final BigDecimal fRate = contractIndex.getFundingRate();
 
         // 1. use latest data from market
-        final BitmexContractIndex contractIndex = (BitmexContractIndex) bitmexService.getContractIndex();
-        final BigDecimal fundingRate = contractIndex.getFundingRate();
-        this.bitmexFunding.setFundingRate(fundingRate);
+        this.bitmexFunding.setFundingRate(fRate);
 
         OffsetDateTime swapTime = contractIndex.getSwapTime();
         // For swap testing
@@ -437,27 +436,38 @@ public class BitmexSwapService {
         this.bitmexFunding.setSwapTime(swapTime);
 
         // 2. recalc all temporary fileds
-        final BigDecimal fRate = bitmexFunding.getFundingRate();
-        final BigDecimal pos = bitmexService.getPos().getPositionLong();
         final BigDecimal maxFRate = bitmexService.getArbitrageService().getParams().getFundingRateFee(); //BitmexFunding.MAX_F_RATE;
         bitmexFunding.setUpdatingTime(OffsetDateTime.now());
 
-        if (fRate != null && pos != null) {
-            if (pos.signum() > 0) {
+        if (fRate != null && posVal != null) {
+            if (posVal.signum() > 0) {
                 if (fRate.signum() > 0 && fRate.compareTo(maxFRate) > 0) {
                     bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_LONG);
                 } else {
                     bitmexFunding.setSignalType(SignalType.SWAP_NONE);
                 }
-            } else if (pos.signum() < 0) {
+            } else if (posVal.signum() < 0) {
                 if (fRate.signum() < 0 && fRate.negate().compareTo(maxFRate) > 0) {
                     bitmexFunding.setSignalType(SignalType.SWAP_CLOSE_SHORT);
                 } else {
                     bitmexFunding.setSignalType(SignalType.SWAP_NONE);
                 }
-            } else {// pos = 0
+            } else {// posVal = 0
                 bitmexFunding.setSignalType(SignalType.SWAP_NONE);
             }
+
+            // set second fRate and calc Cost
+            final BigDecimal sfRate = contractIndex.getIndicativeFundingRate();
+            this.bitmexFunding.setSfRate(sfRate);
+            this.bitmexFunding.setFundingCost(calcFundingCost(pos, fRate));
+            this.bitmexFunding.setSfCost(calcFundingCost(pos, sfRate));
+            this.bitmexFunding.setFundingCostUsd(calcFundingCostUsd(fRate, posVal));
+            this.bitmexFunding.setSfCostUsd(calcFundingCostUsd(sfRate, posVal));
+            final OrderBook ob = bitmexService.getOrderBook();
+            final BigDecimal bid1 = Utils.getBestBid(ob).getLimitPrice();
+            final BigDecimal ask1 = Utils.getBestAsk(ob).getLimitPrice();
+            this.bitmexFunding.setFundingCostPts(calcFundingCostPts(fRate, bid1, ask1));
+            this.bitmexFunding.setSfCostPts(calcFundingCostPts(sfRate, bid1, ask1));
         } else {
             bitmexFunding.setSignalType(SignalType.SWAP_NONE);
         }
@@ -496,6 +506,20 @@ public class BitmexSwapService {
         final BigDecimal avgPrice = (bid1.add(ask1)).divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
         return fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
+//
+//    public BigDecimal calcSecondFundingCostUsd(Pos pos, BigDecimal sfRate) {
+//        //cost, USD = -(SFrate /100 pos_bitmex_cont Bitmex_SCV);
+//        final BigDecimal scv = bitmexService.getSCV();
+//        final BigDecimal posVal = pos.getPositionLong();
+//        return (sfRate.multiply(posVal).multiply(scv).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP))
+//                .negate();
+//    }
+//
+//    public BigDecimal calcSecondFundingCostPts(Pos pos, BigDecimal sfRate, BigDecimal bid1, BigDecimal ask1) {
+////cost, PTS = SFrate / 100 * b_avg_price;
+//        final BigDecimal avgPrice = (bid1.add(ask1)).divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
+//        return sfRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+//    }
 
     private void printSwapParams() {
         // 1. calc current

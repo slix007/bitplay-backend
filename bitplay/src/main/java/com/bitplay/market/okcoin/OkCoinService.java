@@ -1,11 +1,8 @@
 package com.bitplay.market.okcoin;
 
+import com.bitplay.api.dto.ob.FundingRateBordersBlock;
 import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.dto.ArbType;
-import com.bitplay.arbitrage.dto.AvgPriceItem;
-import com.bitplay.arbitrage.dto.BestQuotes;
-import com.bitplay.arbitrage.dto.SignalType;
-import com.bitplay.arbitrage.dto.ThrottledWarn;
+import com.bitplay.arbitrage.dto.*;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
@@ -19,21 +16,10 @@ import com.bitplay.market.BalanceService;
 import com.bitplay.market.MarketService;
 import com.bitplay.market.MarketServicePreliq;
 import com.bitplay.market.MarketStaticData;
-import com.bitplay.market.model.Affordable;
-import com.bitplay.market.model.DqlState;
-import com.bitplay.market.model.LiqInfo;
-import com.bitplay.market.model.MarketState;
-import com.bitplay.market.model.MoveMakerOrderArg;
-import com.bitplay.market.model.MoveResponse;
+import com.bitplay.market.model.*;
 import com.bitplay.market.model.MoveResponse.MoveOrderStatus;
-import com.bitplay.market.model.PlaceOrderArgs;
-import com.bitplay.market.model.TradeResponse;
 import com.bitplay.metrics.MetricsDictionary;
-import com.bitplay.model.AccountBalance;
-import com.bitplay.model.EstimatedPrice;
-import com.bitplay.model.Leverage;
-import com.bitplay.model.Pos;
-import com.bitplay.model.SwapSettlement;
+import com.bitplay.model.*;
 import com.bitplay.model.ex.OrderResultTiny;
 import com.bitplay.okex.v5.ApiConfigurationV5;
 import com.bitplay.okex.v5.FplayExchangeOkexV5;
@@ -47,14 +33,7 @@ import com.bitplay.okexv5.OkExStreamingMarketDataService;
 import com.bitplay.okexv5.OkExStreamingPrivateDataServiceV5;
 import com.bitplay.okexv5.dto.InstrumentDto;
 import com.bitplay.okexv5.dto.marketdata.OkcoinPriceRange;
-import com.bitplay.persistance.CumPersistenceService;
-import com.bitplay.persistance.DealPricesRepositoryService;
-import com.bitplay.persistance.LastPriceDeviationService;
-import com.bitplay.persistance.MonitoringDataService;
-import com.bitplay.persistance.OrderRepositoryService;
-import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.TradeService;
+import com.bitplay.persistance.*;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
@@ -63,16 +42,7 @@ import com.bitplay.persistance.domain.fluent.TradeMStatus;
 import com.bitplay.persistance.domain.fluent.dealprices.DealPrices;
 import com.bitplay.persistance.domain.fluent.dealprices.FactPrice;
 import com.bitplay.persistance.domain.mon.Mon;
-import com.bitplay.persistance.domain.settings.ArbScheme;
-import com.bitplay.persistance.domain.settings.ContractType;
-import com.bitplay.persistance.domain.settings.Dql;
-import com.bitplay.persistance.domain.settings.OkexContractType;
-import com.bitplay.persistance.domain.settings.OkexFtpd;
-import com.bitplay.persistance.domain.settings.OkexPostOnlyArgs;
-import com.bitplay.persistance.domain.settings.PlacingBlocks;
-import com.bitplay.persistance.domain.settings.PlacingType;
-import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.domain.settings.TradingMode;
+import com.bitplay.persistance.domain.settings.*;
 import com.bitplay.service.ws.statistic.PingStatEvent;
 import com.bitplay.utils.Utils;
 import com.bitplay.xchange.Exchange;
@@ -92,34 +62,6 @@ import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import javax.annotation.PreDestroy;
-import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -134,6 +76,21 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import si.mazi.rescu.HttpStatusIOException;
 
+import javax.annotation.PreDestroy;
+import javax.validation.constraints.NotNull;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
 /**
  * Created by Sergey Shurmin on 3/21/17.
  */
@@ -143,7 +100,7 @@ import si.mazi.rescu.HttpStatusIOException;
 public class OkCoinService extends MarketServicePreliq {
 
     private static final Logger ordersLogger = LoggerFactory.getLogger("OKCOIN_ORDERS_LOG");
-    private ThrottledWarn throttledLog = new ThrottledWarn(log, 30);
+    private final ThrottledWarn throttledLog = new ThrottledWarn(log, 30);
 
     private final SlackNotifications slackNotifications;
     private final LastPriceDeviationService lastPriceDeviationService;
@@ -211,6 +168,8 @@ public class OkCoinService extends MarketServicePreliq {
     private volatile BigDecimal markPrice = BigDecimal.ZERO;
     private volatile BigDecimal forecastPrice = BigDecimal.ZERO;
     private volatile OkcoinPriceRange priceRange;
+    //    private volatile FundingRateBordersBlock fundingRateBordersBlock = new FundingRateBordersBlock();
+    private final OkexFunding okexFunding = new OkexFunding();
     private volatile SwapSettlement swapSettlement = new SwapSettlement(
             LocalDateTime.MIN, BigDecimal.ZERO, BigDecimal.ZERO, LocalDateTime.MIN
     );
@@ -719,6 +678,9 @@ public class OkCoinService extends MarketServicePreliq {
                 return; // not in use for futures
             }
             swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+
+            okexFunding.setFf(calcFundingRateBlock(swapSettlement.getFundingRate()));
+            okexFunding.setSf(calcFundingRateBlock(swapSettlement.getEstimatedRate()));
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 log.error("On fetchSwapSettlement timeout");
@@ -728,6 +690,33 @@ public class OkCoinService extends MarketServicePreliq {
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, log, "fetchEstimatedDeliveryPrice");
+    }
+
+    public FundingRateBordersBlock getFundingRateBordersBlock() {
+        return okexFunding.toFundingRateBordersBlock();
+    }
+
+    private OkexFunding.Block calcFundingRateBlock(BigDecimal fRate) {
+        //cost BTC = cost USD / o_avg_price; // BTC - это пример для пары BTC/USD, у Okex всегда берется числитель текущей пары, например, в ETH/USD будет ETH, в XRP/USD XRP и тд.
+        //cost, USD = -(FFrate / 100 * pos_okex_cont * Okex_SCV);
+        //cost, PTS = FFrate / 100 * o_avg_price;
+        //o_avg_price = (o_bid[1] + o_ask[1]) / 2;
+        //pos_okex_cont = pos_long + pos_short, long то со знаком "+", short со знаком "-".
+        //Okex_SCV = 100 для BTC, для остальных 10.
+        //FFrate = First Funding rate, %.
+
+        final BigDecimal posVal = getPosVal();
+        final OrderBook ob = getOrderBook();
+        final BigDecimal avgPrice = (Utils.getBestBid(ob).getLimitPrice()
+                .add(Utils.getBestAsk(ob).getLimitPrice())).divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
+        final BigDecimal costPts = fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        final BigDecimal costUsd = fRate.multiply(posVal).multiply(getSCV()).divide(
+                BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP
+        );
+
+        final BigDecimal costXXX = costUsd.divide(avgPrice, 2, RoundingMode.HALF_UP);
+
+        return new OkexFunding.Block(fRate, costXXX, costUsd, costPts);
     }
 
     public SwapSettlement getSwapSettlement() {
@@ -1164,7 +1153,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private TradeResponse takerOrder(Long tradeId, OrderType inputOrderType, BigDecimal amount, BestQuotes bestQuotes, SignalType signalType,
-            String counterName, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
+                                     String counterName, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
             throws Exception {
 
         TradeResponse tradeResponse = new TradeResponse();
@@ -1585,7 +1574,7 @@ public class OkCoinService extends MarketServicePreliq {
                 && !getArbitrageService().isArbForbidden(signalType)
                 && !shouldStopPlacing
                 && !placeOrderArgs.isShouldStopNtUsdRecovery();
-                attemptCount++) {
+             attemptCount++) {
             try {
                 if (settingsRepositoryService.getSettings().getManageType().isManual() && !signalType.isRecoveryNtUsd()) {
                     if (!signalType.isManual() || attemptCount > 1) {
@@ -1830,13 +1819,13 @@ public class OkCoinService extends MarketServicePreliq {
 
     @Override
     public TradeResponse placeOrderOnSignal(Order.OrderType orderType, BigDecimal amountInContracts, BestQuotes bestQuotes,
-            SignalType signalType) {
+                                            SignalType signalType) {
         throw new IllegalArgumentException("Use placeOrder instead");
     }
 
     private TradeResponse placeNonTakerOrder(Long tradeId, Order.OrderType orderType, BigDecimal tradableAmount, BestQuotes bestQuotes,
-            boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
-            boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
+                                             boolean isMoving, @NotNull SignalType signalType, PlacingType placingSubType, String counterName,
+                                             boolean pricePlanOnStart, Integer portionsQty, Integer portionsQtyMax, String counterNameWithPortion)
             throws Exception {
         final TradeResponse tradeResponse = new TradeResponse();
 
@@ -1972,7 +1961,7 @@ public class OkCoinService extends MarketServicePreliq {
                             ? checkOrderStatus(counterNameWithPortion, attempt, orderType, tradableAmount, thePrice, orderId, 1, postOnly)
                             // no check for taker
                             : new LimitOrder(orderType, tradableAmount, okexContractType.getCurrencyPair(), orderId, new Date(),
-                                    thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
+                            thePrice, BigDecimal.ZERO, BigDecimal.ZERO, OrderStatus.PENDING_NEW);
 
                     tradeResponse.setLimitOrder(resultOrder);
                     final FplayOrder fplayOrder = new FplayOrder(this.getMarketId(), tradeId, counterName, resultOrder, bestQuotes, placingSubType, signalType,
@@ -2050,7 +2039,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private LimitOrder checkOrderStatus(String counterNameWithPortion, int attemptCount, OrderType orderType,
-            BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt, boolean postOnly) {
+                                        BigDecimal tradableAmount, BigDecimal thePrice, String orderId, int checkAttempt, boolean postOnly) {
 
         try {
             final Collection<Order> order = getApiOrders(new String[]{orderId});
@@ -2118,8 +2107,8 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private void writeLogPlaceOrder(OrderType orderType, BigDecimal tradeableAmount,
-            String placingType, BigDecimal thePrice, String orderId,
-            String status, String counterForLogs, OrderResultTiny rawResult, String execDuration) {
+                                    String placingType, BigDecimal thePrice, String orderId,
+                                    String status, String counterForLogs, OrderResultTiny rawResult, String execDuration) {
 
         final String message = String.format("#%s/end: %s %s amount=%s, quote=%s, orderId=%s, status=%s; rawResult=%s, Exec_duration = %s (ms).",
                 counterForLogs,
@@ -2321,7 +2310,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private TradeResponse finishMovingSync(Long tradeId, LimitOrder limitOrder, SignalType signalType, BestQuotes bestQuotes,
-            Order cancelledOrder, TradeResponse tradeResponse, FplayOrder cnlOrder) {
+                                           Order cancelledOrder, TradeResponse tradeResponse, FplayOrder cnlOrder) {
         final String counterForLogs = cnlOrder.getCounterWithPortion();
         PlacingType placingType = cnlOrder.getPlacingType();
         BigDecimal newAmount = limitOrder.getTradableAmount().subtract(cancelledOrder.getCumulativeAmount())
@@ -3159,7 +3148,7 @@ public class OkCoinService extends MarketServicePreliq {
         getPersistenceService().getDealPricesRepositoryService().updateOkexFactPrice(dealPrices.getTradeId(), avgPrice);
     }
 
-     public Future<Boolean> preliqLeftAsync() {
+    public Future<Boolean> preliqLeftAsync() {
         final Pos pos = getPos();
         return scheduler.submit(() -> preliqService.doPreliqLeft(pos));
     }
@@ -3414,7 +3403,7 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     private void cancelAllOrdersOnMkt(List<LimitOrder> onlyOpenOrders, String counterForLogs, String logInfoId,
-            StringBuilder res) throws IOException {
+                                      StringBuilder res) throws IOException {
         for (LimitOrder oo : onlyOpenOrders) {
             cancelOrderOnMkt(counterForLogs, logInfoId, res, oo);
         }

@@ -1,5 +1,6 @@
 package com.bitplay.market.bitmex;
 
+import com.bitplay.api.dto.ob.FundingRateBordersBlock;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
@@ -2878,6 +2879,7 @@ public class BitmexService extends MarketServicePreliq {
         final BigDecimal markPrice;
         BigDecimal lastPrice;
         final BigDecimal fundingRate;
+        final BigDecimal indicativeFundingRate;
         final OffsetDateTime fundingTimestamp;
         if (current instanceof BitmexContractIndex) {
             BitmexContractIndex cur = (BitmexContractIndex) current;
@@ -2885,11 +2887,13 @@ public class BitmexService extends MarketServicePreliq {
             lastPrice = update.getLastPrice() != null ? update.getLastPrice() : cur.getLastPrice();
             fundingRate = update.getFundingRate() != null ? update.getFundingRate() : cur.getFundingRate();
             fundingTimestamp = update.getSwapTime() != null ? update.getSwapTime() : cur.getSwapTime();
+            indicativeFundingRate = update.getIndicativeFundingRate() != null ? update.getIndicativeFundingRate() : cur.getIndicativeFundingRate();
         } else {
             markPrice = update.getMarkPrice();
             lastPrice = update.getLastPrice();
             fundingRate = update.getFundingRate();
             fundingTimestamp = update.getSwapTime();
+            indicativeFundingRate = update.getIndicativeFundingRate();
         }
         if (lastPrice == null && markPrice != null) {
             lastPrice = markPrice;
@@ -2914,7 +2918,8 @@ public class BitmexService extends MarketServicePreliq {
                 lastPrice != null ? lastPrice.setScale(s, RoundingMode.HALF_UP) : null,
                 timestamp,
                 fundingRate != null ? fundingRate.setScale(ct.getScale() + 2, RoundingMode.HALF_UP) : null,
-                fundingTimestamp);
+                fundingTimestamp,
+                indicativeFundingRate);
     }
 
     @Override
@@ -3122,34 +3127,6 @@ public class BitmexService extends MarketServicePreliq {
 
     public BitmexSwapService getBitmexSwapService() {
         return bitmexSwapService;
-    }
-
-    public BigDecimal getFundingCost() {
-        BigDecimal fundingCost = BigDecimal.ZERO;
-        if (this.getContractIndex() instanceof BitmexContractIndex) {
-            final BigDecimal fRate = ((BitmexContractIndex) this.getContractIndex()).getFundingRate();
-            fundingCost = bitmexSwapService.calcFundingCost(this.getPos(), fRate);
-        }
-        return fundingCost;
-    }
-    public BigDecimal getFundingCostUsd() {
-        BigDecimal result = BigDecimal.ZERO;
-        if (this.getContractIndex() instanceof BitmexContractIndex) {
-            final BigDecimal fRate = ((BitmexContractIndex) this.getContractIndex()).getFundingRate();
-            result = bitmexSwapService.calcFundingCostUsd(fRate, getPosVal());
-        }
-        return result;
-    }
-    public BigDecimal getFundingCostPts() {
-        BigDecimal result = BigDecimal.ZERO;
-        if (this.getContractIndex() instanceof BitmexContractIndex) {
-            final BigDecimal fRate = ((BitmexContractIndex) this.getContractIndex()).getFundingRate();
-            final OrderBook ob = getOrderBook();
-            final BigDecimal bid1 = Utils.getBestBid(ob).getLimitPrice();
-            final BigDecimal ask1 = Utils.getBestAsk(ob).getLimitPrice();
-            result = bitmexSwapService.calcFundingCostPts(fRate, bid1, ask1);
-        }
-        return result;
     }
 
     public BitmexXRateLimit getxRateLimit() {
