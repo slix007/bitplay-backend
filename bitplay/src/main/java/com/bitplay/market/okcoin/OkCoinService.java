@@ -679,8 +679,8 @@ public class OkCoinService extends MarketServicePreliq {
             }
             swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
 
-            okexFunding.setFf(calcFundingRateBlock(swapSettlement.getFundingRate()));
-            okexFunding.setSf(calcFundingRateBlock(swapSettlement.getEstimatedRate()));
+            okexFunding.setFf(calcFundingRateBlock(swapSettlement.getFundingRate().multiply(BigDecimal.valueOf(100))));
+            okexFunding.setSf(calcFundingRateBlock(swapSettlement.getEstimatedRate().multiply(BigDecimal.valueOf(100))));
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 log.error("On fetchSwapSettlement timeout");
