@@ -1,29 +1,26 @@
 package com.bitplay.persistance;
 
-import com.bitplay.persistance.domain.settings.BitmexContractType;
-import com.bitplay.persistance.domain.settings.BitmexCtList;
-import com.bitplay.persistance.domain.settings.ContractType;
-import com.bitplay.persistance.domain.settings.ExtraFlag;
-import com.bitplay.persistance.domain.settings.OkexContractType;
-import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.domain.settings.TradingMode;
-import com.bitplay.persistance.repository.SettingsRepository;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.events.ArbitrageReadyEvent;
+import com.bitplay.arbitrage.events.ArbitrageReadyEnableFundingEvent;
 import com.bitplay.market.MarketStaticData;
+import com.bitplay.persistance.domain.settings.*;
+import com.bitplay.persistance.repository.SettingsRepository;
 import com.bitplay.xchange.currency.CurrencyPair;
 import com.mongodb.WriteResult;
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by Sergey Shurmin on 12/4/17.
@@ -40,6 +37,9 @@ public class SettingsRepositoryService {
     private ArbitrageService arbitrageService;
 
     @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+
+    @Autowired
     public SettingsRepositoryService(MongoOperations mongoOperation) {
         this.mongoOperation = mongoOperation;
     }
@@ -50,6 +50,7 @@ public class SettingsRepositoryService {
     @EventListener(ArbitrageReadyEvent.class)
     public void init() {
         settings = fetchSettings(); // in case of mongo ChangeSets
+        applicationEventPublisher.publishEvent(new ArbitrageReadyEnableFundingEvent());
     }
 
     public static void setInvalidated() {
@@ -109,6 +110,7 @@ public class SettingsRepositoryService {
         }
         final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
         this.settings = fetchSettings();
+        invalidated = true;
         return this.settings;
     }
 
@@ -119,6 +121,7 @@ public class SettingsRepositoryService {
         final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
 
         this.settings = fetchSettings();
+        invalidated = true;
         return this.settings;
     }
 
@@ -129,6 +132,7 @@ public class SettingsRepositoryService {
         final WriteResult writeResult = mongoOperation.updateFirst(query, update, Settings.class);
 
         this.settings = fetchSettings();
+        invalidated = true;
         return this.settings;
     }
 
@@ -205,6 +209,14 @@ public class SettingsRepositoryService {
             update.set("settingsVolatileMode.oAddBorder", rightAddBorder);
         }
         mongoOperation.updateFirst(query, update, Settings.class);
+        invalidated = true;
     }
 
+    public void updateFundingTime(String dbValuePath, String value) {
+        Query query = new Query().addCriteria(Criteria.where("_id").exists(true).andOperator(Criteria.where("_id").is(1L)));
+        Update update = new Update();
+        update.set("fundingSettings." + dbValuePath + ".time", value);
+        mongoOperation.updateFirst(query, update, Settings.class);
+        invalidated = true;
+    }
 }

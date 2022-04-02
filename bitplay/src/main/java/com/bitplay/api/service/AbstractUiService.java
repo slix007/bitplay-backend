@@ -4,6 +4,7 @@ import com.bitplay.api.dto.*;
 import com.bitplay.api.dto.ob.*;
 import com.bitplay.api.dto.ob.FundingRateBordersBlock.Block;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.FundingTimerService;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.SignalType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -21,6 +22,7 @@ import com.bitplay.model.Pos;
 import com.bitplay.model.SwapSettlement;
 import com.bitplay.persistance.domain.LiqParams;
 import com.bitplay.persistance.domain.fluent.FplayOrder;
+import com.bitplay.persistance.domain.settings.FundingSettings;
 import com.bitplay.persistance.domain.settings.OkexContractType;
 import com.bitplay.utils.Utils;
 import com.bitplay.xchange.currency.Currency;
@@ -213,18 +215,32 @@ public abstract class AbstractUiService<T extends MarketService> {
 
         final String fundingRate = bitmexFunding.getFundingRate() != null ? bitmexFunding.getFundingRate().toPlainString() : "";
         final String fundingCost = bitmexFunding.getFundingCost() != null ? bitmexFunding.getFundingCost().toPlainString() : "";
+
+        final FundingTimerService fts = arbitrageService.getFundingTimerService();
+        final FundingSettings fs = businessService.getPersistenceService().getSettingsRepositoryService().getSettings().getFundingSettings();
+
         final FundingRateBordersBlock fundingRateBordersBlock = new FundingRateBordersBlock(
                 new Block(
                         fundingRate,
                         fundingCost,
                         bitmexFunding.getFundingCostUsd() != null ? bitmexFunding.getFundingCostUsd().toPlainString() : "",
-                        bitmexFunding.getFundingCostPts() != null ? bitmexFunding.getFundingCostPts().toPlainString() : ""
+                        bitmexFunding.getFundingCostPts() != null ? bitmexFunding.getFundingCostPts().toPlainString() : "",
+                        new FundingRateBordersBlock.Timer(
+                                fs.getLeftFf().getTime(),
+                                fts.getSecToRunLff(),
+                                fts.isGreenTime("leftFf")
+                        )
                 ),
                 new Block(
                         bitmexFunding.getSfRate() != null ? bitmexFunding.getSfRate().toPlainString() : "",
                         bitmexFunding.getSfCost() != null ? bitmexFunding.getSfCost().toPlainString() : "",
                         bitmexFunding.getSfCostUsd() != null ? bitmexFunding.getSfCostUsd().toPlainString() : "",
-                        bitmexFunding.getSfCostPts() != null ? bitmexFunding.getSfCostPts().toPlainString() : ""
+                        bitmexFunding.getSfCostPts() != null ? bitmexFunding.getSfCostPts().toPlainString() : "",
+                        new FundingRateBordersBlock.Timer(
+                                fs.getLeftSf().getTime(),
+                                fts.getSecToRunLsf(),
+                                fts.isGreenTime("leftSf")
+                        )
                 )
         );
 

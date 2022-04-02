@@ -105,6 +105,9 @@ public class Settings extends AbstractDocument {
     private final SettingsTransient settingsTransient = new SettingsTransient();
 
     private OkexSettlement okexSettlement;
+    private FundingSettings fundingSettings;
+    @Transient
+    private FundingSettingsUpdate fundingSettingsUpdate;
 
     private ConBoPortions conBoPortions;
 
@@ -324,5 +327,9 @@ public class Settings extends AbstractDocument {
 
     public boolean flagUpdateAvgPriceStopped() {
         return extraFlags.contains(ExtraFlag.STOP_UPDATE_AVG_PRICE);
+    }
+
+    public FundingSettings getFundingSettings() {
+        return fundingSettings;
     }
 }

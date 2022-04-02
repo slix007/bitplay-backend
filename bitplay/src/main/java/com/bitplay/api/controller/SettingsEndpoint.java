@@ -11,24 +11,7 @@ import com.bitplay.market.okcoin.OkexLimitsService;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.SettingsRepositoryService;
 import com.bitplay.persistance.domain.correction.CorrParams;
-import com.bitplay.persistance.domain.settings.AbortSignal;
-import com.bitplay.persistance.domain.settings.BitmexChangeOnSo;
-import com.bitplay.persistance.domain.settings.BitmexContractType;
-import com.bitplay.persistance.domain.settings.BitmexContractTypeEx;
-import com.bitplay.persistance.domain.settings.BitmexObType;
-import com.bitplay.persistance.domain.settings.ContractMode;
-import com.bitplay.persistance.domain.settings.ExtraFlag;
-import com.bitplay.persistance.domain.settings.Limits;
-import com.bitplay.persistance.domain.settings.ManageType;
-import com.bitplay.persistance.domain.settings.OkexContractType;
-import com.bitplay.persistance.domain.settings.PlacingBlocks;
-import com.bitplay.persistance.domain.settings.PosAdjustment;
-import com.bitplay.persistance.domain.settings.Prem;
-import com.bitplay.persistance.domain.settings.RestartSettings;
-import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.persistance.domain.settings.SettingsVolatileMode;
-import com.bitplay.persistance.domain.settings.SysOverloadArgs;
-import com.bitplay.persistance.domain.settings.TradingMode;
+import com.bitplay.persistance.domain.settings.*;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.SettingsPremService;
 import java.math.BigDecimal;
@@ -465,6 +448,11 @@ public class SettingsEndpoint {
 
         if (settingsUpdate.getBtmAvgPriceUpdateSettings() != null) {
             DtoHelpter.updateNotNullFieldsWithNested(settingsUpdate.getBtmAvgPriceUpdateSettings(), settings.getBtmAvgPriceUpdateSettings());
+            settingsRepositoryService.saveSettings(settings);
+        }
+
+        if (settingsUpdate.getFundingSettingsUpdate() != null) {
+            settings.getFundingSettings().update(settingsUpdate.getFundingSettingsUpdate());
             settingsRepositoryService.saveSettings(settings);
         }
 

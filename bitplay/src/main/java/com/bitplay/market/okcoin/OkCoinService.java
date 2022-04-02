@@ -2,6 +2,7 @@ package com.bitplay.market.okcoin;
 
 import com.bitplay.api.dto.ob.FundingRateBordersBlock;
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.FundingTimerService;
 import com.bitplay.arbitrage.dto.*;
 import com.bitplay.arbitrage.events.NtUsdCheckEvent;
 import com.bitplay.arbitrage.events.ObChangeEvent;
@@ -693,7 +694,20 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     public FundingRateBordersBlock getFundingRateBordersBlock() {
-        return okexFunding.toFundingRateBordersBlock();
+        final FundingSettings fs = settingsRepositoryService.getSettings().getFundingSettings();
+        final FundingTimerService fts = getArbitrageService().getFundingTimerService();
+        return okexFunding.toFundingRateBordersBlock(
+                new FundingRateBordersBlock.Timer(
+                        fs.getRightFf().getTime(),
+                        fts.getSecToRunRff(),
+                        fts.isGreenTime("rightFf")
+                ),
+                new FundingRateBordersBlock.Timer(
+                        fs.getRightSf().getTime(),
+                        fts.getSecToRunRsf(),
+                        fts.isGreenTime("rightSf")
+                )
+        );
     }
 
     private OkexFunding.Block calcFundingRateBlock(BigDecimal fRate) {
