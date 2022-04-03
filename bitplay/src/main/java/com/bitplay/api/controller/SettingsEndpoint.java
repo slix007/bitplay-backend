@@ -1,6 +1,7 @@
 package com.bitplay.api.controller;
 
 import com.bitplay.arbitrage.ArbitrageService;
+import com.bitplay.arbitrage.FundingTimerService;
 import com.bitplay.arbitrage.VolatileModeSwitcherService;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
 import com.bitplay.external.DestinationResolverByFile;
@@ -44,6 +45,7 @@ public class SettingsEndpoint {
     private final VolatileModeSwitcherService volatileModeSwitcherService;
     private final PersistenceService persistenceService;
     private final SettingsRepositoryService settingsRepositoryService;
+    private final FundingTimerService fundingTimerService;
     private final ArbitrageService arbitrageService;
     private final PosDiffService posDiffService;
     private final SettingsCorrEndpoint settingsCorrEndpoint;
@@ -454,6 +456,7 @@ public class SettingsEndpoint {
         if (settingsUpdate.getFundingSettingsUpdate() != null) {
             settings.getFundingSettings().update(settingsUpdate.getFundingSettingsUpdate());
             settingsRepositoryService.saveSettings(settings);
+            fundingTimerService.reschedule();
         }
 
         // ...

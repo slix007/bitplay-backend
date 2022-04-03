@@ -25,7 +25,7 @@ class FundingTimerService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val executor: ScheduledExecutorService =
+    private var executor: ScheduledExecutorService =
         SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
 
     @Volatile
@@ -44,6 +44,7 @@ class FundingTimerService(
     @EventListener(ArbitrageReadyEnableFundingEvent::class)
     fun init() {
         if (!arbitrageService.areBothOkex()) {
+            executor = SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
             scheduleNextRunToFuture("leftFf", 8)
             scheduleNextRunToFuture("leftSf", 16)
             scheduleNextRunToFuture("rightFf", 8)
@@ -151,5 +152,10 @@ class FundingTimerService(
     fun getSecToRunLsf(): String = futureLsf?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
     fun getSecToRunRff(): String = futureRff?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
     fun getSecToRunRsf(): String = futureRsf?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
+
+    fun reschedule() {
+        executor.shutdown()
+        init()
+    }
 
 }
