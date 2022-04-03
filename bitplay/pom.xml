@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <parent>
         <artifactId>bitplay-aggregator</artifactId>
@@ -17,11 +18,11 @@
         <java.version>1.8</java.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-<!--        <xchange-stream.version>4.3.17-bts</xchange-stream.version>-->
-<!--        <xchange.version>4.2.3-bts</xchange.version>-->
+        <!--        <xchange-stream.version>4.3.17-bts</xchange-stream.version>-->
+        <!--        <xchange.version>4.2.3-bts</xchange.version>-->
         <micrometer.version>1.1.4</micrometer.version>
         <bitplay.version>0.0.1-SNAPSHOT</bitplay.version>
-      <kotlin.version>1.6.10</kotlin.version>
+        <kotlin.version>1.6.10</kotlin.version>
     </properties>
 
     <dependencies>
@@ -40,8 +41,8 @@
 
         <!-- Rest api -->
         <!--<dependency>-->
-            <!--<groupId>org.springframework.boot</groupId>-->
-            <!--<artifactId>spring-boot-starter-jersey</artifactId>-->
+        <!--<groupId>org.springframework.boot</groupId>-->
+        <!--<artifactId>spring-boot-starter-jersey</artifactId>-->
         <!--</dependency>-->
 
         <dependency>
@@ -90,16 +91,16 @@
 
         <!-- Cryptocurrency markets -->
 
-<!--        <dependency>-->
-<!--            <groupId>com.bitplay.xchange</groupId>-->
-<!--            <artifactId>xchange-core</artifactId>-->
-<!--            <version>${xchange.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.bitplay.xchange</groupId>-->
-<!--            <artifactId>xchange-okcoin</artifactId>-->
-<!--            <version>${xchange.version}</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.bitplay.xchange</groupId>-->
+        <!--            <artifactId>xchange-core</artifactId>-->
+        <!--            <version>${xchange.version}</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.bitplay.xchange</groupId>-->
+        <!--            <artifactId>xchange-okcoin</artifactId>-->
+        <!--            <version>${xchange.version}</version>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>com.github.mmazi</groupId>
@@ -135,16 +136,16 @@
         </dependency>
 
         <!-- Streaming xchange-stream -->
-<!--        <dependency>-->
-<!--            <groupId>info.bitrich.xchange-stream</groupId>-->
-<!--            <artifactId>xchange-stream-core</artifactId>-->
-<!--            <version>${xchange-stream.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>info.bitrich.xchange-stream</groupId>-->
-<!--            <artifactId>xchange-okcoin-v3</artifactId>-->
-<!--            <version>${xchange-stream.version}</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>info.bitrich.xchange-stream</groupId>-->
+        <!--            <artifactId>xchange-stream-core</artifactId>-->
+        <!--            <version>${xchange-stream.version}</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>info.bitrich.xchange-stream</groupId>-->
+        <!--            <artifactId>xchange-okcoin-v3</artifactId>-->
+        <!--            <version>${xchange-stream.version}</version>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>com.bitplay</groupId>
@@ -175,21 +176,21 @@
         </dependency>
 
         <!-- MongoDB -->
-<!--        <dependency>-->
-<!--            <groupId>org.mongodb</groupId>-->
-<!--            <artifactId>mongo-java-driver</artifactId>-->
-<!--            <version>3.6.3</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.mongodb</groupId>-->
-<!--            <artifactId>bson</artifactId>-->
-<!--            <version>2.13.3</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.data</groupId>-->
-<!--            <artifactId>spring-data-mongodb</artifactId>-->
-<!--            <version>1.10.4.RELEASE</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.mongodb</groupId>-->
+        <!--            <artifactId>mongo-java-driver</artifactId>-->
+        <!--            <version>3.6.3</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.mongodb</groupId>-->
+        <!--            <artifactId>bson</artifactId>-->
+        <!--            <version>2.13.3</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.data</groupId>-->
+        <!--            <artifactId>spring-data-mongodb</artifactId>-->
+        <!--            <version>1.10.4.RELEASE</version>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -203,17 +204,17 @@
 
         <!-- Metrics -->
         <!--<dependency>-->
-            <!--<groupId>org.influxdb</groupId>-->
-            <!--<artifactId>influxdb-java</artifactId>-->
-            <!--<version>2.14</version>-->
+        <!--<groupId>org.influxdb</groupId>-->
+        <!--<artifactId>influxdb-java</artifactId>-->
+        <!--<version>2.14</version>-->
         <!--</dependency>-->
 
         <!-- https://mvnrepository.com/artifact/io.micrometer/micrometer-registry-influx -->
-<!--        <dependency>-->
-<!--            <groupId>io.micrometer</groupId>-->
-<!--            <artifactId>micrometer-registry-influx</artifactId>-->
-<!--            <version>${micrometer.version}</version>-->
-<!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>io.micrometer</groupId>-->
+        <!--            <artifactId>micrometer-registry-influx</artifactId>-->
+        <!--            <version>${micrometer.version}</version>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -226,17 +227,23 @@
             <artifactId>micrometer-spring-legacy</artifactId>
             <version>${micrometer.version}</version>
         </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib-jdk8</artifactId>
-        <version>${kotlin.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-test</artifactId>
-        <version>${kotlin.version}</version>
-        <scope>test</scope>
-      </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-test</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito.kotlin</groupId>
+            <artifactId>mockito-kotlin</artifactId>
+            <version>4.0.0</version>
+            <scope>test</scope>
+        </dependency>
 
 
     </dependencies>
@@ -247,63 +254,63 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <!--<configuration>-->
-                    <!--<jvmArguments>-->
-                        <!-- -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=3782-->
-                    <!--</jvmArguments>-->
+                <!--<jvmArguments>-->
+                <!-- -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=3782-->
+                <!--</jvmArguments>-->
                 <!--</configuration>-->
             </plugin>
-          <plugin>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-maven-plugin</artifactId>
-            <version>${kotlin.version}</version>
-            <executions>
-              <execution>
-                <id>compile</id>
-                <phase>compile</phase>
-                <goals>
-                  <goal>compile</goal>
-                </goals>
-              </execution>
-              <execution>
-                <id>test-compile</id>
-                <phase>test-compile</phase>
-                <goals>
-                  <goal>test-compile</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <jvmTarget>1.8</jvmTarget>
-            </configuration>
-          </plugin>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>default-compile</id>
-                <phase>none</phase>
-              </execution>
-              <execution>
-                <id>default-testCompile</id>
-                <phase>none</phase>
-              </execution>
-              <execution>
-                <id>compile</id>
-                <phase>compile</phase>
-                <goals>
-                  <goal>compile</goal>
-                </goals>
-              </execution>
-              <execution>
-                <id>testCompile</id>
-                <phase>test-compile</phase>
-                <goals>
-                  <goal>testCompile</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>test-compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jvmTarget>1.8</jvmTarget>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>testCompile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
