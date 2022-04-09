@@ -15,8 +15,12 @@ import com.bitplay.xchange.currency.CurrencyPair;
 import com.bitplay.xchange.dto.account.AccountInfo;
 import com.bitplay.xchange.dto.account.AccountInfoContracts;
 import com.bitplay.xchange.exceptions.NotAvailableFromExchangeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BitmexStreamingAccountService implements StreamingAccountService {
+
+    private static final Logger logger = LoggerFactory.getLogger(BitmexStreamingAccountService.class);
 
     private final StreamingServiceBitmex service;
 
@@ -36,9 +40,16 @@ public class BitmexStreamingAccountService implements StreamingAccountService {
                     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                     mapper.registerModule(new JavaTimeModule());
 
-                    Margin margin = mapper.treeToValue(s.get("data").get(0), Margin.class);
-
-                    return BitmexAdapters.adaptBitmexMargin(margin);
+                    final JsonNode dataNode = s.get("data");
+                    for (JsonNode accountNode : dataNode) {
+                        if (accountNode.get("currency").asText().equalsIgnoreCase("XBT")) {
+                            Margin margin = mapper.treeToValue(accountNode, Margin.class);
+                            return BitmexAdapters.adaptBitmexMargin(margin);
+                        }
+                    }
+                    logger.warn("currency XBT not found in response " + s);
+                    return new AccountInfoContracts();
+//                    throw new IllegalArgumentException();
                 }).share();
     }
 
