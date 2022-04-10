@@ -698,12 +698,12 @@ public class OkCoinService extends MarketServicePreliq {
         final FundingTimerService fts = getArbitrageService().getFundingTimerService();
         return okexFunding.toFundingRateBordersBlock(
                 new FundingRateBordersBlock.Timer(
-                        fs.getRightFf().getTime(),
+                        fs.getRightFf().getFundingTimeUi(false),
                         fts.getSecToRunRff(),
                         fts.isGreenTime("rightFf")
                 ),
                 new FundingRateBordersBlock.Timer(
-                        fs.getRightSf().getTime(),
+                        fs.getRightSf().getFundingTimeUi(true),
                         fts.getSecToRunRsf(),
                         fts.isGreenTime("rightSf")
                 )

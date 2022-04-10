@@ -1,6 +1,7 @@
 package com.bitplay.persistance.domain.settings
 
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 
 data class FundingSettings(
@@ -21,16 +22,32 @@ data class FundingSettings(
     }
 
     data class FundingS(
-        var time: String,
+        private var time: String,
         /** start calculate before */
         var scbSec: Long,
     ) {
-        fun getFundingTime(): LocalTime = LocalTime.parse(time)
-//        fun setFundingTime(time: String) {
-//            if (LocalTime.parse(time) != null) {
-//                this.time = time
-//            }
-//        }
+        fun getFundingTimeReal(): LocalTime = LocalTime.parse(time)
+        fun getFundingTimeUi(isSecond: Boolean = false): String =
+            if (isSecond) {
+                val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                fmt.format(LocalTime.parse(time).plusHours(8))
+            } else {
+                val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                fmt.format(LocalTime.parse(time))
+            }
+
+        fun setFundingTimeUi(time: String, isSecond: Boolean = false) {
+            val parsed = LocalTime.parse(time)
+            if (parsed != null) {
+                if (isSecond) {
+                    val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                    this.time = fmt.format(parsed.plusHours(8))
+                } else {
+                    val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+                    this.time = fmt.format(parsed)
+                }
+            }
+        }
     }
 
     fun getByParamName(paramName: String): FundingS =
@@ -46,8 +63,10 @@ data class FundingSettings(
         this.getByParamName(update.paramName!!).apply {
             if (update.time != null) {
                 try {
-                    println(LocalTime.parse(update.time))
-                    time = update.time!!
+                    setFundingTimeUi(
+                        update.time!!,
+                        update.paramName!! == "leftSf" || update.paramName!! == "rightSf"
+                    )
                 } catch (e: Exception) {
                     println("can not parse time $update")
                 }

@@ -46,9 +46,9 @@ class FundingTimerService(
         if (!arbitrageService.areBothOkex()) {
             executor = SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
             scheduleNextRunToFuture("leftFf", 8)
-            scheduleNextRunToFuture("leftSf", 16)
+            scheduleNextRunToFuture("leftSf", 8)
             scheduleNextRunToFuture("rightFf", 8)
-            scheduleNextRunToFuture("rightSf", 16)
+            scheduleNextRunToFuture("rightSf", 8)
         }
     }
 
@@ -64,7 +64,7 @@ class FundingTimerService(
 
     fun scheduleNextRun(paramName: String, hoursForward: Int): ScheduledFuture<*> {
         val nextRunTime: LocalTime = settingsRepositoryService.settings
-            .fundingSettings.getByParamName(paramName).getFundingTime()
+            .fundingSettings.getByParamName(paramName).getFundingTimeReal()
 
         var between = Duration.between(LocalTime.now(), nextRunTime).toKotlinDuration()
         var timeTmp = nextRunTime
@@ -80,7 +80,7 @@ class FundingTimerService(
         if (nextRunTime != timeTmp) {
             settingsRepositoryService.updateFundingTime(
                 paramName,
-                timeTmp.format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"))
+                timeTmp.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
             )
         }
         logger.info("schedule nextRun at $nextRunTime to timeTmp=$timeTmp")
@@ -123,35 +123,43 @@ class FundingTimerService(
 
         scheduleNextRunToFuture(paramName, hoursForward)
     }
-
-    fun isGreenTimeAll(): Boolean {
-        val fundingSettings = settingsRepositoryService.settings.fundingSettings
-        return isGreenTime(futureLff, fundingSettings.leftFf.scbSec)
-                && isGreenTime(futureLsf, fundingSettings.leftSf.scbSec)
-                && isGreenTime(futureRff, fundingSettings.rightFf.scbSec)
-                && isGreenTime(futureRsf, fundingSettings.rightSf.scbSec)
-    }
+//
+//    fun isGreenTimeAll(): Boolean {
+//        val fundingSettings = settingsRepositoryService.settings.fundingSettings
+//        return isGreenTime(futureLff, fundingSettings.leftFf.scbSec)
+//                && isGreenTime(futureLsf, fundingSettings.leftSf.scbSec, true)
+//                && isGreenTime(futureRff, fundingSettings.rightFf.scbSec)
+//                && isGreenTime(futureRsf, fundingSettings.rightSf.scbSec, true)
+//    }
 
     fun isGreenTime(paramName: String): Boolean {
         val fundingSettings = settingsRepositoryService.settings.fundingSettings
         return when (paramName) {
-            "leftFf" -> isGreenTime(futureLff, fundingSettings.leftFf.scbSec)
-            "leftSf" -> isGreenTime(futureLsf, fundingSettings.leftSf.scbSec)
-            "rightFf" -> isGreenTime(futureRff, fundingSettings.rightFf.scbSec)
-            "rightSf" -> isGreenTime(futureRsf, fundingSettings.rightSf.scbSec)
+            "leftFf" -> isGreenTime(getSecToRunLff(), fundingSettings.leftFf.scbSec)
+            "leftSf" -> isGreenTime(getSecToRunLsf(), fundingSettings.leftSf.scbSec)
+            "rightFf" -> isGreenTime(getSecToRunRff(), fundingSettings.rightFf.scbSec)
+            "rightSf" -> isGreenTime(getSecToRunRsf(), fundingSettings.rightSf.scbSec)
             else -> false
         }
     }
 
-    private fun isGreenTime(future: ScheduledFuture<*>?, startCalculateBeforeSec: Long): Boolean {
-        val delayToStartSec: Long? = future?.getDelay(TimeUnit.SECONDS)
-        return delayToStartSec != null && delayToStartSec < startCalculateBeforeSec
+    private val HOURS_8_IN_SEC = 60 * 60 * 8
+
+    private fun isGreenTime(
+        delayToStartSecStr: String,
+        startCalculateBeforeSec: Long,
+    ): Boolean {
+        val delayToStartSec: Long = delayToStartSecStr.toLong()
+        return delayToStartSec != -1L && delayToStartSec < startCalculateBeforeSec
     }
 
     fun getSecToRunLff(): String = futureLff?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
-    fun getSecToRunLsf(): String = futureLsf?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
+    fun getSecToRunLsf(): String =
+        futureLsf?.getDelay(TimeUnit.SECONDS)?.let { it + HOURS_8_IN_SEC }?.toString() ?: "-1"
+
     fun getSecToRunRff(): String = futureRff?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
-    fun getSecToRunRsf(): String = futureRsf?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
+    fun getSecToRunRsf(): String =
+        futureRsf?.getDelay(TimeUnit.SECONDS)?.let { it + HOURS_8_IN_SEC }?.toString() ?: "-1"
 
     fun reschedule() {
         executor.shutdown()
