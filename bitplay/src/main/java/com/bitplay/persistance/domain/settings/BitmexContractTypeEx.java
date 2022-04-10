@@ -53,4 +53,27 @@ public class BitmexContractTypeEx implements ContractType {
     public BigDecimal defaultLeverage() {
         return bitmexContractType.defaultLeverage();
     }
+
+    static public Integer getFundingScale(String currencyCode) {
+        int scale;
+        switch (currencyCode) {
+            case "BTC":
+            case "XBT":
+                scale = 0;
+                break;
+//            case "ETH":
+//            case "BCH":
+//            case "LTC":
+//                scale = 2;
+//                break;
+            case "LINK":
+            case "XRP":
+                scale = 4;
+                break;
+            default:
+                scale = 2;
+        }
+        return scale;
+    }
+
 }

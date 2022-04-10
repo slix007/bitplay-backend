@@ -9,6 +9,7 @@ data class FundingSettings(
     val leftSf: FundingS,
     val rightFf: FundingS,
     val rightSf: FundingS,
+    var fundingResultEnabled: Boolean = false,
 ) {
     companion object {
         @JvmStatic
@@ -59,26 +60,35 @@ data class FundingSettings(
             else -> throw IllegalArgumentException("Illegal funding paramName: $paramName")
         }
 
-    fun update(update: FundingSettingsUpdate) =
-        this.getByParamName(update.paramName!!).apply {
-            if (update.time != null) {
-                try {
-                    setFundingTimeUi(
-                        update.time!!,
-                        update.paramName!! == "leftSf" || update.paramName!! == "rightSf"
-                    )
-                } catch (e: Exception) {
-                    println("can not parse time $update")
+    fun update(update: FundingSettingsUpdate) {
+        if (update.paramName != null) {
+            this.getByParamName(update.paramName!!).apply {
+                if (update.time != null) {
+                    try {
+                        setFundingTimeUi(
+                            update.time!!,
+                            update.paramName!! == "leftSf" || update.paramName!! == "rightSf"
+                        )
+                    } catch (e: Exception) {
+                        println("can not parse time $update")
+                    }
                 }
+                scbSec = update.scbSec ?: scbSec
             }
-            scbSec = update.scbSec ?: scbSec
+        } else {
+            update.fundingResultEnabled?.let {
+                fundingResultEnabled = it
+            }
         }
+    }
 }
 
 /**
  * Need default constructor for Jackson => all fields are null by default
  */
 data class FundingSettingsUpdate(
+    // paramName or fundingResultEnabled not null
+    var fundingResultEnabled: Boolean? = null,
     var paramName: String? = null,
     var time: String? = null,
     var scbSec: Long? = null

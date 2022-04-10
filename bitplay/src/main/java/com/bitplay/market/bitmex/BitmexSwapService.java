@@ -7,6 +7,7 @@ import com.bitplay.market.model.TradeResponse;
 import com.bitplay.model.Pos;
 import com.bitplay.persistance.domain.SwapParams;
 import com.bitplay.persistance.domain.SwapV2;
+import com.bitplay.persistance.domain.settings.BitmexContractTypeEx;
 import com.bitplay.utils.Utils;
 import com.bitplay.xchange.dto.Order;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
@@ -368,6 +369,8 @@ public class BitmexSwapService {
 
         assert fRate != null;
         bitmexFunding.setFundingCostPts(calcFundingCostPts(fRate, bestBidPrice, bestAskPrice));
+
+        arbitrageService.getFundingResultService().runCalc();
     }
 
     private synchronized void endFunding() {
@@ -467,10 +470,11 @@ public class BitmexSwapService {
             final BigDecimal bid1 = Utils.getBestBid(ob).getLimitPrice();
             final BigDecimal ask1 = Utils.getBestAsk(ob).getLimitPrice();
             this.bitmexFunding.setFundingCostPts(calcFundingCostPts(fRate, bid1, ask1));
-            this.bitmexFunding.setSfCostPts(calcFundingCostPts(sfRate, bid1, ask1));
+                this.bitmexFunding.setSfCostPts(calcFundingCostPts(sfRate, bid1, ask1));
         } else {
             bitmexFunding.setSignalType(SignalType.SWAP_NONE);
         }
+        arbitrageService.getFundingResultService().runCalc();
     }
 
     BigDecimal calcFundingCost(final Pos position, final BigDecimal fRate) {
@@ -501,10 +505,13 @@ public class BitmexSwapService {
     }
 
     BigDecimal calcFundingCostPts(BigDecimal fRate, BigDecimal bid1, BigDecimal ask1) {
+        final Integer scale = BitmexContractTypeEx.getFundingScale(
+                bitmexService.getBitmexContractTypeEx().getCurrencyPair().base.getCurrencyCode()
+        );
         //для XBTUSD, ETHUSD: fcost_Pts = fRate / 100 * b_avg_price;
         // b_avg_price = (b_bid[1] + b_ask[1]) / 2;
         final BigDecimal avgPrice = (bid1.add(ask1)).divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
-        return fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        return fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), scale, RoundingMode.HALF_UP);
     }
 //
 //    public BigDecimal calcSecondFundingCostUsd(Pos pos, BigDecimal sfRate) {

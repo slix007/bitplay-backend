@@ -682,6 +682,7 @@ public class OkCoinService extends MarketServicePreliq {
 
             okexFunding.setFf(calcFundingRateBlock(swapSettlement.getFundingRate().multiply(BigDecimal.valueOf(100))));
             okexFunding.setSf(calcFundingRateBlock(swapSettlement.getEstimatedRate().multiply(BigDecimal.valueOf(100))));
+            arbitrageService.getFundingResultService().runCalc();
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
                 log.error("On fetchSwapSettlement timeout");
@@ -691,6 +692,10 @@ public class OkCoinService extends MarketServicePreliq {
         }
         Instant end = Instant.now();
         Utils.logIfLong(start, end, log, "fetchEstimatedDeliveryPrice");
+    }
+
+    public OkexFunding getOkexFunding() {
+        return okexFunding;
     }
 
     public FundingRateBordersBlock getFundingRateBordersBlock() {
@@ -719,11 +724,15 @@ public class OkCoinService extends MarketServicePreliq {
         //Okex_SCV = 100 для BTC, для остальных 10.
         //FFrate = First Funding rate, %.
 
+        final Integer scale = BitmexContractTypeEx.getFundingScale(
+                okexContractType.getCurrencyPair().base.getCurrencyCode()
+        );
+
         final BigDecimal posVal = getPosVal();
         final OrderBook ob = getOrderBook();
         final BigDecimal avgPrice = (Utils.getBestBid(ob).getLimitPrice()
                 .add(Utils.getBestAsk(ob).getLimitPrice())).divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
-        final BigDecimal costPts = fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        final BigDecimal costPts = fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), scale, RoundingMode.HALF_UP);
         final BigDecimal costUsd = fRate.multiply(posVal).multiply(getSCV()).divide(
                 BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP
         );

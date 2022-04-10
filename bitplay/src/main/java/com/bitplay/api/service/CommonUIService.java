@@ -1,12 +1,12 @@
 package com.bitplay.api.service;
 
-import com.bitplay.arbitrage.ArbitrageService;
-import com.bitplay.arbitrage.BordersCalcScheduler;
-import com.bitplay.arbitrage.BordersService;
-import com.bitplay.arbitrage.DeltaMinService;
-import com.bitplay.arbitrage.DeltasCalcService;
-import com.bitplay.arbitrage.HedgeService;
-import com.bitplay.arbitrage.VolatileModeSwitcherService;
+import com.bitplay.api.dto.*;
+import com.bitplay.api.dto.DeltasMinMaxJson.MinMaxData;
+import com.bitplay.api.dto.DeltasMinMaxJson.SignalData;
+import com.bitplay.api.dto.pos.PosDiffJson;
+import com.bitplay.api.dto.states.*;
+import com.bitplay.api.dto.states.SignalPartsJson.Status;
+import com.bitplay.arbitrage.*;
 import com.bitplay.arbitrage.dto.ArbType;
 import com.bitplay.arbitrage.dto.DelayTimer;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
@@ -23,49 +23,24 @@ import com.bitplay.market.model.MarketState;
 import com.bitplay.market.okcoin.OkCoinService;
 import com.bitplay.market.okcoin.OkexFtpdService;
 import com.bitplay.market.okcoin.OkexSettlementService;
-import com.bitplay.persistance.CumPersistenceService;
-import com.bitplay.persistance.LastPriceDeviationService;
-import com.bitplay.persistance.MonitoringDataService;
-import com.bitplay.persistance.PersistenceService;
-import com.bitplay.persistance.SettingsRepositoryService;
-import com.bitplay.persistance.SignalTimeService;
-import com.bitplay.persistance.domain.CumParams;
-import com.bitplay.persistance.domain.DeltaParams;
-import com.bitplay.persistance.domain.GuiParams;
-import com.bitplay.persistance.domain.LastPriceDeviation;
-import com.bitplay.persistance.domain.SignalTimeParams;
+import com.bitplay.persistance.*;
+import com.bitplay.persistance.domain.*;
 import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.fluent.DeltaName;
 import com.bitplay.persistance.domain.mon.MonRestart;
 import com.bitplay.persistance.domain.settings.OkexFtpd;
 import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.Settings;
-import com.bitplay.api.dto.BorderUpdateJson;
-import com.bitplay.api.dto.DeltalUpdateJson;
-import com.bitplay.api.dto.DeltasJson;
-import com.bitplay.api.dto.DeltasMinMaxJson;
-import com.bitplay.api.dto.DeltasMinMaxJson.MinMaxData;
-import com.bitplay.api.dto.DeltasMinMaxJson.SignalData;
-import com.bitplay.api.dto.MarketFlagsJson;
-import com.bitplay.api.dto.PosCorrJson;
-import com.bitplay.api.dto.ResultJson;
-import com.bitplay.api.dto.SumBalJson;
-import com.bitplay.api.dto.TimersJson;
-import com.bitplay.api.dto.TradeLogJson;
-import com.bitplay.api.dto.pos.PosDiffJson;
-import com.bitplay.api.dto.states.AutoAddBorderJson;
-import com.bitplay.api.dto.states.DelayTimerBuilder;
-import com.bitplay.api.dto.states.DelayTimerJson;
-import com.bitplay.api.dto.states.MarketStatesJson;
-import com.bitplay.api.dto.states.OkexFtpdJson;
-import com.bitplay.api.dto.states.OrderPortionsJson;
-import com.bitplay.api.dto.states.SignalPartsJson;
-import com.bitplay.api.dto.states.SignalPartsJson.Status;
 import com.bitplay.security.TraderPermissionsService;
 import com.bitplay.settings.BitmexChangeOnSoService;
 import com.bitplay.settings.SettingsPremService;
 import com.bitplay.settings.TradingModeService;
 import com.bitplay.utils.Utils;
+import com.bitplay.xchange.dto.Order.OrderType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -75,10 +50,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import com.bitplay.xchange.dto.Order.OrderType;
-import org.springframework.stereotype.Service;
 
 /**
  * Created by Sergey Shurmin on 4/17/17.
@@ -109,6 +80,7 @@ public class CommonUIService {
     private final OkexSettlementService okexSettlementService;
     private final NtUsdRecoveryService ntUsdRecoveryService;
     private final SettingsPremService settingsPremService;
+    private final FundingResultService fundingResultService;
 
     public TradeLogJson getTradeLog(String marketName, String date) {
         String logName;
@@ -506,7 +478,8 @@ public class CommonUIService {
         final String timeToForbidden = traderPermissionsService.getTimeToForbidden();
         final String coldStorageBtc = settings.getColdStorageBtc().toPlainString();
         final String coldStorageEth = settings.isEth() ? settings.getColdStorageEth().toPlainString() : null;
-        return new SumBalJson(sumBalString, sumBalImpliedString, sumEBest, sumEBestMin, timeToForbidden, coldStorageBtc, coldStorageEth);
+        return new SumBalJson(sumBalString, sumBalImpliedString, sumEBest, sumEBestMin, timeToForbidden, coldStorageBtc, coldStorageEth,
+                fundingResultService.getFundingResultBlock());
     }
 
     public PosDiffJson getPosDiff() {

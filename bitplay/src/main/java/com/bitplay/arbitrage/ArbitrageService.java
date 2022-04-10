@@ -140,6 +140,8 @@ public class ArbitrageService {
     private Config config;
     @Autowired
     private FundingTimerService fundingTimerService;
+    @Autowired
+    private FundingResultService fundingResultService;
 
 //    @Autowired // WARNING - this leads to "successfully sent 23 metrics to InfluxDB." should be over 70 metrics.
 //    private MeterRegistry meterRegistry;
@@ -2665,6 +2667,10 @@ public class ArbitrageService {
 
     public FundingTimerService getFundingTimerService() {
         return fundingTimerService;
+    }
+
+    public FundingResultService getFundingResultService() {
+        return fundingResultService;
     }
 
     public DqlStateService getDqlStateService() {

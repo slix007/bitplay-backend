@@ -1,5 +1,6 @@
 package com.bitplay.api.dto;
 
+import com.bitplay.api.dto.ob.FundingResultBlock;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,4 +22,5 @@ public class SumBalJson {
     private String cold_storage_btc;
     private String cold_storage_eth;
 
+    private FundingResultBlock fundingResultBlock;
 }

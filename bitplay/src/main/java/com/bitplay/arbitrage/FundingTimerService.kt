@@ -123,14 +123,14 @@ class FundingTimerService(
 
         scheduleNextRunToFuture(paramName, hoursForward)
     }
-//
-//    fun isGreenTimeAll(): Boolean {
-//        val fundingSettings = settingsRepositoryService.settings.fundingSettings
-//        return isGreenTime(futureLff, fundingSettings.leftFf.scbSec)
-//                && isGreenTime(futureLsf, fundingSettings.leftSf.scbSec, true)
-//                && isGreenTime(futureRff, fundingSettings.rightFf.scbSec)
-//                && isGreenTime(futureRsf, fundingSettings.rightSf.scbSec, true)
-//    }
+
+    fun noOneGreen(): Boolean {
+        val fundingSettings = settingsRepositoryService.settings.fundingSettings
+        return !isGreenTime(getSecToRunLff(), fundingSettings.leftFf.scbSec)
+                && !isGreenTime(getSecToRunLsf(), fundingSettings.leftSf.scbSec)
+                && !isGreenTime(getSecToRunRff(), fundingSettings.rightFf.scbSec)
+                && !isGreenTime(getSecToRunRsf(), fundingSettings.rightSf.scbSec)
+    }
 
     fun isGreenTime(paramName: String): Boolean {
         val fundingSettings = settingsRepositoryService.settings.fundingSettings
