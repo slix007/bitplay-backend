@@ -69,8 +69,13 @@ class FundingResultService(
         if (arbitrageService.areBothOkex()) {
             return
         }
+        val settings = settingsRepositoryService.settings
+        if (settings.shouldStopCalculateFundingResult()) {
+            return
+        }
+
         if (fundingTimerService.noOneGreen()
-            || !settingsRepositoryService.settings.fundingSettings.fundingResultEnabled
+            || !settings.fundingSettings.fundingResultEnabled
         ) {
             bFfrateCostPts = BigDecimal.ZERO
             bSfrateCostPts = BigDecimal.ZERO
@@ -113,10 +118,10 @@ class FundingResultService(
         //b_SF_share = (b_SF_SCB - b_SF_TimeLeft) / b_SF_SCB;
         //o_FF_share = (o_FF_SCB - o_FF_TimeLeft) / o_FF_SCB;
         //o_SF_share = (o_SF_SCB - o_SF_TimeLeft) / o_SF_SCB.
-        val b_FF_SCB = settingsRepositoryService.settings.fundingSettings.leftFf.scbSec
-        val b_SF_SCB = settingsRepositoryService.settings.fundingSettings.leftSf.scbSec
-        val o_FF_SCB = settingsRepositoryService.settings.fundingSettings.rightFf.scbSec
-        val o_SF_SCB = settingsRepositoryService.settings.fundingSettings.rightSf.scbSec
+        val b_FF_SCB = settings.fundingSettings.leftFf.scbSec
+        val b_SF_SCB = settings.fundingSettings.leftSf.scbSec
+        val o_FF_SCB = settings.fundingSettings.rightFf.scbSec
+        val o_SF_SCB = settings.fundingSettings.rightSf.scbSec
         val b_FF_TimeLeft = fundingTimerService.getSecToRunLff().toLong()
         val b_SF_TimeLeft = fundingTimerService.getSecToRunLsf().toLong()
         val o_FF_TimeLeft = fundingTimerService.getSecToRunRff().toLong()

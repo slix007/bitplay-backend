@@ -63,11 +63,23 @@ public class BordersService {
     private void addValueFinal(BorderParams borderParams) {
         final BigDecimal fundingResult = fundingResultService.getFundingResult();
         borderParams.getBordersV2().getBorderTableList()
-                .stream()
-                .flatMap(bt -> bt.getBorderItemList().stream())
-                .forEach(borderItem -> borderItem.setValueFinal(
-                        borderItem.getValue().add(fundingResult)
-                ));
+                .forEach(borderTable -> {
+                    BigDecimal addFunding = BigDecimal.ZERO;
+                    if (borderTable.getBorderName().equals("b_br_open")
+                            || borderTable.getBorderName().equals("b_br_close")) {
+                        addFunding = fundingResult.negate();
+                    }
+                    if (borderTable.getBorderName().equals("o_br_open")
+                            || borderTable.getBorderName().equals("o_br_close")) {
+                        addFunding = fundingResult;
+                    }
+                    BigDecimal finalAddFunding = addFunding;
+                    borderTable.getBorderItemList().forEach(borderItem -> {
+                        if (borderItem.getId() != 0) {
+                            borderItem.setValueFinal(borderItem.getValue().add(finalAddFunding));
+                        }
+                    });
+                });
     }
 
     private void adjBorderV2Values(final BorderParams borderParams) {

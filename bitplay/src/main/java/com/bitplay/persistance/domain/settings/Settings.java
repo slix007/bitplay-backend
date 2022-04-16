@@ -217,6 +217,12 @@ public class Settings extends AbstractDocument {
     }
 
     // Volatile mode
+    public Boolean shouldStopCalculateFundingResult() {
+        return tradingModeState != null && settingsVolatileMode != null
+                && tradingModeState.getTradingMode() == TradingMode.VOLATILE
+                && settingsVolatileMode.getActiveFields().contains(Field.stopCalculateFundingResult);
+    }
+
     public PlacingType getLeftPlacingType() {
         return tradingModeState != null && settingsVolatileMode != null
                 && tradingModeState.getTradingMode() == TradingMode.VOLATILE

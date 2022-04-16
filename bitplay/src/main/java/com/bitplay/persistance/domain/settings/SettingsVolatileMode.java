@@ -66,7 +66,9 @@ public class SettingsVolatileMode {
         /*auto params for prem*/
         BCD_prem,
         L_add_border_prem,
-        R_add_border_prem
+        R_add_border_prem,
+
+        stopCalculateFundingResult
     }
 
     public ConBoPortions getConBoPortions(ConBoPortions mainMode) {
