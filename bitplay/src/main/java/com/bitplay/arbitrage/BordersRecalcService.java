@@ -7,14 +7,15 @@ import com.bitplay.persistance.domain.borders.BorderParams;
 import com.bitplay.persistance.domain.borders.BorderTable;
 import com.bitplay.persistance.domain.borders.BordersV2;
 import com.bitplay.persistance.domain.fluent.DeltaName;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 
 /**
  * Created by Sergey Shurmin on 2/14/18.
@@ -156,6 +157,9 @@ public class BordersRecalcService {
                             final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -172,6 +176,9 @@ public class BordersRecalcService {
                             final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -185,6 +192,9 @@ public class BordersRecalcService {
                             final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -201,6 +211,9 @@ public class BordersRecalcService {
                             final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -216,6 +229,9 @@ public class BordersRecalcService {
                             final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -232,6 +248,9 @@ public class BordersRecalcService {
                             final BigDecimal val = ok_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -245,6 +264,9 @@ public class BordersRecalcService {
                             final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));
@@ -261,6 +283,9 @@ public class BordersRecalcService {
                             final BigDecimal val = b_baseVal.add(currStep);
                             items.get(i).setValue(val);
                             items.get(i).setId(i + 1);
+                            if (i + 1 == items.size()) {
+                                items.get(i).setId(0);
+                            }
                         }
                         items.stream().skip(max_lvl)
                                 .forEach(item -> item.setId(0));

@@ -1,69 +1,30 @@
 package com.bitplay.persistance.domain.borders;
 
-import java.io.Serializable;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Transient;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/**
- * Created by Sergey Shurmin on 10/5/17.
- */
-public class BorderItem implements Serializable {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class BorderItem {
 
     private int id;
-    private BigDecimal value;
+    private BigDecimal value;// valueSource
+    @Transient
+    volatile private BigDecimal valueFinal;
     private int posLongLimit;
     private int posShortLimit;
-
-    public BorderItem() {
-    }
 
     public BorderItem(int id, BigDecimal value, int posLongLimit, int posShortLimit) {
         this.id = id;
         this.value = value;
         this.posLongLimit = posLongLimit;
         this.posShortLimit = posShortLimit;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public BigDecimal getValue() {
-        return value;
-    }
-
-    public void setValue(BigDecimal value) {
-        this.value = value;
-    }
-
-    public int getPosLongLimit() {
-        return posLongLimit;
-    }
-
-    public void setPosLongLimit(int posLongLimit) {
-        this.posLongLimit = posLongLimit;
-    }
-
-    public int getPosShortLimit() {
-        return posShortLimit;
-    }
-
-    public void setPosShortLimit(int posShortLimit) {
-        this.posShortLimit = posShortLimit;
-    }
-
-    @Override
-    public String toString() {
-        return "{" +
-                "id=" + id +
-                ",val=" + value +
-                ",pLL=" + posLongLimit +
-                ",pSL=" + posShortLimit +
-                '}';
     }
 
     @Override

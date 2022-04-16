@@ -34,7 +34,7 @@ public class BordersCalcScheduler {
     @Autowired
     private PersistenceService persistenceService;
 
-    private AtomicInteger updateBordersCounter = new AtomicInteger(0);
+    private final AtomicInteger updateBordersCounter = new AtomicInteger(0);
 
     public BordersCalcScheduler() {
         ((ScheduledThreadPoolExecutor) scheduler).setRemoveOnCancelPolicy(true);

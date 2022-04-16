@@ -54,7 +54,7 @@ public class BordersEndpoint {
     @Autowired
     private DeltaMinService deltaMinService;
 
-    @RequestMapping(value = "/", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public BorderParams getBorders() {
         final BorderParams borderParams = bordersService.getBorderParams();
         return BorderUtils.withPlm(borderParams);
