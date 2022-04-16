@@ -160,4 +160,7 @@ class FundingResultService(
 (($bFfrateCostPts*$bFfShare) + ($bSfrateCostPts*$bSfShare) - (($oFfrateCostPts*$oFfShare) + ($oSfrateCostPts*$oSfShare)) = $fundingResult
             """.trimIndent()
         )
+
+    fun getFundingResult() = fundingResult
+
 }

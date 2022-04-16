@@ -29,6 +29,6 @@ public class BorderItem {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, value, posLongLimit, posShortLimit);
+        return Objects.hash(id, value, valueFinal, posLongLimit, posShortLimit);
     }
 }

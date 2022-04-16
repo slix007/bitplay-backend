@@ -3,6 +3,7 @@ package com.bitplay.arbitrage;
 import com.bitplay.arbitrage.dto.PlBlocks;
 import com.bitplay.market.model.Affordable;
 import com.bitplay.market.model.BtmFokAutoArgs;
+import com.bitplay.model.Pos;
 import com.bitplay.persistance.PersistenceService;
 import com.bitplay.persistance.domain.borders.BorderItem;
 import com.bitplay.persistance.domain.borders.BorderParams;
@@ -14,7 +15,6 @@ import com.bitplay.persistance.domain.settings.PlacingBlocks;
 import com.bitplay.persistance.domain.settings.PlacingBlocks.Ver;
 import com.bitplay.persistance.domain.settings.Settings;
 import com.bitplay.persistance.domain.settings.TradingMode;
-import com.bitplay.model.Pos;
 import com.bitplay.settings.SettingsPremService;
 import com.bitplay.xchange.dto.marketdata.OrderBook;
 import lombok.AllArgsConstructor;
@@ -25,12 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Created by Sergey Shurmin on 10/11/17.
@@ -53,17 +48,26 @@ public class BordersService {
     @Autowired
     private ArbitrageService arbitrageService;
 
+    @Autowired
+    private FundingResultService fundingResultService;
+
     private volatile static PosMode theMode = BorderParams.PosMode.RIGHT_MODE;
 
     public BorderParams getBorderParams() {
         final BorderParams borderParams = persistenceService.fetchBorders();
         adjBorderV2Values(borderParams);
+        addValueFinal(borderParams);
         return borderParams;
     }
 
-    public List<BorderTable> getBorderTableList(BorderParams borderParams) {
-        adjBorderV2Values(borderParams);
-        return borderParams.getBordersV2().getBorderTableList();
+    private void addValueFinal(BorderParams borderParams) {
+        final BigDecimal fundingResult = fundingResultService.getFundingResult();
+        borderParams.getBordersV2().getBorderTableList()
+                .stream()
+                .flatMap(bt -> bt.getBorderItemList().stream())
+                .forEach(borderItem -> borderItem.setValueFinal(
+                        borderItem.getValue().add(fundingResult)
+                ));
     }
 
     private void adjBorderV2Values(final BorderParams borderParams) {
@@ -164,8 +168,8 @@ public class BordersService {
     }
 
     TradingSignal checkBordersForTests(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, BigDecimal bP,
-            BigDecimal oPL,
-            BigDecimal oPS) {
+                                       BigDecimal oPL,
+                                       BigDecimal oPS) {
         final Affordable firstAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Affordable secondAffordable = new Affordable(BigDecimal.valueOf(10000), BigDecimal.valueOf(10000));
         final Pos leftPos = Pos.posForTests(bP);
@@ -173,7 +177,7 @@ public class BordersService {
     }
 
     public TradingSignal checkBorders(OrderBook bitmexOrderBook, OrderBook okexOrderBook, BigDecimal b_delta, BigDecimal o_delta, Pos leftPos, BigDecimal oPL,
-            BigDecimal oPS, boolean withLogs, Affordable bitmexAffordable, Affordable okexAffordable) {
+                                      BigDecimal oPS, boolean withLogs, Affordable bitmexAffordable, Affordable okexAffordable) {
         final PlacingBlocks placingBlocks = persistenceService.getSettingsRepositoryService().getSettings().getPlacingBlocks();
         BigDecimal cm = placingBlocks.getCm();
 
@@ -431,7 +435,7 @@ public class BordersService {
 
     @SuppressWarnings("Duplicates")
     private TradingSignal bDeltaBorderClose(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
-            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
+                                            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
         // Bitmex border close - input data
         final String borderName = "b_br_close";
         final Optional<BorderTable> b_br_close = bordersV2.getBorderTableByName(borderName);
@@ -455,7 +459,7 @@ public class BordersService {
         }
 
         if (pos != 0) {
-            for (int i = btm_br_close_cnt - 1; i >= 0 ; i--) {
+            for (int i = btm_br_close_cnt - 1; i >= 0; i--) {
                 BorderItem borderItem = btm_br_close.get(i);
                 if (borderItem.getId() != 0) {
                     if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
@@ -569,7 +573,7 @@ public class BordersService {
 
     @SuppressWarnings("Duplicates")
     private TradingSignal bDeltaBorderOpen(BigDecimal b_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
-            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
+                                           OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
         // Bitmex border open - input data
         final String borderName = "b_br_open";
         final Optional<BorderTable> b_br_open = bordersV2.getBorderTableByName(borderName);
@@ -735,7 +739,7 @@ public class BordersService {
 
     @SuppressWarnings("Duplicates")
     private TradingSignal oDeltaBorderClose(BigDecimal o_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
-            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
+                                            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
         // Okex border close - input data
         final String borderName = "o_br_close";
         final Optional<BorderTable> o_br_close = bordersV2.getBorderTableByName(borderName);
@@ -760,7 +764,7 @@ public class BordersService {
         }
 
         if (pos != 0) {
-            for (int i = ok_br_close_cnt - 1; i >= 0 ; i--) {
+            for (int i = ok_br_close_cnt - 1; i >= 0; i--) {
                 BorderItem borderItem = ok_br_close.get(i);
                 if (borderItem.getId() != 0) {
                     if (o_delta.compareTo(borderItem.getValue()) >= 0) {
@@ -867,7 +871,7 @@ public class BordersService {
 
     @SuppressWarnings("Duplicates")
     private TradingSignal oDeltaBorderOpen(BigDecimal o_delta, int block, int pos, BordersV2 bordersV2, PlacingBlocks placingBlocks, OrderBook bitmexOrderBook,
-            OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
+                                           OrderBook okexOrderBook, boolean withLogs, BigDecimal cm, BigDecimal affordable) {
         // Okex border open - input data
         final String borderName = "o_br_open";
         final Optional<BorderTable> o_br_open = bordersV2.getBorderTableByName(borderName);
@@ -1061,14 +1065,14 @@ public class BordersService {
         final public String blockOnceWarn;
 
         public static TradingSignal createOnBorderV1(PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType, BigDecimal deltaVal,
-                BigDecimal borderValueV1) {
+                                                     BigDecimal borderValueV1) {
             return new TradingSignal(ver, b_block, o_block, tradeType,
                     deltaVal.toPlainString(), borderValueV1);
         }
 
         // borderV1
         private TradingSignal(PlacingBlocks.Ver ver, BigDecimal b_block, BigDecimal o_block, TradeType tradeType, String deltaVal,
-                BigDecimal borderValueV1) {
+                              BigDecimal borderValueV1) {
             this.borderVer = BorderVer.borderV1;
             this.bitmexBlock = b_block.intValue();
             this.okexBlock = o_block.intValue();
@@ -1085,8 +1089,8 @@ public class BordersService {
 
         @SuppressWarnings("Duplicates")
         TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList,
-                String deltaVal,
-                Ver ver, BigDecimal cm, String blockOnceWarn) {
+                      String deltaVal,
+                      Ver ver, BigDecimal cm, String blockOnceWarn) {
             this.tradeType = tradeType;
             if (theMode == BorderParams.PosMode.LEFT_MODE) { // usdInContract = 1; => min block is cm
                 bitmexBlock = block;
@@ -1108,8 +1112,8 @@ public class BordersService {
 
         @SuppressWarnings("Duplicates")
         TradingSignal(TradeType tradeType, int block, String borderName, String borderValue, List<BigDecimal> borderValueList,
-                String deltaVal,
-                Ver ver, PosMode theMode, BigDecimal cm) {
+                      String deltaVal,
+                      Ver ver, PosMode theMode, BigDecimal cm) {
             this.tradeType = tradeType;
             if (theMode == BorderParams.PosMode.LEFT_MODE) { // usdInContract = 1; => min block is cm
                 bitmexBlock = block;
@@ -1131,9 +1135,9 @@ public class BordersService {
 
         @SuppressWarnings("Duplicates")
         private TradingSignal(TradeType tradeType, int bitmexBlock, int okexBlock, Ver ver,
-                PosMode posMode, String borderName, String borderValue, List<BigDecimal> borderValueList,
-                String deltaVal, BigDecimal cm,
-                BorderVer borderVer, String blockOnceWarn) {
+                              PosMode posMode, String borderName, String borderValue, List<BigDecimal> borderValueList,
+                              String deltaVal, BigDecimal cm,
+                              BorderVer borderVer, String blockOnceWarn) {
             this.tradeType = tradeType;
             this.bitmexBlock = bitmexBlock;
             this.okexBlock = okexBlock;
