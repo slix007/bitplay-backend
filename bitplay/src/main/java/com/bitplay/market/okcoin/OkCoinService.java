@@ -743,7 +743,7 @@ public class OkCoinService extends MarketServicePreliq {
                 BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP
         )).negate();
 
-        final BigDecimal costXXX = costUsd.divide(avgPrice, 8, RoundingMode.HALF_UP);
+        final BigDecimal costXXX = BigDecimal.ZERO;//costUsd.divide(avgPrice, 8, RoundingMode.HALF_UP);
 
         return new OkexFunding.Block(fRate, costXXX, costUsd, costPts);
     }
