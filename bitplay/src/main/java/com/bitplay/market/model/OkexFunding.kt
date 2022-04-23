@@ -23,10 +23,10 @@ data class OkexFunding(
     ) {
         fun toFundingRateBordersBlock(timer:  FundingRateBordersBlock.Timer) =
             FundingRateBordersBlock.Block(
-                this.rate?.setScale(8, RoundingMode.HALF_UP)?.toPlainString() ?: "",
-                this.costBtc?.setScale(8, RoundingMode.HALF_UP)?.toPlainString() ?: "",
-                this.costUsd?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: "",
-                this.costPts?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: "",
+                this.rate?.toPlainString() ?: "",
+                this.costBtc?.toPlainString() ?: "",
+                this.costUsd?.toPlainString() ?: "",
+                this.costPts?.toPlainString() ?: "",
                 timer
             )
     }

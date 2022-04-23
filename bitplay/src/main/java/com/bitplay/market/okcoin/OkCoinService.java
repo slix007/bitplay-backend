@@ -680,8 +680,14 @@ public class OkCoinService extends MarketServicePreliq {
             }
             swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
 
-            okexFunding.setFf(calcFundingRateBlock(swapSettlement.getFundingRate().multiply(BigDecimal.valueOf(100))));
-            okexFunding.setSf(calcFundingRateBlock(swapSettlement.getEstimatedRate().multiply(BigDecimal.valueOf(100))));
+            final BigDecimal ffRate = swapSettlement.getFundingRate()
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(8, RoundingMode.HALF_UP);
+            okexFunding.setFf(calcFundingRateBlock(ffRate));
+            final BigDecimal sfRate = swapSettlement.getEstimatedRate()
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(8, RoundingMode.HALF_UP);
+            okexFunding.setSf(calcFundingRateBlock(sfRate));
             arbitrageService.getFundingResultService().runCalc();
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().endsWith("timeout")) {
@@ -733,11 +739,11 @@ public class OkCoinService extends MarketServicePreliq {
         final BigDecimal avgPrice = (Utils.getBestBid(ob).getLimitPrice()
                 .add(Utils.getBestAsk(ob).getLimitPrice())).divide(BigDecimal.valueOf(2), 8, RoundingMode.HALF_UP);
         final BigDecimal costPts = fRate.multiply(avgPrice).divide(BigDecimal.valueOf(100), scale, RoundingMode.HALF_UP);
-        final BigDecimal costUsd = fRate.multiply(posVal).multiply(getSCV()).divide(
+        final BigDecimal costUsd = (fRate.multiply(posVal).multiply(getSCV()).divide(
                 BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP
-        );
+        )).negate();
 
-        final BigDecimal costXXX = costUsd.divide(avgPrice, 2, RoundingMode.HALF_UP);
+        final BigDecimal costXXX = costUsd.divide(avgPrice, 8, RoundingMode.HALF_UP);
 
         return new OkexFunding.Block(fRate, costXXX, costUsd, costPts);
     }

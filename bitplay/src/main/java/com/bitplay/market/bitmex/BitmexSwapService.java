@@ -470,7 +470,7 @@ public class BitmexSwapService {
             final BigDecimal bid1 = Utils.getBestBid(ob).getLimitPrice();
             final BigDecimal ask1 = Utils.getBestAsk(ob).getLimitPrice();
             this.bitmexFunding.setFundingCostPts(calcFundingCostPts(fRate, bid1, ask1));
-                this.bitmexFunding.setSfCostPts(calcFundingCostPts(sfRate, bid1, ask1));
+            this.bitmexFunding.setSfCostPts(calcFundingCostPts(sfRate, bid1, ask1));
         } else {
             bitmexFunding.setSignalType(SignalType.SWAP_NONE);
         }
