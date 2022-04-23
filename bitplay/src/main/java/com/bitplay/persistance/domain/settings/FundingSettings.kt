@@ -73,7 +73,16 @@ data class FundingSettings(
                         println("can not parse time $update")
                     }
                 }
-                scbSec = update.scbSec ?: scbSec
+                update.scbString?.let { scbStr: String ->
+                    try {
+                        val parsed = LocalTime.parse(scbStr)
+                        if (parsed != null) {
+                            scbSec = parsed.toSecondOfDay().toLong()
+                        }
+                    } catch (e: Exception) {
+                        println("can not parse scbString $update")
+                    }
+                }
             }
         } else {
             update.fundingResultEnabled?.let {
@@ -91,6 +100,7 @@ data class FundingSettingsUpdate(
     var fundingResultEnabled: Boolean? = null,
     var paramName: String? = null,
     var time: String? = null,
-    var scbSec: Long? = null
+    var scbSec: Long? = null, //not in use
+    var scbString: String? = null,
 )
 
