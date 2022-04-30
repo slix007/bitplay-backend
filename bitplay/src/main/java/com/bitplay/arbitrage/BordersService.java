@@ -328,7 +328,7 @@ public class BordersService {
                                 int diff = pos - posLongLimit;
                                 if (diff < minBorderDiff) {
                                     minBorderDiff = diff;
-                                    btmMinBorder = borderItem.getValue();
+                                    btmMinBorder = borderItem.getValueFinal();
                                 }
                             } else {
                                 break;
@@ -340,7 +340,7 @@ public class BordersService {
                                 int diff = (-pos) - posShortLimit;
                                 if (diff < minBorderDiff) {
                                     minBorderDiff = diff;
-                                    btmMinBorder = borderItem.getValue();
+                                    btmMinBorder = borderItem.getValueFinal();
                                 }
                             } else {
                                 break;
@@ -362,14 +362,14 @@ public class BordersService {
                     if (theMode == BorderParams.PosMode.RIGHT_MODE) {
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                         if (pos >= 0 && pos < posLongLimit) {
-                            btmMinBorder = borderItem.getValue();
+                            btmMinBorder = borderItem.getValueFinal();
                             break;
                         }
                     }
                     if (theMode == BorderParams.PosMode.LEFT_MODE) {
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
                         if (pos <= 0 && -pos < posShortLimit) {
-                            btmMinBorder = borderItem.getValue();
+                            btmMinBorder = borderItem.getValueFinal();
                             break;
                         }
                     }
@@ -393,7 +393,7 @@ public class BordersService {
                                 int diff = pos - posLongLimit;
                                 if (diff < minBorderDiff) {
                                     minBorderDiff = diff;
-                                    okMinBorder = borderItem.getValue();
+                                    okMinBorder = borderItem.getValueFinal();
                                 }
                             } else {
                                 break;
@@ -405,7 +405,7 @@ public class BordersService {
                                 int diff = (-pos) - posShortLimit;
                                 if (diff < minBorderDiff) {
                                     minBorderDiff = diff;
-                                    okMinBorder = borderItem.getValue();
+                                    okMinBorder = borderItem.getValueFinal();
                                 }
                             } else {
                                 break;
@@ -427,14 +427,14 @@ public class BordersService {
                     if (theMode == BorderParams.PosMode.LEFT_MODE) {
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                         if (pos >= 0 && pos < posLongLimit) {
-                            okMinBorder = borderItem.getValue();
+                            okMinBorder = borderItem.getValueFinal();
                             break;
                         }
                     }
                     if (theMode == BorderParams.PosMode.RIGHT_MODE) {
                         int posShortLimit = usdToCont(borderItem.getPosShortLimit());
                         if (pos <= 0 && -pos < posShortLimit) {
-                            okMinBorder = borderItem.getValue();
+                            okMinBorder = borderItem.getValueFinal();
                             break;
                         }
                     }
@@ -474,7 +474,7 @@ public class BordersService {
             for (int i = btm_br_close_cnt - 1; i >= 0; i--) {
                 BorderItem borderItem = btm_br_close.get(i);
                 if (borderItem.getId() != 0) {
-                    if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
+                    if (b_delta.compareTo(borderItem.getValueFinal()) >= 0) { // >=
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                         if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.LEFT_MODE) {
 
@@ -490,7 +490,7 @@ public class BordersService {
                                     b = block;
                                 }
                             } else { //DYNAMIC
-                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                             }
                             m = pos - posLongLimit;
                             if (m > btm_lvl_max_limit) {
@@ -505,7 +505,7 @@ public class BordersService {
                             if (btm_br_close_calc_block == 0) {
                                 break;
                             }
-                            borderValueList.add(borderItem.getValue());
+                            borderValueList.add(borderItem.getValueFinal());
                             borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b)
@@ -532,7 +532,7 @@ public class BordersService {
                                     b = block;
                                 }
                             } else { //DYNAMIC
-                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                                b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                             }
                             m = -pos - posShortLimit;
                             if (m > btm_lvl_max_limit) {
@@ -547,7 +547,7 @@ public class BordersService {
                             if (btm_br_close_calc_block == 0) {
                                 break;
                             }
-                            borderValueList.add(borderItem.getValue());
+                            borderValueList.add(borderItem.getValueFinal());
                             borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b)
@@ -612,7 +612,7 @@ public class BordersService {
             BorderItem borderItem = btm_br_open.get(i);
             if (borderItem.getId() != 0) {
 
-                if (b_delta.compareTo(borderItem.getValue()) >= 0) { // >=
+                if (b_delta.compareTo(borderItem.getValueFinal()) >= 0) { // >=
 
                     int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                     if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.RIGHT_MODE) {
@@ -629,7 +629,7 @@ public class BordersService {
                             }
                         } else { // DYNAMIC {
                             // рассчитанное значение динамического шага для соответствующего барьера в таблице
-                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                         }
 
                         m = posLongLimit - pos;
@@ -645,7 +645,7 @@ public class BordersService {
                         if (btm_br_open_calc_block == 0) {
                             break;
                         }
-                        borderValueList.add(borderItem.getValue());
+                        borderValueList.add(borderItem.getValueFinal());
                         borderValue.append(";").append(borderItem.toString())
                                 .append(",m=").append(m)
                                 .append(",b=").append(b)
@@ -672,7 +672,7 @@ public class BordersService {
                                 b = block;
                             }
                         } else { //DYNAMIC
-                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                            b = funcDynBlockByBDelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                         }
                         m = posShortLimit + pos;
                         if (m > btm_lvl_max_limit) {
@@ -687,7 +687,7 @@ public class BordersService {
                         if (btm_br_open_calc_block == 0) {
                             break;
                         }
-                        borderValueList.add(borderItem.getValue());
+                        borderValueList.add(borderItem.getValueFinal());
                         borderValue.append(";").append(borderItem.toString())
                                 .append(",m=").append(m)
                                 .append(",b=").append(b)
@@ -779,7 +779,7 @@ public class BordersService {
             for (int i = ok_br_close_cnt - 1; i >= 0; i--) {
                 BorderItem borderItem = ok_br_close.get(i);
                 if (borderItem.getId() != 0) {
-                    if (o_delta.compareTo(borderItem.getValue()) >= 0) {
+                    if (o_delta.compareTo(borderItem.getValueFinal()) >= 0) {
 
                         int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                         if (pos > 0 && pos > posLongLimit && theMode == BorderParams.PosMode.RIGHT_MODE) {
@@ -795,7 +795,7 @@ public class BordersService {
                                     b = block;
                                 }
                             } else { // DYNAMIC
-                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                             }
                             m = pos - posLongLimit;
                             if (m > ok_lvl_max_limit) {
@@ -810,7 +810,7 @@ public class BordersService {
                             if (ok_br_close_calc_block == 0) {
                                 break;
                             }
-                            borderValueList.add(borderItem.getValue());
+                            borderValueList.add(borderItem.getValueFinal());
                             borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b)
@@ -837,7 +837,7 @@ public class BordersService {
                                     b = block;
                                 }
                             } else { // DYNAMIC
-                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                                b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                             }
                             m = -pos - posShortLimit;
                             if (m > ok_lvl_max_limit) {
@@ -852,7 +852,7 @@ public class BordersService {
                             if (ok_br_close_calc_block == 0) {
                                 break;
                             }
-                            borderValueList.add(borderItem.getValue());
+                            borderValueList.add(borderItem.getValueFinal());
                             borderValue.append(";").append(borderItem.toString())
                                     .append(",m=").append(m)
                                     .append(",b=").append(b)
@@ -911,7 +911,7 @@ public class BordersService {
         for (int i = 0; i < ok_br_open_cnt; i++) {
             BorderItem borderItem = ok_br_open.get(i);
             if (borderItem.getId() != 0) {
-                if (o_delta.compareTo(borderItem.getValue()) >= 0) {
+                if (o_delta.compareTo(borderItem.getValueFinal()) >= 0) {
 
                     int posLongLimit = usdToCont(borderItem.getPosLongLimit());
                     if (pos >= 0 && pos < posLongLimit && theMode == BorderParams.PosMode.LEFT_MODE) {
@@ -927,7 +927,7 @@ public class BordersService {
                                 b = block;
                             }
                         } else { // DYNAMIC
-                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                             //b = Math.min(b, block);
                         }
                         m = posLongLimit - pos;
@@ -943,7 +943,7 @@ public class BordersService {
                         if (ok_br_open_calc_block == 0) {
                             break;
                         }
-                        borderValueList.add(borderItem.getValue());
+                        borderValueList.add(borderItem.getValueFinal());
                         borderValue.append(";").append(borderItem.toString())
                                 .append(",m=").append(m)
                                 .append(",b=").append(b)
@@ -970,7 +970,7 @@ public class BordersService {
                                 b = block;
                             }
                         } else { // DYNAMIC
-                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValue(), cm);
+                            b = funcDynBlockByODelta(bitmexOrderBook, okexOrderBook, borderItem.getValueFinal(), cm);
                         }
                         m = posShortLimit + pos;
                         if (m > ok_lvl_max_limit) {
@@ -985,7 +985,7 @@ public class BordersService {
                         if (ok_br_open_calc_block == 0) {
                             break;
                         }
-                        borderValueList.add(borderItem.getValue());
+                        borderValueList.add(borderItem.getValueFinal());
                         borderValue.append(";").append(borderItem.toString())
                                 .append(",m=").append(m)
                                 .append(",b=").append(b)

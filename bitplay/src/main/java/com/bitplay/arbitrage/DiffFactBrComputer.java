@@ -130,7 +130,7 @@ public class DiffFactBrComputer {
         int bottomEdge = pos_bo_abs;
 
         for (int i = 0; i < br_open.size(); i++) {
-            BigDecimal valueI = br_open.get(i).getValue();
+            BigDecimal valueI = br_open.get(i).getValueFinal();
             if (vol_filled >= vol_fact) {
                 break;
             }
@@ -174,7 +174,7 @@ public class DiffFactBrComputer {
                 continue;
             }
 
-            BigDecimal valueI = br_close.get(i).getValue();
+            BigDecimal valueI = br_close.get(i).getValueFinal();
 
             int nextIndex = i + 1;
             BorderItem nextItem = br_close.get(i); // currItem

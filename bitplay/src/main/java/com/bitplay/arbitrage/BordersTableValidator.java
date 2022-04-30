@@ -54,9 +54,9 @@ class BordersTableValidator {
             for (int i = 0; i < k - 1; i++) {
                 BorderItem item = borderItemList.get(i);
                 BorderItem itemNext = borderItemList.get(i + 1);
-                if (itemNext != null && itemNext.getValue() != null) {
-                    if ((!isOpenTable && item.getValue().compareTo(itemNext.getValue()) < 0)
-                            || (isOpenTable && item.getValue().compareTo(itemNext.getValue()) > 0)) {
+                if (itemNext != null && itemNext.getValueFinal() != null) {
+                    if ((!isOpenTable && item.getValueFinal().compareTo(itemNext.getValueFinal()) < 0)
+                            || (isOpenTable && item.getValueFinal().compareTo(itemNext.getValueFinal()) > 0)) {
                         err_cnt++;
                         err_sb.append(String.format("\n - Error check_br_table: %s.value order.", borderTable.getBorderName()));
                     }
