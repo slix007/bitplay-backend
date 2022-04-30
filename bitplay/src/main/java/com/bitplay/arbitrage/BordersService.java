@@ -75,7 +75,7 @@ public class BordersService {
                     }
                     BigDecimal finalAddFunding = addFunding;
                     borderTable.getBorderItemList().forEach(borderItem -> {
-                        if (borderItem.getId() != 0) {
+                        if (borderItem.getId() != 0 && borderItem.getValue() != null) {
                             borderItem.setValueFinal(borderItem.getValue().add(finalAddFunding));
                         }
                     });

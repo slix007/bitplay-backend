@@ -132,17 +132,41 @@ class FundingResultService(
         val o_SF_share = BigDecimal(o_SF_SCB - o_SF_TimeLeft).divide(BigDecimal(o_SF_SCB), scale, RoundingMode.HALF_UP)
 
 
+//        var b_FFrate_cost_pts1: BigDecimal = BigDecimal.ZERO
+//        var b_SFrate_cost_pts1: BigDecimal = BigDecimal.ZERO
+//        var o_FFrate_cost_pts1: BigDecimal = BigDecimal.ZERO
+//        var o_SFrate_cost_pts1: BigDecimal = BigDecimal.ZERO
+        var b_FF_share1: BigDecimal = BigDecimal.ZERO
+        var b_SF_share1: BigDecimal = BigDecimal.ZERO
+        var o_FF_share1: BigDecimal = BigDecimal.ZERO
+        var o_SF_share1: BigDecimal = BigDecimal.ZERO
+        if (fundingTimerService.isGreenTime("leftFf")) {
+//            b_FFrate_cost_pts1 = b_FFrate_cost_pts
+            b_FF_share1 = b_FF_share
+        }
+        if (fundingTimerService.isGreenTime("leftSf")) {
+//            b_SFrate_cost_pts1 = b_SFrate_cost_pts
+            b_SF_share1 = b_SF_share
+        }
+        if (fundingTimerService.isGreenTime("rightFf")) {
+//            o_FFrate_cost_pts1 = o_FFrate_cost_pts
+            o_FF_share1 = o_FF_share
+        }
+        if (fundingTimerService.isGreenTime("rightSf")) {
+//            o_SFrate_cost_pts1 = o_SFrate_cost_pts
+            o_SF_share1 = o_SF_share
+        }
         // pts = ((b_FFrate_cost_pts * b_FF_share)
         // *      + (b_SFrate_cost_pts * b_SF_share))
         // *      - ((o_FFrate_cost_pts * o_FF_share)
         // *      + (o_SFrate_cost_pts * o_SF_share))
-        val pts = ((b_FFrate_cost_pts.multiply(b_FF_share))
+        val pts = ((b_FFrate_cost_pts.multiply(b_FF_share1))
             .add(
-                (b_SFrate_cost_pts.multiply(b_SF_share)
+                (b_SFrate_cost_pts.multiply(b_SF_share1)
                         ).subtract(
-                        o_FFrate_cost_pts.multiply(o_FF_share)
+                        o_FFrate_cost_pts.multiply(o_FF_share1)
                             .add(
-                                o_SFrate_cost_pts.multiply(o_SF_share)
+                                o_SFrate_cost_pts.multiply(o_SF_share1)
                             )
                     )
             ))
@@ -151,10 +175,10 @@ class FundingResultService(
         bSfrateCostPts = b_SFrate_cost_pts
         oFfrateCostPts = o_FFrate_cost_pts
         oSfrateCostPts = o_SFrate_cost_pts
-        bFfShare = b_FF_share
-        bSfShare = b_SF_share
-        oFfShare = o_FF_share
-        oSfShare = o_SF_share
+        bFfShare = b_FF_share1
+        bSfShare = b_SF_share1
+        oFfShare = o_FF_share1
+        oSfShare = o_SF_share1
         fundingResult = pts.setScale(scale, RoundingMode.HALF_UP)
     }
 
