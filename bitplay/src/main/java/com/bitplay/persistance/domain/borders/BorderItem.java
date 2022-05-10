@@ -15,7 +15,9 @@ public class BorderItem {
 
     private int id;
     private BigDecimal value;// valueSource
-    @Transient
+//
+    //NOTE: is not @Transient because we save it in DB for AfterArbTask.
+    // It is overwritten each time we get values.
     volatile private BigDecimal valueFinal;
     private int posLongLimit;
     private int posShortLimit;
