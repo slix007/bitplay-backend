@@ -62,7 +62,7 @@ class FundingTimerService(
         }
     }
 
-    fun scheduleNextRun(paramName: String, hoursForward: Int): ScheduledFuture<*> {
+    private fun scheduleNextRun(paramName: String, hoursForward: Int): ScheduledFuture<*> {
         val nextRunTime: LocalTime = settingsRepositoryService.settings
             .fundingSettings.getByParamName(paramName).getFundingTimeReal()
 
