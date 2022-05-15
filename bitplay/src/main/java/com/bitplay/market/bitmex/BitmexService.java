@@ -303,6 +303,11 @@ public class BitmexService extends MarketServicePreliq {
     }
 
     @Override
+    public boolean isSwap() {
+        return bitmexContractType != null && bitmexContractType.isSwap();
+    }
+
+    @Override
     public SlackNotifications getSlackNotifications() {
         return slackNotifications;
     }

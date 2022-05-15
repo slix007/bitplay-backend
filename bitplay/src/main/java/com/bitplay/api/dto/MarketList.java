@@ -14,4 +14,6 @@ public class MarketList {
     String leftFutureContractName;
     String rightFutureContractName;
     boolean isEth;
+    boolean isLeftSwap;
+    boolean isRightSwap;
 }

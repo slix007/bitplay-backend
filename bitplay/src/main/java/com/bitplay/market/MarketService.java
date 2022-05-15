@@ -367,6 +367,8 @@ public abstract class MarketService extends MarketServiceWithState {
                 }, throwable -> log.error("On event handling", throwable));
     }
 
+    public abstract boolean isSwap();
+
     public void setBusy(String counterName, MarketState stateToSet) {
         if (isMarketStopped()) {
             return;

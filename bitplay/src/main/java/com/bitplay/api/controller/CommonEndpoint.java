@@ -65,16 +65,20 @@ public class CommonEndpoint {
         String secondName = "";
         String secondFuturesContract = "";
         boolean isEth = false;
+        boolean isLeftSwap = false;
+        boolean isRightSwap = false;
         try {
             firstName = first != null ? first.getName() : null;
             firstFuturesContractName = first != null ? first.getFuturesContractName() : null;
             secondName = second != null ? second.getName() : null;
             secondFuturesContract = second != null ? second.getFuturesContractName() : null;
             isEth = first != null && first.getContractType().isQuanto();
+            isLeftSwap = first != null && first.isSwap();
+            isRightSwap = second != null && second.isSwap();
         } catch (Exception e) {
             log.error("Markets are not initialized. " + e.getMessage());
         }
-        return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract, isEth);
+        return new MarketList(firstName, secondName, firstFuturesContractName, secondFuturesContract, isEth, isLeftSwap, isRightSwap);
     }
 
     @RequestMapping(value = "/market/deltas", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)

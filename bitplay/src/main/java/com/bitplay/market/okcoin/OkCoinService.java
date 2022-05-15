@@ -666,6 +666,13 @@ public class OkCoinService extends MarketServicePreliq {
         Utils.logIfLong(start, end, log, "fetchEstimatedDeliveryPrice");
     }
 
+    @Override
+    public boolean isSwap() {
+        return instrDtos != null
+                && !instrDtos.isEmpty()
+                && instrDtos.get(0).getFuturesContract() == FuturesContract.Swap;
+    }
+
     @Scheduled(fixedDelay = 200) // Request frequency 20 times/2s
     public void fetchSwapSettlement() {
         if (!isStarted()) {
@@ -674,11 +681,12 @@ public class OkCoinService extends MarketServicePreliq {
 
         Instant start = Instant.now();
         try {
-            final InstrumentDto instrumentDto = instrDtos.get(0);
-            if (instrumentDto.getFuturesContract() != FuturesContract.Swap) {
-                return; // not in use for futures
+            if (!isSwap()) {
+                okexFunding.setFf(new OkexFunding.Block(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                okexFunding.setSf(new OkexFunding.Block(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                return; // not in use for futures or LEFT
             }
-            swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrumentDto.getInstrumentId());
+            swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrDtos.get(0).getInstrumentId());
 
             final BigDecimal ffRate = swapSettlement.getFundingRate()
                     .multiply(BigDecimal.valueOf(100))
@@ -707,6 +715,13 @@ public class OkCoinService extends MarketServicePreliq {
     public FundingRateBordersBlock getFundingRateBordersBlock() {
         final FundingSettings fs = settingsRepositoryService.getSettings().getFundingSettings();
         final FundingTimerService fts = getArbitrageService().getFundingTimerService();
+        if (!isSwap()) {
+            return okexFunding.toFundingRateBordersBlock(
+                    new FundingRateBordersBlock.Timer("00:00:00", "0", false),
+                    new FundingRateBordersBlock.Timer("00:00:00", "0", false)
+            );
+        }
+
         return okexFunding.toFundingRateBordersBlock(
                 new FundingRateBordersBlock.Timer(
                         fs.getRightFf().getFundingTimeUi(false),

@@ -66,9 +66,10 @@ class FundingResultService(
     }
 
     private fun calc() {
-        if (arbitrageService.areBothOkex()) {
-            return
-        }
+        //TODO
+//        if (arbitrageService.areBothOkex()) {
+//            return
+//        }
         val settings = settingsRepositoryService.settings
         if (settings.shouldStopCalculateFundingResult()) {
             return

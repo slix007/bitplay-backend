@@ -43,10 +43,12 @@ class FundingTimerService(
 
     @EventListener(ArbitrageReadyEnableFundingEvent::class)
     fun init() {
-        if (!arbitrageService.areBothOkex()) {
-            executor = SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
+        executor = SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
+        if (arbitrageService.leftMarketService.isSwap) {
             scheduleNextRunToFuture("leftFf", 8)
             scheduleNextRunToFuture("leftSf", 8)
+        }
+        if (arbitrageService.rightMarketService.isSwap) {
             scheduleNextRunToFuture("rightFf", 8)
             scheduleNextRunToFuture("rightSf", 8)
         }
@@ -165,5 +167,8 @@ class FundingTimerService(
         executor.shutdown()
         init()
     }
+
+    fun isLeftActive() = futureLff != null && futureLsf != null
+    fun isRightActive() = futureRff != null && futureRsf != null
 
 }

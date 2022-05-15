@@ -148,4 +148,8 @@ public enum BitmexContractType implements ContractType {
     public BigDecimal getBm() {
         return bm;
     }
+
+    public boolean isSwap() {
+        return name().endsWith("Perpetual");
+    }
 }
