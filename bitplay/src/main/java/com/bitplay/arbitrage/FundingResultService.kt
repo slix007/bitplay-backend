@@ -66,10 +66,6 @@ class FundingResultService(
     }
 
     private fun calc() {
-        //TODO
-//        if (arbitrageService.areBothOkex()) {
-//            return
-//        }
         val settings = settingsRepositoryService.settings
         if (settings.shouldStopCalculateFundingResult()) {
             return
@@ -89,14 +85,25 @@ class FundingResultService(
             fundingResult = BigDecimal.ZERO
             return
         }
-        val bitmex = arbitrageService.leftMarketService as BitmexService
-        val scale = BitmexContractTypeEx.getFundingScale(bitmex.bitmexContractTypeEx.currencyPair.base.currencyCode)
-        val bitmexFunding = bitmex.bitmexSwapService.bitmexFunding
-        val b_FFrate_cost_pts = bitmexFunding.fundingCostPts
-        val b_SFrate_cost_pts = bitmexFunding.sfCostPts
-        val okex = arbitrageService.rightMarketService as OkCoinService
-        val o_FFrate_cost_pts = okex.okexFunding.ff.costPts
-        val o_SFrate_cost_pts = okex.okexFunding.sf.costPts
+
+        val scale = BitmexContractTypeEx.getFundingScale(
+            arbitrageService.leftMarketService.currencyPair.base.currencyCode
+        )
+        var b_FFrate_cost_pts: BigDecimal? = BigDecimal.ZERO
+        var b_SFrate_cost_pts: BigDecimal? = BigDecimal.ZERO
+        var o_FFrate_cost_pts: BigDecimal? = BigDecimal.ZERO
+        var o_SFrate_cost_pts: BigDecimal? = BigDecimal.ZERO
+        if (arbitrageService.leftMarketService.isSwap) { // only Bitmex has Swap for LEFT
+            val bitmex = arbitrageService.leftMarketService as BitmexService
+            val bitmexFunding = bitmex.bitmexSwapService.bitmexFunding
+            b_FFrate_cost_pts = bitmexFunding.fundingCostPts
+            b_SFrate_cost_pts = bitmexFunding.sfCostPts
+        }
+        if (arbitrageService.rightMarketService.isSwap) {
+            val okex = arbitrageService.rightMarketService as OkCoinService
+            o_FFrate_cost_pts = okex.okexFunding.ff.costPts
+            o_SFrate_cost_pts = okex.okexFunding.sf.costPts
+        }
 
         if (b_FFrate_cost_pts == null
             || b_SFrate_cost_pts == null
@@ -128,13 +135,13 @@ class FundingResultService(
         val o_FF_TimeLeft = fundingTimerService.getSecToRunRff().toLong()
         val o_SF_TimeLeft = fundingTimerService.getSecToRunRsf().toLong()
         val b_FF_share = if (b_FF_SCB == 0L) BigDecimal.ZERO
-            else BigDecimal(b_FF_SCB - b_FF_TimeLeft).divide(BigDecimal(b_FF_SCB), scale, RoundingMode.HALF_UP)
+        else BigDecimal(b_FF_SCB - b_FF_TimeLeft).divide(BigDecimal(b_FF_SCB), scale, RoundingMode.HALF_UP)
         val b_SF_share = if (b_SF_SCB == 0L) BigDecimal.ZERO
-            else BigDecimal(b_SF_SCB - b_SF_TimeLeft).divide(BigDecimal(b_SF_SCB), scale, RoundingMode.HALF_UP)
+        else BigDecimal(b_SF_SCB - b_SF_TimeLeft).divide(BigDecimal(b_SF_SCB), scale, RoundingMode.HALF_UP)
         val o_FF_share = if (o_FF_SCB == 0L) BigDecimal.ZERO
-            else BigDecimal(o_FF_SCB - o_FF_TimeLeft).divide(BigDecimal(o_FF_SCB), scale, RoundingMode.HALF_UP)
+        else BigDecimal(o_FF_SCB - o_FF_TimeLeft).divide(BigDecimal(o_FF_SCB), scale, RoundingMode.HALF_UP)
         val o_SF_share = if (o_SF_SCB == 0L) BigDecimal.ZERO
-            else BigDecimal(o_SF_SCB - o_SF_TimeLeft).divide(BigDecimal(o_SF_SCB), scale, RoundingMode.HALF_UP)
+        else BigDecimal(o_SF_SCB - o_SF_TimeLeft).divide(BigDecimal(o_SF_SCB), scale, RoundingMode.HALF_UP)
 
 
 //        var b_FFrate_cost_pts1: BigDecimal = BigDecimal.ZERO

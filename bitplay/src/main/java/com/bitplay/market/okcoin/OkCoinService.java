@@ -682,9 +682,9 @@ public class OkCoinService extends MarketServicePreliq {
         Instant start = Instant.now();
         try {
             if (!isSwap()) {
-                okexFunding.setFf(new OkexFunding.Block(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
-                okexFunding.setSf(new OkexFunding.Block(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
-                return; // not in use for futures or LEFT
+//                okexFunding.setFf(new OkexFunding.Block(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+//                okexFunding.setSf(new OkexFunding.Block(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                return; // not in use for futures
             }
             swapSettlement = fplayOkexExchangeV5.getPublicApi().getSwapSettlement(instrDtos.get(0).getInstrumentId());
 

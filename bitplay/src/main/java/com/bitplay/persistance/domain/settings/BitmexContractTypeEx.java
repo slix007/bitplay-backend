@@ -68,6 +68,7 @@ public class BitmexContractTypeEx implements ContractType {
 //                break;
             case "LINK":
             case "XRP":
+            case "LTC":
                 scale = 4;
                 break;
             default:

@@ -69,6 +69,9 @@ class FundingTimerService(
             .fundingSettings.getByParamName(paramName).getFundingTimeReal()
 
         var between = Duration.between(LocalTime.now(), nextRunTime).toKotlinDuration()
+        if (between.isNegative()) {
+            between = between.plus(Duration.ofHours(24L).toKotlinDuration())
+        }
         var timeTmp = nextRunTime
         var iterations = 0;
         val isFirst = hoursForward == 8
@@ -77,6 +80,9 @@ class FundingTimerService(
         ) {
             timeTmp = timeTmp.plus(8, ChronoUnit.HOURS)
             between = Duration.between(LocalTime.now(), timeTmp).toKotlinDuration()
+            if (between.isNegative()) {
+                between = between.plus(Duration.ofHours(24L).toKotlinDuration())
+            }
             logger.info("time=$nextRunTime to timeTmp=$timeTmp")
         }
         if (nextRunTime != timeTmp) {
@@ -87,7 +93,10 @@ class FundingTimerService(
         }
         logger.info("schedule nextRun at $nextRunTime to timeTmp=$timeTmp")
 
-        between = Duration.between(LocalTime.now(), timeTmp).toKotlinDuration().absoluteValue
+        between = Duration.between(LocalTime.now(), timeTmp).toKotlinDuration()
+        if (between.isNegative()) {
+            between = between.plus(Duration.ofHours(24L).toKotlinDuration())
+        }
         return executor.schedule(
             { nextRun(paramName, hoursForward) },
             between.inWholeMilliseconds,
