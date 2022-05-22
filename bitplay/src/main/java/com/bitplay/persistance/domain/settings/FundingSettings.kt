@@ -29,12 +29,15 @@ data class FundingSettings(
     ) {
         fun getFundingTimeReal(): LocalTime = LocalTime.parse(time)
         fun getFundingTimeUi(isSecond: Boolean = false): String =
+            getFundingTimeUi(isSecond, time)
+
+        fun getFundingTimeUi(isSecond: Boolean = false, theTime: String): String =
             if (isSecond) {
                 val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-                fmt.format(LocalTime.parse(time).plusHours(8))
+                fmt.format(LocalTime.parse(theTime).plusHours(8))
             } else {
                 val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-                fmt.format(LocalTime.parse(time))
+                fmt.format(LocalTime.parse(theTime))
             }
 
         fun setFundingTimeUi(time: String, isSecond: Boolean = false) {

@@ -14,7 +14,6 @@ import java.time.temporal.ChronoUnit
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
-import kotlin.time.DurationUnit
 import kotlin.time.toKotlinDuration
 
 @Service
@@ -26,7 +25,7 @@ class FundingTimerService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private var executor: ScheduledExecutorService =
-        SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
+        SchedulerUtils.fixedThreadExecutor("funding-check-%d", 4)
 
     @Volatile
     private var futureLff: ScheduledFuture<*>? = null
@@ -43,96 +42,81 @@ class FundingTimerService(
 
     @EventListener(ArbitrageReadyEnableFundingEvent::class)
     fun init() {
-        executor = SchedulerUtils.fixedThreadExecutor("okex-funding-check-%d", 4)
+        executor = SchedulerUtils.fixedThreadExecutor("funding-check-%d", 4)
         if (arbitrageService.leftMarketService.isSwap) {
-            scheduleNextRunToFuture("leftFf", 8)
-            scheduleNextRunToFuture("leftSf", 8)
+            initAtRate("leftFf")
+            initAtRate("leftSf")
         }
         if (arbitrageService.rightMarketService.isSwap) {
-            scheduleNextRunToFuture("rightFf", 8)
-            scheduleNextRunToFuture("rightSf", 8)
+            initAtRate("rightFf")
+            initAtRate("rightSf")
         }
     }
 
-    private fun scheduleNextRunToFuture(paramName: String, hoursForward: Int) {
-        val future = scheduleNextRun(paramName, hoursForward)
-        when (paramName) {
-            "leftFf" -> futureLff = future
-            "leftSf" -> futureLsf = future
-            "rightFf" -> futureRff = future
-            "rightSf" -> futureRsf = future
-        }
-    }
-
-    private fun scheduleNextRun(paramName: String, hoursForward: Int): ScheduledFuture<*> {
-        val nextRunTime: LocalTime = settingsRepositoryService.settings
-            .fundingSettings.getByParamName(paramName).getFundingTimeReal()
-
-        var between = Duration.between(LocalTime.now(), nextRunTime).toKotlinDuration()
-        if (between.isNegative()) {
-            between = between.plus(Duration.ofHours(24L).toKotlinDuration())
-        }
-        var timeTmp = nextRunTime
-        var iterations = 0;
-        val isFirst = hoursForward == 8
-        while (((isFirst && !isFirstByHours(between)) || (!isFirst && !isSecondByHours(between)))
-            && iterations++ < 5 // loop defence
-        ) {
-            timeTmp = timeTmp.plus(8, ChronoUnit.HOURS)
-            between = Duration.between(LocalTime.now(), timeTmp).toKotlinDuration()
-            if (between.isNegative()) {
-                between = between.plus(Duration.ofHours(24L).toKotlinDuration())
-            }
-            logger.info("time=$nextRunTime to timeTmp=$timeTmp")
-        }
-        if (nextRunTime != timeTmp) {
-            settingsRepositoryService.updateFundingTime(
+    private fun initAtRate(paramName: String) {
+        try {
+            val future = scheduleAtRate(
                 paramName,
-                timeTmp.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+                LocalTime.now(),
+                settingsRepositoryService.settings.fundingSettings.getByParamName(paramName).getFundingTimeReal(),
+                Duration.ofHours(8).toMillis()
             )
+            when (paramName) {
+                "leftFf" -> futureLff = future
+                "leftSf" -> futureLsf = future
+                "rightFf" -> futureRff = future
+                "rightSf" -> futureRsf = future
+            }
+        } catch (e: Exception) {
+            logger.error("Can not scheduleNextRun for $paramName")
         }
-        logger.info("schedule nextRun at $nextRunTime to timeTmp=$timeTmp")
+    }
 
-        between = Duration.between(LocalTime.now(), timeTmp).toKotlinDuration()
-        if (between.isNegative()) {
-            between = between.plus(Duration.ofHours(24L).toKotlinDuration())
-        }
-        return executor.schedule(
-            { nextRun(paramName, hoursForward) },
+    fun scheduleAtRate(
+        paramName: String,
+        currentTime: LocalTime,
+        settingsTime: LocalTime,
+        durationMillis: Long
+    ): ScheduledFuture<*> {
+        val (between, timeTmp) = calcNextRunTime(settingsTime, currentTime)
+        logger.info("Schedule $paramName initDelay:$between, settingsTime=$settingsTime, timeTmp=$timeTmp")
+        return executor.scheduleWithFixedDelay(
+            {
+                // change time on UI and in settings
+                logger.info("FundingService run for $paramName do nothing")
+            },
             between.inWholeMilliseconds,
+            durationMillis,
             TimeUnit.MILLISECONDS
         )
     }
 
-    // 0..8..16..24
-    // 0..8........
-    fun isFirstByHours(between: kotlin.time.Duration) =
-        (between.isNegative()
-                && between.absoluteValue.toDouble(DurationUnit.HOURS) > 16
-                )
-                ||
-                (between.isPositive() && between.toDouble(DurationUnit.HOURS) < 8)
+    fun calcNextRunTime(
+        settingsTime: LocalTime,
+        currentTime: LocalTime
+    ): Pair<kotlin.time.Duration,LocalTime> {
+        var timeTmp = settingsTime
+        var between = Duration.between(currentTime, timeTmp).toKotlinDuration()
+        if (between.isNegative()) {
+            between = between.plus(Duration.ofHours(24L).toKotlinDuration())
+        }
 
-    // 0..8..16..24
-    // ...8..16....
-    fun isSecondByHours(between: kotlin.time.Duration) =
-        (between.isNegative()
-                && between.absoluteValue.toDouble(DurationUnit.HOURS) < 16
-                && between.absoluteValue.toDouble(DurationUnit.HOURS) > 8
-                )
-                || (
-                between.isPositive()
-                        && between.absoluteValue.toDouble(DurationUnit.HOURS) > 8
-                        && between.absoluteValue.toDouble(DurationUnit.HOURS) < 16
-                )
-
-    fun nextRun(paramName: String, hoursForward: Int) {
-        logger.info("FundingService run for $paramName")
-
-        //TODO start the funding
-
-
-        scheduleNextRunToFuture(paramName, hoursForward)
+        var ind = 0;
+        while (
+            between.inWholeMilliseconds > Duration.ofHours(8).toKotlinDuration().inWholeMilliseconds
+            && ind++ < 5
+        ) {
+            timeTmp = timeTmp.plus(8, ChronoUnit.HOURS)
+            between = Duration.between(currentTime, timeTmp).toKotlinDuration()
+            if (between.isNegative()) {
+                between = between.plus(Duration.ofHours(24L).toKotlinDuration())
+            }
+    //            logger.info("$ind: settings=$settingsTime to initTime=$timeTmp for $paramName. Delay=${between}")
+            if (ind > 3) {
+                logger.warn("$ind: initDelay:$between, settingsTime=$settingsTime, timeTmp=$timeTmp ")
+            }
+        }
+        return between to timeTmp
     }
 
     fun noOneGreen(): Boolean {
@@ -171,6 +155,15 @@ class FundingTimerService(
     fun getSecToRunRff(): String = futureRff?.getDelay(TimeUnit.SECONDS)?.toString() ?: "-1"
     fun getSecToRunRsf(): String =
         futureRsf?.getDelay(TimeUnit.SECONDS)?.let { it + HOURS_8_IN_SEC }?.toString() ?: "-1"
+
+    fun getFundingTimeUi(paramName: String, isSecond: Boolean): String {
+        val byParamName = settingsRepositoryService.settings.fundingSettings.getByParamName(paramName)
+        val settingsTime = byParamName.getFundingTimeReal()
+        val (_, settingsTimeTmp) = calcNextRunTime(settingsTime, LocalTime.now())
+        val fmt: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+        return byParamName
+            .getFundingTimeUi(isSecond, settingsTimeTmp.format(fmt))
+    }
 
     fun reschedule() {
         executor.shutdown()

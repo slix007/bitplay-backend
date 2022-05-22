@@ -226,7 +226,8 @@ public abstract class AbstractUiService<T extends MarketService> {
                         bitmexFunding.getFundingCostUsd() != null ? bitmexFunding.getFundingCostUsd().toPlainString() : "",
                         bitmexFunding.getFundingCostPts() != null ? bitmexFunding.getFundingCostPts().toPlainString() : "",
                         new FundingRateBordersBlock.Timer(
-                                fs.getLeftFf().getFundingTimeUi(false),
+//                                fs.getLeftFf().getFundingTimeUi(false),
+                                fts.getFundingTimeUi("leftFt", false),
                                 fts.getSecToRunLff(),
                                 fts.isGreenTime("leftFf")
                         )
@@ -237,7 +238,8 @@ public abstract class AbstractUiService<T extends MarketService> {
                         bitmexFunding.getSfCostUsd() != null ? bitmexFunding.getSfCostUsd().toPlainString() : "",
                         bitmexFunding.getSfCostPts() != null ? bitmexFunding.getSfCostPts().toPlainString() : "",
                         new FundingRateBordersBlock.Timer(
-                                fs.getLeftSf().getFundingTimeUi(true),
+//                                fs.getLeftSf().getFundingTimeUi(true),
+                                fts.getFundingTimeUi("leftSf", true),
                                 fts.getSecToRunLsf(),
                                 fts.isGreenTime("leftSf")
                         )
