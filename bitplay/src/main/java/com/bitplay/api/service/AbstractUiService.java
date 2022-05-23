@@ -227,7 +227,7 @@ public abstract class AbstractUiService<T extends MarketService> {
                         bitmexFunding.getFundingCostPts() != null ? bitmexFunding.getFundingCostPts().toPlainString() : "",
                         new FundingRateBordersBlock.Timer(
 //                                fs.getLeftFf().getFundingTimeUi(false),
-                                fts.getFundingTimeUi("leftFt", false),
+                                fts.getFundingTimeUi("leftFf", false),
                                 fts.getSecToRunLff(),
                                 fts.isGreenTime("leftFf")
                         )
