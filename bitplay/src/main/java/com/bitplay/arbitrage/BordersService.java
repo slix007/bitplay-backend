@@ -55,25 +55,38 @@ public class BordersService {
 
     public BorderParams getBorderParams() {
         final BorderParams borderParams = persistenceService.fetchBorders();
-        adjBorderV2Values(borderParams);
+//        adjBorderV2Values(borderParams);
         addValueFinal(borderParams);
         return borderParams;
     }
 
     private void addValueFinal(BorderParams borderParams) {
+        final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
+        final boolean isVolatile = settings.getTradingModeState() != null
+                        && settings.getTradingModeState().getTradingMode() == TradingMode.VOLATILE;
         final BigDecimal fundingResult = fundingResultService.getFundingResult();
         borderParams.getBordersV2().getBorderTableList()
                 .forEach(borderTable -> {
                     BigDecimal addFunding = BigDecimal.ZERO;
+                    BigDecimal addBorder = BigDecimal.ZERO;
                     if (borderTable.getBorderName().equals("b_br_open")
                             || borderTable.getBorderName().equals("b_br_close")) {
+                        addBorder = settingsPremService.getLeftAddBorder();
                         addFunding = fundingResult.negate();
                     }
                     if (borderTable.getBorderName().equals("o_br_open")
                             || borderTable.getBorderName().equals("o_br_close")) {
+                        addBorder = settingsPremService.getRightAddBorder();
                         addFunding = fundingResult;
                     }
-                    BigDecimal finalAddFunding = addFunding;
+                    // workaround from old code
+                    if (addBorder == null || addBorder.signum() < 0) {
+                        addBorder = BigDecimal.ZERO;
+                    }
+                    if (!isVolatile) {
+                        addBorder = BigDecimal.ZERO;
+                    }
+                    BigDecimal finalAddFunding = addFunding.add(addBorder);
                     borderTable.getBorderItemList().forEach(borderItem -> {
                         if (borderItem.getId() != 0 && borderItem.getValue() != null) {
                             borderItem.setValueFinal(borderItem.getValue().add(finalAddFunding));
@@ -85,7 +98,6 @@ public class BordersService {
     private void adjBorderV2Values(final BorderParams borderParams) {
         final Settings settings = persistenceService.getSettingsRepositoryService().getSettings();
         if (settings.getTradingModeState() != null
-                && settings.getTradingModeState().getTradingMode() != null
                 && settings.getTradingModeState().getTradingMode() == TradingMode.VOLATILE) {
             final List<BorderTable> borderTableList = borderParams.getBordersV2().getBorderTableList();
             for (BorderTable borderTable : borderTableList) {
