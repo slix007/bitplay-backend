@@ -150,7 +150,7 @@ public class BordersEndpoint {
 
         }
 
-        bordersService.adjBackValuesForVolatile(borderParams);
+//        bordersService.adjBackValuesForVolatile(borderParams);
 
         persistenceService.saveBorderParams(borderParams);
 
