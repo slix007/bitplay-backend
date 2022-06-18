@@ -5,6 +5,7 @@ import com.bitplay.xchange.bitmex.dto.HeadersAware;
 import si.mazi.rescu.HttpStatusIOException;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,25 +32,30 @@ public class BitmexStateService {
     private void setXrateLimit(Map<String, List<String>> headers) {
         if (headers != null) {
 //            final List<String> limit = headers.get("x-ratelimit-limit");
-            final String remaining1 = "x-ratelimit-remaining";
-            final String remaining2 = "X-RateLimit-Remaining";
-            final String remaining1s1 = "x-ratelimit-remaining-1s";
-            final String remaining1s2 = "X-RateLimit-Remaining-1s";
-            final String reset1 = "x-ratelimit-reset";
-            final String reset2 = "X-RateLimit-Reset";
-            final List<String> remaining = headers.containsKey(remaining1)
-                    ? headers.get(remaining1)
-                    : headers.get(remaining2);
-            final List<String> remaining1s = headers.containsKey(remaining1)
-                    ? headers.get(remaining1s1)
-                    : headers.get(remaining1s2);
-            final List<String> reset = headers.containsKey(reset1)
-                    ? headers.get(reset1)
-                    : headers.get(reset2);
+            final String nameRemaining1 = "x-ratelimit-remaining";
+            final String nameRemaining1s1 = "x-ratelimit-remaining-1s";
+            final String nameReset1 = "x-ratelimit-reset";
+            final List<String> remaining = new ArrayList<>();
+            final List<String> remaining1s = new ArrayList<>();
+            final List<String> reset = new ArrayList<>();
+            headers.forEach((k, v) -> {
+                        if (v != null && v.size() > 0) {
+                            if (nameRemaining1.equalsIgnoreCase(k)) {
+                                remaining.add(v.get(0));
+                            }
+                            if (nameRemaining1s1.equalsIgnoreCase(k)) {
+                                remaining1s.add(v.get(0));
+                            }
+                            if (nameReset1.equalsIgnoreCase(k)) {
+                                reset.add(v.get(0));
+                            }
+                        }
+                    }
 
-            final boolean hasRemaining = remaining != null && remaining.size() > 0;
-            final boolean hasRemaining1s = remaining1s != null && remaining1s.size() > 0;
-            final boolean hasResetTimestamp = reset != null && reset.size() > 0;
+            );
+            final boolean hasRemaining = remaining.size() > 0;
+            final boolean hasRemaining1s = remaining1s.size() > 0;
+            final boolean hasResetTimestamp = reset.size() > 0;
 
             final BitmexXRateLimit xRateLimit = ref.get();
             final int xRateLimitRemaining = hasRemaining
