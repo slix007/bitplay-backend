@@ -28,8 +28,8 @@ import si.mazi.rescu.SynchronizedValueFactory;
  */
 public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
 
-    protected static final String PUBLIC_API_URI = "wss://ws.okex.com:8443/ws/v5/public";
-    protected static final String PRIVATE_API_URI = "wss://ws.okex.com:8443/ws/v5/private";
+    protected static final String PUBLIC_API_URI = "wss://ws.okx.com:8443/ws/v5/public";
+    protected static final String PRIVATE_API_URI = "wss://ws.okx.com:8443/ws/v5/private";
 
 
     private OkExStreamingPrivateDataServiceV5 streamingPrivateDataService;

@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class ApiConfigurationV5 {
 
-    public static final String API_BASE_URL = "https://www.okex.com";
+    public static final String API_BASE_URL = "https://www.okx.com";
     public static final String JSON_CONTENT_TYPE = "application/json";
 
 
