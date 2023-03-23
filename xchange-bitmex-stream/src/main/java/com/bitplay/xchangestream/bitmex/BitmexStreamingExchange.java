@@ -26,7 +26,8 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
 
     // https://blog.bitmex.com/api_announcement/change-of-websocket-endpoint/
     // since 15 Oct 2021
-    private static final String API_URI = "wss://ws.bitmex.com/realtime";
+//    private static final String API_URI = "wss://ws.bitmex.com/realtime";
+    private static final String API_URI = "wss://api.direct.bitmex.com/realtime";
 //    private static final String API_URI = "wss://testnet.bitmex.com/realtime";
 
     private final StreamingServiceBitmex streamingService;

@@ -28,8 +28,8 @@ public class BitmexExchange extends BaseExchange implements Exchange {
 
     public ExchangeSpecification getDefaultExchangeSpecification() {
         ExchangeSpecification exchangeSpecification = new ExchangeSpecification(this.getClass().getCanonicalName());
-        exchangeSpecification.setSslUri("https://www.bitmex.com");
-        exchangeSpecification.setHost("www.bitmex.com");
+        exchangeSpecification.setSslUri("https://api.direct.bitmex.com");
+        exchangeSpecification.setHost("api.direct.bitmex.com");
         exchangeSpecification.setPort(443);
         exchangeSpecification.setExchangeName("Bitmex");
         exchangeSpecification.setExchangeDescription("Bitmex is a Bitcoin exchange");
