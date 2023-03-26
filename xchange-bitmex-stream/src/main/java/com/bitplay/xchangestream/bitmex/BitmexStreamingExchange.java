@@ -1,7 +1,7 @@
 package com.bitplay.xchangestream.bitmex;
 
+import com.bitplay.xchange.ExchangeSpecification;
 import com.bitplay.xchangestream.bitmex.wsjsr356.StreamingServiceBitmex;
-import com.bitplay.core.ProductSubscription;
 import com.bitplay.core.StreamingAccountService;
 import com.bitplay.core.StreamingExchangeEx;
 import com.bitplay.core.StreamingMarketDataService;
@@ -19,29 +19,20 @@ import com.bitplay.xchange.bitmex.BitmexExchange;
  * To avoid disconnection we have to send keepalive heartbeats(ping).
  */
 public class BitmexStreamingExchange extends BitmexExchange implements StreamingExchangeEx {
-    // old api.
-    // slow  since 1 Nov 2021.
-    // obsolete since 1 Feb 2022.
-//    private static final String API_URI = "wss://www.bitmex.com:443/realtime";
-
-    // https://blog.bitmex.com/api_announcement/change-of-websocket-endpoint/
-    // since 15 Oct 2021
-//    private static final String API_URI = "wss://ws.bitmex.com/realtime";
-    private static final String API_URI = "wss://api.direct.bitmex.com/realtime";
-//    private static final String API_URI = "wss://testnet.bitmex.com/realtime";
-
-    private final StreamingServiceBitmex streamingService;
+    private StreamingServiceBitmex streamingService;
     private BitmexStreamingMarketDataService streamingMarketDataService;
     private BitmexStreamingAccountService streamingAccountService;
     private BitmexStreamingTradingService streamingTradingService;
 
     public BitmexStreamingExchange() throws URISyntaxException {
-        streamingService = new StreamingServiceBitmex(API_URI);
     }
 
     @Override
     protected void initServices() {
         super.initServices();
+        final ExchangeSpecification exchangeSpec = getExchangeSpecification();
+        final String apiUrl = (String) exchangeSpec.getExchangeSpecificParametersItem(API_URL);
+        streamingService = new StreamingServiceBitmex(apiUrl);
         streamingMarketDataService = new BitmexStreamingMarketDataService(streamingService);
         streamingAccountService = new BitmexStreamingAccountService(streamingService);
         streamingTradingService = new BitmexStreamingTradingService(streamingService);
@@ -92,7 +83,7 @@ public class BitmexStreamingExchange extends BitmexExchange implements Streaming
     }
 
     @Override
-    public Completable connect(ProductSubscription... productSubscriptions) {
+    public Completable connect() {
         return streamingService.connect();
     }
 

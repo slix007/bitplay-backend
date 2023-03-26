@@ -17,6 +17,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -26,7 +27,8 @@ public class SlackNotifications {
     @Autowired
     private DestinationResolverByFile destinationResolver;
 
-    private final static String SLACK_URL = "https://hooks.slack.com/services/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";
+    @Value("${slack.url}")
+    private String slackUrl;
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
             .setNameFormat("slack-notifications-%d").build());
@@ -58,7 +60,7 @@ public class SlackNotifications {
 
         try {
             CloseableHttpClient client = HttpClients.createDefault();
-            HttpPost httpPost = new HttpPost(SLACK_URL);
+            HttpPost httpPost = new HttpPost(slackUrl);
             String theText = hostLabel + ": " + message;
 
             NotifyObject notifyObject = new NotifyObject(theText, theChannel);

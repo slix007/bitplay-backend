@@ -18,6 +18,26 @@ public class Config {
     @Value("${market.bitmex.secret}")
     private String bitmexMarketSecret;
 
+    @Value("${market.bitmex.url}")
+    private String bitmexMarketUrl;
+    @Value("${market.bitmex.host}")
+    private String bitmexMarketHost;
+    @Value("${market.bitmex.port}")
+    private String bitmexMarketPort;
+    @Value("${market.bitmex.wss.url}")
+    private String bitmexMarketWssUrl;
+
+    @Value("${market.okex.url}")
+    private String okexMarketUrl;
+    @Value("${market.okex.host}")
+    private String okexMarketHost;
+    @Value("${market.okex.port}")
+    private String okexMarketPort;
+    @Value("${market.okex.wss.url.private}")
+    private String okexMarketWssUrlPrivate;
+    @Value("${market.okex.wss.url.public}")
+    private String okexMarketWssUrlPublic;
+
     @Value("${market.okex.key:DEFAULT}")
     private String okexMarketKey;
     @Value("${market.okex.secret:DEFAULT}")

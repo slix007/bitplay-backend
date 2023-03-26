@@ -21,11 +21,14 @@ public class ApiCredentialsV5 {
      */
     private String passphrase;
 
+    private String sslUrl;
+
 
     public ApiCredentialsV5(ApiConfigurationV5 config) {
         final ApiCredentialsV5 cred = config.getApiCredentials();
         this.apiKey = cred.getApiKey();
         this.secretKey = cred.getSecretKey();
         this.passphrase = cred.getPassphrase();
+        this.sslUrl = config.getEndpoint();
     }
 }

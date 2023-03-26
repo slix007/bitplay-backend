@@ -9,7 +9,7 @@ import com.bitplay.arbitrage.events.ObChangeEvent;
 import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
-import com.bitplay.core.ProductSubscription;
+import com.bitplay.core.StreamingExchange;
 import com.bitplay.core.dto.PositionStream;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
@@ -248,7 +248,13 @@ public class OkCoinService extends MarketServicePreliq {
     }
 
     @Override
-    public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
+    public void initializeMarket(String key, String secret, ContractType contractType,
+                                 String sslUri,
+                                 String host,
+                                 String port,
+                                 String wssUrlPublic,
+                                 String wssUrlPrivate,
+                                 Object... exArgs) {
         monObTimestamp = monitoringDataService.fetchTimestampMonitoring(getNameWithType());
 
         okexBalanceService = new OkexBalanceService(settingsRepositoryService);
@@ -272,12 +278,12 @@ public class OkCoinService extends MarketServicePreliq {
         leverage = okexContractType.defaultLeverage();
 
 //        apiCredentials = getApiCredentials(exArgs);
-        apiCredentialsV5 = getApiCredentialsV5(exArgs);
+        apiCredentialsV5 = getApiCredentialsV5(sslUri, exArgs);
         initExchangeV5(apiCredentialsV5);
         initExchangeV52Sec(apiCredentialsV5);
 //        exchange = initExchange(exArgs);
-        streamingExchangeV5Pub = initStreamingExchangeV5(ProductSubscription.PUBLIC, exArgs);
-        streamingExchangeV5Private = initStreamingExchangeV5(ProductSubscription.PRIVATE, exArgs);
+        streamingExchangeV5Pub = initStreamingExchangeV5(sslUri, host, port, wssUrlPublic, exArgs);
+        streamingExchangeV5Private = initStreamingExchangeV5(sslUri, host, port, wssUrlPrivate, exArgs);
 
         // for testing
 //        final EstimatedPrice result = fplayOkexExchangeV5.getPublicApi().getEstimatedPrice(mainInstr.getInstrumentId());
@@ -334,7 +340,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     private void initExchangeV5(ApiCredentialsV5 cred) {
         ApiConfigurationV5 config = new ApiConfigurationV5();
-        config.setEndpoint(ApiConfigurationV5.API_BASE_URL);
+        config.setEndpoint(cred.getSslUrl());
         config.setApiCredentials(cred);
         config.setPrint(true);
         config.setRetryOnConnectionFailure(true);
@@ -347,7 +353,7 @@ public class OkCoinService extends MarketServicePreliq {
 
     private void initExchangeV52Sec(ApiCredentialsV5 cred) {
         ApiConfigurationV5 config = new ApiConfigurationV5();
-        config.setEndpoint(ApiConfigurationV5.API_BASE_URL);
+        config.setEndpoint(cred.getSslUrl());
         config.setApiCredentials(cred);
         config.setPrint(true);
         config.setRetryOnConnectionFailure(true);
@@ -358,8 +364,9 @@ public class OkCoinService extends MarketServicePreliq {
         fplayOkexExchangeV52sec = FplayExchangeOkexV5.create(config, okexContractType.getFuturesContract(), getArbType().name());
     }
 
-    private ApiCredentialsV5 getApiCredentialsV5(Object[] exArgs) {
+    private ApiCredentialsV5 getApiCredentialsV5(String sslUri, Object[] exArgs) {
         final ApiCredentialsV5 cred = new ApiCredentialsV5();
+        cred.setSslUrl(sslUri);
         if (exArgs != null && exArgs.length == 6) {
             String exKey = (String) exArgs[3];
             String exSecret = (String) exArgs[4];
@@ -485,7 +492,12 @@ public class OkCoinService extends MarketServicePreliq {
                 .andThen(streamingExchangeV5Private.disconnect());
     }
 
-    private OkExStreamingExchangeV5 initStreamingExchangeV5(ProductSubscription productSubscription, Object... exArgs) {
+    private OkExStreamingExchangeV5 initStreamingExchangeV5(
+            String sslUri,
+            String host,
+            String port,
+            String wssUrl,
+            Object... exArgs) {
         ExchangeSpecification spec = new ExchangeSpecification(OkExStreamingExchangeV5.class);
 
         // init xchange-stream
@@ -499,7 +511,11 @@ public class OkCoinService extends MarketServicePreliq {
             spec.setExchangeSpecificParametersItem("okex-v5-passphrase", exPassphrase);
         }
 
-        spec.setExchangeSpecificParametersItem("productSubscription", productSubscription);
+        spec.setSslUri(sslUri);
+        spec.setHost(host);
+        spec.setPort(Integer.parseInt(StringUtils.isNoneBlank(port) ? port : "433"));
+        spec.setExchangeSpecificParametersItem(StreamingExchange.API_URL, wssUrl);
+
         return (OkExStreamingExchangeV5) ExchangeFactory.INSTANCE.createExchange(spec);
     }
 

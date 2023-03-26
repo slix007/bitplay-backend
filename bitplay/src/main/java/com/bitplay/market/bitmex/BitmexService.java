@@ -1,6 +1,5 @@
 package com.bitplay.market.bitmex;
 
-import com.bitplay.api.dto.ob.FundingRateBordersBlock;
 import com.bitplay.api.service.RestartService;
 import com.bitplay.arbitrage.ArbitrageService;
 import com.bitplay.arbitrage.dto.AvgPriceItem;
@@ -12,6 +11,7 @@ import com.bitplay.arbitrage.events.SigEvent;
 import com.bitplay.arbitrage.events.SigType;
 import com.bitplay.arbitrage.exceptions.NotYetInitializedException;
 import com.bitplay.arbitrage.posdiff.PosDiffService;
+import com.bitplay.core.StreamingExchange;
 import com.bitplay.external.NotifyType;
 import com.bitplay.external.SlackNotifications;
 import com.bitplay.market.BalanceService;
@@ -449,7 +449,13 @@ public class BitmexService extends MarketServicePreliq {
 
 
     @Override
-    public void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs) {
+    public void initializeMarket(String key, String secret, ContractType contractType,
+                                 String sslUri,
+                                 String host,
+                                 String port,
+                                 String wssUrlPublic,
+                                 String wssUrlPrivate,
+                                 Object... exArgs) {
         monObTimestamp = monitoringDataService.fetchTimestampMonitoring(getNameWithType());
 
         bitmexContractType = (BitmexContractType) contractType;
@@ -466,7 +472,7 @@ public class BitmexService extends MarketServicePreliq {
         this.secret = secret;
         bitmexSwapService = new BitmexSwapService(this, arbitrageService);
 
-        initWebSocketConnection();
+        initWebSocketConnection(sslUri, host, port, wssUrlPublic);
 
         startAllListeners();
 
@@ -1153,13 +1159,21 @@ public class BitmexService extends MarketServicePreliq {
 //        return placedFplayOrder;
     }
 
-    private BitmexStreamingExchange initExchange(String key, String secret) {
+    private BitmexStreamingExchange initExchange(String key, String secret,
+                                                 String sslUri,
+                                                 String host,
+                                                 String port,
+                                                 String wssUrl) {
         ExchangeSpecification spec = new ExchangeSpecification(BitmexStreamingExchange.class);
         spec.setApiKey(key);
         spec.setSecretKey(secret);
         spec.setExchangeSpecificParametersItem("Symbol", bitmexContractTypeEx.getSymbol());
         spec.setExchangeSpecificParametersItem("Scale", bitmexContractType.getScale());
         spec.setExchangeSpecificParametersItem("currencyToScale", currencyToScale);
+        spec.setSslUri(sslUri);
+        spec.setHost(host);
+        spec.setPort(Integer.parseInt(port));
+        spec.setExchangeSpecificParametersItem(StreamingExchange.API_URL, wssUrl);
 
         //ExchangeFactory.INSTANCE.createExchange(spec); - class cast exception, because
         // bitmex-* implementations should be moved into libraries.
@@ -1200,10 +1214,15 @@ public class BitmexService extends MarketServicePreliq {
         // Cannot be here due to exceptions
     }
 
-    private void initWebSocketConnection() {
+    private void initWebSocketConnection(
+            String sslUri,
+            String host,
+            String port,
+            String wssUrl
+    ) {
         // Connect to the Exchange WebSocket API. Blocking wait for the connection.
         try {
-            exchange = initExchange(this.key, this.secret);
+            exchange = initExchange(this.key, this.secret, sslUri, host, port, wssUrl);
 
             exchangeConnect();
 

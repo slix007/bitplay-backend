@@ -146,10 +146,25 @@ public class TwoMarketStarter {
         try {
             marketService = (MarketServicePreliq) context.getBean(marketName);
             if (marketName.equals(BitmexService.NAME)) {
-                marketService.init(config.getBitmexMarketKey(), config.getBitmexMarketSecret(), contractType, arbType);
+                marketService.init(
+                        config.getBitmexMarketKey(),
+                        config.getBitmexMarketSecret(),
+                        contractType,
+                        config.getBitmexMarketUrl(),
+                        config.getBitmexMarketHost(),
+                        config.getBitmexMarketPort(),
+                        config.getBitmexMarketWssUrl(),
+                        config.getBitmexMarketWssUrl(),
+                        arbType);
             } else if (marketName.equals(OkCoinService.NAME)) {
                 if (arbType == ArbType.LEFT) {
-                    marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
+                    marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType,
+                            config.getOkexMarketUrl(),
+                            config.getOkexMarketHost(),
+                            config.getOkexMarketPort(),
+                            config.getOkexMarketWssUrlPublic(),
+                            config.getOkexMarketWssUrlPrivate(),
+                            arbType,
                             config.getOkexLeftMarketExKey(),
                             config.getOkexLeftMarketExSecret(),
                             config.getOkexLeftMarketExPassphrase(),
@@ -158,7 +173,13 @@ public class TwoMarketStarter {
                             config.getOkexLeftMarketV5Passphrase()
                     );
                 } else {
-                    marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType, arbType,
+                    marketService.init(config.getOkexMarketKey(), config.getOkexMarketSecret(), contractType,
+                            config.getOkexMarketUrl(),
+                            config.getOkexMarketHost(),
+                            config.getOkexMarketPort(),
+                            config.getOkexMarketWssUrlPublic(),
+                            config.getOkexMarketWssUrlPrivate(),
+                            arbType,
                             config.getOkexMarketExKey(),
                             config.getOkexMarketExSecret(),
                             config.getOkexMarketExPassphrase(),

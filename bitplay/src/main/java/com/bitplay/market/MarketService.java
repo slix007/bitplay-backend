@@ -65,6 +65,7 @@ import io.reactivex.Scheduler;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -85,6 +86,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -191,7 +193,16 @@ public abstract class MarketService extends MarketServiceWithState {
 
     Disposable openOrdersMovingSubscription;
 
-    public void init(String key, String secret, ContractType contractType, ArbType arbType, Object... exArgs) {
+    public void init(String key,
+                     String secret,
+                     ContractType contractType,
+                     String sslUri,
+                     String host,
+                     String port,
+                     String wssUrlPublic,
+                     String wssUrlPrivate,
+                     ArbType arbType,
+                     Object... exArgs) {
         this.arbType = arbType;
         final String s = getNameWithType();
         log = LoggerFactory.getLogger(s);
@@ -205,11 +216,23 @@ public abstract class MarketService extends MarketServiceWithState {
         stateUpdaterObExtra = Schedulers.from(Executors.newSingleThreadExecutor(new NamedThreadFactory(s + "-state-updater-ob-extra")));
 
         initEventBus();
-        initializeMarket(key, secret, contractType, exArgs);
+        initializeMarket(key, secret, contractType,
+                sslUri,
+                host,
+                port,
+                wssUrlPublic,
+                wssUrlPrivate,
+                exArgs);
         initFreeOoCheckerDisposable();
     }
 
-    protected abstract void initializeMarket(String key, String secret, ContractType contractType, Object... exArgs);
+    protected abstract void initializeMarket(String key, String secret, ContractType contractType,
+                                             String sslUri,
+                                             String host,
+                                             String port,
+                                             String wssUrlPublic,
+                                             String wssUrlPrivate,
+                                             Object... exArgs);
 
     public OrderBook getOrderBookXBTUSD() {
         return getOrderBook();

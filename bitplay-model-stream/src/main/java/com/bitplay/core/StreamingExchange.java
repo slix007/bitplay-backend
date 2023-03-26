@@ -2,11 +2,11 @@ package com.bitplay.core;
 
 import com.bitplay.service.ConnectableService;
 import com.bitplay.service.netty.NettyStreamingService;
-import io.reactivex.Completable;
-import io.reactivex.Observable;
 import com.bitplay.xchange.Exchange;
 import com.bitplay.xchange.ExchangeSpecification;
 import com.bitplay.xchange.exceptions.NotYetImplementedForExchangeException;
+import io.reactivex.Completable;
+import io.reactivex.Observable;
 
 public interface StreamingExchange extends Exchange {
     String USE_SANDBOX = "Use_Sandbox";
@@ -15,13 +15,14 @@ public interface StreamingExchange extends Exchange {
     String SOCKS_PROXY_HOST = "SOCKS_Proxy_Host";
     String SOCKS_PROXY_PORT = "SOCKS_Proxy_Port";
 
+    String API_URL = "Api_Url";
+
     /**
      * Connects to the WebSocket API of the exchange.
      *
-     * @param args Product subscription is used only in certain exchanges where you need to specify subscriptions during the connect phase.
      * @return {@link Completable} that completes upon successful connection.
      */
-    Completable connect(ProductSubscription... args);
+    Completable connect();
 
     /**
      * Disconnect from the WebSocket API.

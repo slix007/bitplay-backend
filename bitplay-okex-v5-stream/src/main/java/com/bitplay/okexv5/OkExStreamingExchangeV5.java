@@ -1,11 +1,6 @@
 package com.bitplay.okexv5;
 
-import com.bitplay.core.ProductSubscription;
-import com.bitplay.core.StreamingAccountService;
-import com.bitplay.core.StreamingExchangeEx;
-import com.bitplay.core.StreamingMarketDataService;
-import com.bitplay.core.StreamingPrivateDataService;
-import com.bitplay.core.StreamingTradingService;
+import com.bitplay.core.*;
 import com.bitplay.service.ws.WsConnectableService;
 import com.bitplay.service.ws.WsConnectionSpec;
 import com.bitplay.service.ws.statistic.PingStatEvent;
@@ -28,10 +23,6 @@ import si.mazi.rescu.SynchronizedValueFactory;
  */
 public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
 
-    protected static final String PUBLIC_API_URI = "wss://ws.okx.com:8443/ws/v5/public";
-    protected static final String PRIVATE_API_URI = "wss://ws.okx.com:8443/ws/v5/private";
-
-
     private OkExStreamingPrivateDataServiceV5 streamingPrivateDataService;
     private OkExStreamingMarketDataService streamingMarketDataService;
 
@@ -40,10 +31,10 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
     protected ExchangeSpecification exchangeSpecification;
 
 
-    protected void initServices(ProductSubscription productSubscription) {
+    protected void initServices(String wssApiUrl) {
+        final String apiUrl = (String) exchangeSpecification.getExchangeSpecificParametersItem(StreamingExchange.API_URL);
         // init Streaming
-        streamingService = createStreamingService(productSubscription == ProductSubscription.PUBLIC
-                ? PUBLIC_API_URI : PRIVATE_API_URI);
+        streamingService = createStreamingService(apiUrl);
         streamingMarketDataService = new OkExStreamingMarketDataService(streamingService);
         streamingPrivateDataService = new OkExStreamingPrivateDataServiceV5(streamingService, this);
     }
@@ -80,7 +71,7 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
     }
 
     @Override
-    public Completable connect(ProductSubscription... args) {
+    public Completable connect() {
         return streamingService.connect();
     }
 
@@ -157,6 +148,9 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
 
     @Override
     public void applySpecification(ExchangeSpecification exchangeSpecification) {
+        final String wssApiUrl =
+                (String) exchangeSpecification.getExchangeSpecificParametersItem(StreamingExchange.API_URL);
+
         //// from BaseExchange
         {
             // getDefaultExchangeSpecification();
@@ -169,14 +163,12 @@ public class OkExStreamingExchangeV5 implements StreamingExchangeEx {
             exchangeSpecification.setExchangeSpecificParametersItem("Use_Intl", false);
             exchangeSpecification.setExchangeSpecificParametersItem("Use_Futures", false);
 
-            exchangeSpecification.setExchangeSpecificParametersItem("Websocket_SslUri", "wss://real.okcoin.cn:10440/websocket/okcoinapi");
+//            exchangeSpecification.setExchangeSpecificParametersItem("Websocket_SslUri", "wss://real.okcoin.cn:10440/websocket/okcoinapi");
+            exchangeSpecification.setExchangeSpecificParametersItem("Websocket_SslUri", wssApiUrl);
             this.exchangeSpecification = exchangeSpecification;
         }
 
-        final ProductSubscription productSubscription =
-                (ProductSubscription) exchangeSpecification.getExchangeSpecificParametersItem("productSubscription");
-
-        initServices(productSubscription);
+        initServices(wssApiUrl);
 
         //// from OkCoinExchange
 //        if (exchangeSpecification.getExchangeSpecificParameters() != null) {
