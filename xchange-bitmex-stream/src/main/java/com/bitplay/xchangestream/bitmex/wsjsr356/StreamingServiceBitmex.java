@@ -3,18 +3,19 @@ package com.bitplay.xchangestream.bitmex.wsjsr356;
 import com.bitplay.service.exception.NotAuthorizedException;
 import com.bitplay.service.exception.NotConnectedException;
 import com.bitplay.service.ws.statistic.PingStatEvent;
+import com.bitplay.xchange.bitmex.service.BitmexDigest;
 import com.bitplay.xchangestream.bitmex.dto.AuthenticateRequest;
 import com.bitplay.xchangestream.bitmex.dto.WebSocketMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.reactivex.Completable;
-import io.reactivex.CompletableEmitter;
-import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.Scheduler;
+import io.reactivex.*;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import jersey.repackaged.com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URI;
 import java.security.InvalidKeyException;
@@ -27,10 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import jersey.repackaged.com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.bitplay.xchange.bitmex.service.BitmexDigest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StreamingServiceBitmex {
 
@@ -60,7 +57,7 @@ public class StreamingServiceBitmex {
                 clientEndPoint = new WSClientEndpoint(new URI(apiUrl));
 
                 msgHandler = new WSMessageHandler();
-                clientEndPoint.setMessageHandler(msgHandler);
+                clientEndPoint.addMessageHandler(msgHandler);
 
                 completable.onComplete();
 

@@ -14,12 +14,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.websocket.MessageHandler;
+
 /**
  * Created by Sergey Shurmin on 5/16/17.
  */
-public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
+public class WSMessageHandler implements MessageHandler.Whole<String> {
 
-    private static final Logger log = LoggerFactory.getLogger(WSClientEndpoint.class);
+    private static final Logger log = LoggerFactory.getLogger(WSMessageHandler.class);
 
     private Map<String, ObservableEmitter<JsonNode>> channels = new ConcurrentHashMap<>();
     private boolean isAuthenticated = false;
@@ -29,13 +31,10 @@ public class WSMessageHandler implements WSClientEndpoint.MessageHandler {
     private CompletableEmitter onDisconnectEmitter;
 
     @Override
-    public void handleMessage(String message) {
-
+    public void onMessage(String message) {
         parseAndProcessJsonMessage(message);
-
     }
 
-    @Override
     public void onCloseTrigger() {
         onDisconnectEmitter.onComplete();
     }
