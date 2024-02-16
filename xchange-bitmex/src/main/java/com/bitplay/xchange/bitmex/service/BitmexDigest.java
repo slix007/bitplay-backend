@@ -1,16 +1,15 @@
 package com.bitplay.xchange.bitmex.service;
 
 import com.bitplay.xchange.service.BaseParamsDigest;
-
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import com.bitplay.xchange.utils.DigestUtils;
+import si.mazi.rescu.RestInvocation;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.ws.rs.HeaderParam;
 import javax.xml.bind.DatatypeConverter;
-
-import si.mazi.rescu.RestInvocation;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Created by Sergey Shurmin on 5/11/17.
@@ -45,28 +44,15 @@ public class BitmexDigest extends BaseParamsDigest {
 
     @Override
     public String digestParams(RestInvocation restInvocation) {
-        final String verb = restInvocation.getHttpMethod();
-        final String path = restInvocation.getPath();
+        String nonce = restInvocation.getParamValue(HeaderParam.class, "api-expires").toString();
+        String path = restInvocation.getInvocationUrl().split(restInvocation.getBaseUrl())[1];
+        String payload =
+                restInvocation.getHttpMethod() + path + nonce + restInvocation.getRequestBody();
+        return digestString(payload);
+    }
 
-        final String queryString = restInvocation.getQueryString();
-        final String pathWithQuery = queryString.length() == 0
-                ? path
-                : path + "?" + queryString;
-
-        final String nonce = restInvocation.getParamValue(HeaderParam.class, "api-nonce").toString();
-        final String requestBody = restInvocation.getRequestBody();
-
-        final String signatureSource = verb + pathWithQuery + nonce + requestBody;
-        final String signature;
-        try {
-            signature = generateBitmexSignature(secretKey, signatureSource);
-        } catch (InvalidKeyException e) {
-            throw new RuntimeException("Invalid key. Check it.");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Illegal algorithm for post body digest. Check the implementation.");
-        }
-
-        return signature;
+    public String digestString(String payload) {
+        return DigestUtils.bytesToHex(getMac().doFinal(payload.getBytes())).toLowerCase();
     }
 
     public static String generateBitmexSignature(String secretKey, String signatureSource) throws InvalidKeyException, NoSuchAlgorithmException {

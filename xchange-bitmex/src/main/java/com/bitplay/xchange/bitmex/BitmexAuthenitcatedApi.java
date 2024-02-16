@@ -6,20 +6,12 @@ import io.swagger.client.model.Execution;
 import io.swagger.client.model.Instrument;
 import io.swagger.client.model.Order;
 import io.swagger.client.model.Position;
-import java.io.IOException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 import si.mazi.rescu.ParamsDigest;
 import si.mazi.rescu.SynchronizedValueFactory;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import java.io.IOException;
 
 /**
  * Created by Sergey Shurmin on 5/10/17.
@@ -54,18 +46,20 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/instrument")
-    ArrayListWithHeaders<Instrument> instrument(@HeaderParam("api-key") String apiKey,
+    ArrayListWithHeaders<Instrument> instrument(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @QueryParam("symbol") String symbol,
             @QueryParam("columns") String columns
     ) throws IOException;
 
     @GET
     @Path("/order")
-    ArrayListWithHeaders<Order> getOrders(@HeaderParam("api-key") String apiKey,
+    ArrayListWithHeaders<Order> getOrders(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @QueryParam("filter") String filter,
             @QueryParam("count") String count
     ) throws IOException;
@@ -73,9 +67,10 @@ public interface BitmexAuthenitcatedApi {
     @POST
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    OrderWithHeaders postOrder(@HeaderParam("api-key") String apiKey,
+    OrderWithHeaders postOrder(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @FormParam("symbol") String symbol,
             @FormParam("side") String side,
             @FormParam("orderQty") Double orderQty,
@@ -88,9 +83,10 @@ public interface BitmexAuthenitcatedApi {
     @POST
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    OrderWithHeaders marketOrder(@HeaderParam("api-key") String apiKey,
+    OrderWithHeaders marketOrder(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @FormParam("symbol") String symbol,
             @FormParam("side") String side,
             @FormParam("orderQty") Double orderQty,
@@ -100,9 +96,10 @@ public interface BitmexAuthenitcatedApi {
     @POST
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    OrderWithHeaders marketOrderToCloseAllPos(@HeaderParam("api-key") String apiKey,
+    OrderWithHeaders marketOrderToCloseAllPos(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @FormParam("symbol") String symbol,
             @FormParam("ordType") String ordType,
             @FormParam("execInst") String execInst
@@ -112,9 +109,10 @@ public interface BitmexAuthenitcatedApi {
     @PUT
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    OrderWithHeaders updateOrder(@HeaderParam("api-key") String apiKey,
+    OrderWithHeaders updateOrder(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @FormParam("orderID") String orderID,
             @FormParam("symbol") String symbol,
             @FormParam("side") String side,
@@ -126,9 +124,10 @@ public interface BitmexAuthenitcatedApi {
     @DELETE
     @Path("/order")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    ArrayListWithHeaders<Order> deleteOrder(@HeaderParam("api-key") String apiKey,
+    ArrayListWithHeaders<Order> deleteOrder(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @FormParam("orderID") String orderID,
             @FormParam("clOrdID") String clOrdID,
             @FormParam("text") String text
@@ -137,9 +136,10 @@ public interface BitmexAuthenitcatedApi {
     @DELETE
     @Path("/order/all")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    ArrayListWithHeaders<Order> deleteAllOrders(@HeaderParam("api-key") String apiKey,
+    ArrayListWithHeaders<Order> deleteAllOrders(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @FormParam("symbol") String symbol,
             @FormParam("filter") String filter,
             @FormParam("text") String text
@@ -147,15 +147,17 @@ public interface BitmexAuthenitcatedApi {
 
     @GET
     @Path("/position")
-    ArrayListWithHeaders<Position> position(@HeaderParam("api-key") String apiKey,
+    ArrayListWithHeaders<Position> position(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce) throws IOException;
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce) throws IOException;
 
     @GET
     @Path("/execution/tradeHistory")
-    ArrayListWithHeaders<Execution> getTradeHistory(@HeaderParam("api-key") String apiKey,
+    ArrayListWithHeaders<Execution> getTradeHistory(
+            @HeaderParam("api-key") String apiKey,
             @HeaderParam("api-signature") ParamsDigest signer,
-            @HeaderParam("api-nonce") SynchronizedValueFactory<Long> nonce,
+            @HeaderParam("api-expires") SynchronizedValueFactory<Long> nonce,
             @QueryParam("filter") String filter
     ) throws IOException;
 }
