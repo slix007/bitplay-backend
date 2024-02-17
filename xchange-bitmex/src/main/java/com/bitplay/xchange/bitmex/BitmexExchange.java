@@ -1,13 +1,13 @@
 package com.bitplay.xchange.bitmex;
 
-import com.bitplay.xchange.bitmex.service.BitmexTradeService;
 import com.bitplay.xchange.BaseExchange;
 import com.bitplay.xchange.Exchange;
 import com.bitplay.xchange.ExchangeSpecification;
 import com.bitplay.xchange.bitmex.service.BitmexAccountService;
 import com.bitplay.xchange.bitmex.service.BitmexMarketDataService;
 import com.bitplay.xchange.bitmex.service.BitmexStateService;
-import com.bitplay.xchange.utils.nonce.TimestampIncrementingNonceFactory;
+import com.bitplay.xchange.bitmex.service.BitmexTradeService;
+import com.bitplay.xchange.utils.nonce.CurrentTimeSecondsPlus30NonceFactory;
 import si.mazi.rescu.SynchronizedValueFactory;
 
 /**
@@ -15,7 +15,7 @@ import si.mazi.rescu.SynchronizedValueFactory;
  */
 public class BitmexExchange extends BaseExchange implements Exchange {
 
-    private SynchronizedValueFactory<Long> nonceFactory = new TimestampIncrementingNonceFactory();
+    private SynchronizedValueFactory<Long> nonceFactory = new CurrentTimeSecondsPlus30NonceFactory();
 
     private final BitmexStateService bitmexStateService = new BitmexStateService();
 
