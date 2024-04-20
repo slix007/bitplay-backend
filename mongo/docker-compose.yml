@@ -11,6 +11,6 @@ services:
     volumes:
         - '/home/s/wsf/bitplay-backend/mongo/data/mongod.conf:/etc/mongod.conf'
         - '/home/s/wsf/bitplay-backend/mongo/data/db:/data/db'
-        - '/home/s/wsf/bitplay-backend/mongo/data/mongodb:/var/lib/mongodb.'
+        - '/home/s/wsf/bitplay-backend/mongo/data/mongodb:/var/lib/mongodb'
     ports:
         - '26459:27017'
